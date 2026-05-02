@@ -1,16 +1,44 @@
-import { Link } from "react-router-dom";
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import Layout from "@/components/site/Layout";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import logo from "@/assets/ncfrmi-logo.png";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function AuthPage({ mode }: { mode: "login" | "register" }) {
   const isLogin = mode === "login";
-  const onSubmit = (e: React.FormEvent) => {
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+
+  const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    toast({ title: isLogin ? "Sign-in coming soon" : "Account creation coming soon", description: "Connect Lovable Cloud to enable secure authentication." });
+    const f = new FormData(e.currentTarget);
+    const email = String(f.get("email") || "");
+    const password = String(f.get("password") || "");
+    setLoading(true);
+    try {
+      if (isLogin) {
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+        toast.success("Signed in");
+        navigate("/dashboard");
+      } else {
+        const full_name = String(f.get("full_name") || "");
+        const phone = String(f.get("phone") || "");
+        const { error } = await supabase.auth.signUp({
+          email, password,
+          options: { emailRedirectTo: `${window.location.origin}/dashboard`, data: { full_name, phone } },
+        });
+        if (error) throw error;
+        toast.success("Account created — you're signed in");
+        navigate("/dashboard");
+      }
+    } catch (err: any) {
+      toast.error(err?.message || "Authentication failed");
+    } finally { setLoading(false); }
   };
 
   return (
@@ -27,12 +55,16 @@ export default function AuthPage({ mode }: { mode: "login" | "register" }) {
             </div>
             <form onSubmit={onSubmit} className="mt-6 grid gap-4">
               {!isLogin && (
-                <div><label className="text-sm font-medium">Full name</label><Input required className="mt-1.5" /></div>
+                <>
+                  <div><label className="text-sm font-medium">Full name</label><Input name="full_name" required className="mt-1.5" /></div>
+                  <div><label className="text-sm font-medium">Phone</label><Input name="phone" required type="tel" className="mt-1.5" placeholder="+234…" /></div>
+                </>
               )}
-              <div><label className="text-sm font-medium">Email</label><Input required type="email" className="mt-1.5" /></div>
-              <div><label className="text-sm font-medium">Phone</label><Input required type="tel" className="mt-1.5" placeholder="+234…" /></div>
-              <div><label className="text-sm font-medium">Password</label><Input required type="password" className="mt-1.5" /></div>
-              <Button type="submit" size="lg" className="mt-2">{isLogin ? "Sign in" : "Create account"}</Button>
+              <div><label className="text-sm font-medium">Email</label><Input name="email" required type="email" className="mt-1.5" /></div>
+              <div><label className="text-sm font-medium">Password</label><Input name="password" required type="password" minLength={8} className="mt-1.5" /></div>
+              <Button type="submit" size="lg" className="mt-2" disabled={loading}>
+                {loading ? "Please wait…" : isLogin ? "Sign in" : "Create account"}
+              </Button>
             </form>
             <div className="mt-5 text-center text-sm text-muted-foreground">
               {isLogin ? (

@@ -3,6 +3,8 @@ import { Link, NavLink } from "react-router-dom";
 import { Menu, X, Phone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import logo from "@/assets/ncfrmi-logo.png";
+import { useAuth } from "@/hooks/useAuth";
+import NotificationBell from "./NotificationBell";
 
 const nav = [
   { to: "/", label: "Home" },
@@ -17,6 +19,7 @@ const nav = [
 
 export const Header = () => {
   const [open, setOpen] = useState(false);
+  const { session } = useAuth();
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border bg-background/85 backdrop-blur supports-[backdrop-filter]:bg-background/70">
@@ -57,12 +60,18 @@ export const Header = () => {
         </nav>
 
         <div className="hidden items-center gap-2 lg:flex">
-          <Button asChild variant="outline" size="sm">
-            <Link to="/login">Sign in</Link>
-          </Button>
-          <Button asChild size="sm">
-            <Link to="/apply">Start application</Link>
-          </Button>
+          {session ? (
+            <>
+              <NotificationBell />
+              <Button asChild variant="outline" size="sm"><Link to="/dashboard">Dashboard</Link></Button>
+              <Button asChild size="sm"><Link to="/dashboard/new">New application</Link></Button>
+            </>
+          ) : (
+            <>
+              <Button asChild variant="outline" size="sm"><Link to="/login">Sign in</Link></Button>
+              <Button asChild size="sm"><Link to="/apply">Start application</Link></Button>
+            </>
+          )}
         </div>
 
         <button
