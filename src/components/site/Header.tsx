@@ -59,12 +59,18 @@ export const Header = () => {
         </nav>
 
         <div className="hidden items-center gap-2 lg:flex">
-          <Button asChild variant="outline" size="sm">
-            <Link to="/login">Sign in</Link>
-          </Button>
-          <Button asChild size="sm">
-            <Link to="/apply">Start application</Link>
-          </Button>
+          {session ? (
+            <>
+              <NotificationBell />
+              <Button asChild variant="outline" size="sm"><Link to="/dashboard">Dashboard</Link></Button>
+              <Button asChild size="sm"><Link to="/dashboard/new">New application</Link></Button>
+            </>
+          ) : (
+            <>
+              <Button asChild variant="outline" size="sm"><Link to="/login">Sign in</Link></Button>
+              <Button asChild size="sm"><Link to="/apply">Start application</Link></Button>
+            </>
+          )}
         </div>
 
         <button
