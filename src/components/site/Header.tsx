@@ -3,6 +3,8 @@ import { Link, NavLink } from "react-router-dom";
 import { Menu, X, Phone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import logo from "@/assets/ncfrmi-logo.png";
+import { useAuth } from "@/hooks/useAuth";
+import NotificationBell from "./NotificationBell";
 
 const nav = [
   { to: "/", label: "Home" },

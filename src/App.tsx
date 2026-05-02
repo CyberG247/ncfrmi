@@ -3,6 +3,8 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { AuthProvider } from "@/hooks/useAuth";
+import ProtectedRoute from "@/components/site/ProtectedRoute";
 import Index from "./pages/Index.tsx";
 import NotFound from "./pages/NotFound.tsx";
 import About from "./pages/About.tsx";
@@ -14,6 +16,9 @@ import News from "./pages/News.tsx";
 import Report from "./pages/Report.tsx";
 import Contact from "./pages/Contact.tsx";
 import AuthPage from "./pages/AuthPage.tsx";
+import Dashboard from "./pages/Dashboard.tsx";
+import NewApplication from "./pages/NewApplication.tsx";
+import ApplicationDetail from "./pages/ApplicationDetail.tsx";
 
 const queryClient = new QueryClient();
 
@@ -23,21 +28,25 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/about" element={<About />} />
-          <Route path="/services" element={<Services />} />
-          <Route path="/apply" element={<Apply />} />
-          <Route path="/idp-camps" element={<IdpCamps />} />
-          <Route path="/offices" element={<Offices />} />
-          <Route path="/news" element={<News />} />
-          <Route path="/report" element={<Report />} />
-          <Route path="/contact" element={<Contact />} />
-          <Route path="/login" element={<AuthPage mode="login" />} />
-          <Route path="/register" element={<AuthPage mode="register" />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <AuthProvider>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/about" element={<About />} />
+            <Route path="/services" element={<Services />} />
+            <Route path="/apply" element={<Apply />} />
+            <Route path="/idp-camps" element={<IdpCamps />} />
+            <Route path="/offices" element={<Offices />} />
+            <Route path="/news" element={<News />} />
+            <Route path="/report" element={<Report />} />
+            <Route path="/contact" element={<Contact />} />
+            <Route path="/login" element={<AuthPage mode="login" />} />
+            <Route path="/register" element={<AuthPage mode="register" />} />
+            <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+            <Route path="/dashboard/new" element={<ProtectedRoute><NewApplication /></ProtectedRoute>} />
+            <Route path="/dashboard/applications/:id" element={<ProtectedRoute><ApplicationDetail /></ProtectedRoute>} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
