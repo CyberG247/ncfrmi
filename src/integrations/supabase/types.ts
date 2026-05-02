@@ -14,16 +14,199 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      application_events: {
+        Row: {
+          actor_id: string | null
+          application_id: string
+          created_at: string
+          event_type: string
+          from_status: Database["public"]["Enums"]["application_status"] | null
+          id: string
+          note: string | null
+          to_status: Database["public"]["Enums"]["application_status"] | null
+        }
+        Insert: {
+          actor_id?: string | null
+          application_id: string
+          created_at?: string
+          event_type: string
+          from_status?: Database["public"]["Enums"]["application_status"] | null
+          id?: string
+          note?: string | null
+          to_status?: Database["public"]["Enums"]["application_status"] | null
+        }
+        Update: {
+          actor_id?: string | null
+          application_id?: string
+          created_at?: string
+          event_type?: string
+          from_status?: Database["public"]["Enums"]["application_status"] | null
+          id?: string
+          note?: string | null
+          to_status?: Database["public"]["Enums"]["application_status"] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "application_events_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      applications: {
+        Row: {
+          created_at: string
+          full_name: string
+          id: string
+          lga: string | null
+          phone: string | null
+          reason: string | null
+          reference: string
+          state: string | null
+          status: Database["public"]["Enums"]["application_status"]
+          type: Database["public"]["Enums"]["application_type"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          full_name: string
+          id?: string
+          lga?: string | null
+          phone?: string | null
+          reason?: string | null
+          reference?: string
+          state?: string | null
+          status?: Database["public"]["Enums"]["application_status"]
+          type: Database["public"]["Enums"]["application_type"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          full_name?: string
+          id?: string
+          lga?: string | null
+          phone?: string | null
+          reason?: string | null
+          reference?: string
+          state?: string | null
+          status?: Database["public"]["Enums"]["application_status"]
+          type?: Database["public"]["Enums"]["application_type"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      notifications: {
+        Row: {
+          application_id: string | null
+          body: string | null
+          created_at: string
+          id: string
+          read: boolean
+          title: string
+          user_id: string
+        }
+        Insert: {
+          application_id?: string | null
+          body?: string | null
+          created_at?: string
+          id?: string
+          read?: boolean
+          title: string
+          user_id: string
+        }
+        Update: {
+          application_id?: string | null
+          body?: string | null
+          created_at?: string
+          id?: string
+          read?: boolean
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          full_name: string | null
+          id: string
+          phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          full_name?: string | null
+          id: string
+          phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          full_name?: string | null
+          id?: string
+          phone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "officer" | "applicant"
+      application_status:
+        | "submitted"
+        | "under_review"
+        | "documents_required"
+        | "interview_scheduled"
+        | "approved"
+        | "rejected"
+        | "closed"
+      application_type: "asylum" | "refugee" | "idp" | "returnee"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +333,18 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "officer", "applicant"],
+      application_status: [
+        "submitted",
+        "under_review",
+        "documents_required",
+        "interview_scheduled",
+        "approved",
+        "rejected",
+        "closed",
+      ],
+      application_type: ["asylum", "refugee", "idp", "returnee"],
+    },
   },
 } as const
