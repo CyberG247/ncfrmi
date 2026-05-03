@@ -1,9 +1,13 @@
-import { Link, useSearchParams } from "react-router-dom";
+import { useState } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import Layout from "@/components/site/Layout";
 import PageHero from "@/components/site/PageHero";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ArrowRight, ShieldCheck, Users, HeartHandshake, FileText } from "lucide-react";
+import ApplicationReceivedDialog from "@/components/site/ApplicationReceivedDialog";
+import { toast } from "sonner";
+import { browserNotify, ensureNotificationPermission } from "@/lib/notify";
 
 const types = [
   { id: "asylum", icon: ShieldCheck, title: "Asylum Application", desc: "For persons fleeing persecution and seeking international protection in Nigeria.", time: "15–25 minutes" },
@@ -25,6 +29,19 @@ const steps = [
 export default function Apply() {
   const [params] = useSearchParams();
   const preset = params.get("type");
+  const navigate = useNavigate();
+  const [open, setOpen] = useState(false);
+  const [activeType, setActiveType] = useState<string | null>(null);
+
+  const handleStart = async (id: string, title: string) => {
+    setActiveType(id);
+    setOpen(true);
+    toast.success("Application received", {
+      description: `Your ${title} request has been received. You will be notified of progress.`,
+    });
+    const allowed = await ensureNotificationPermission();
+    if (allowed) browserNotify("NCFRMI — Application Received", `Your ${title} request was received. We'll keep you updated.`);
+  };
 
   return (
     <Layout>
@@ -49,7 +66,7 @@ export default function Apply() {
                   </div>
                 </div>
                 <div className="mt-5 flex gap-3">
-                  <Button asChild className="flex-1"><Link to={`/register?type=${id}`}>Start <ArrowRight className="ml-1 h-4 w-4" /></Link></Button>
+                  <Button onClick={() => handleStart(id, title)} className="flex-1">Start <ArrowRight className="ml-1 h-4 w-4" /></Button>
                   <Button asChild variant="outline" className="flex-1"><Link to="/login">Continue saved</Link></Button>
                 </div>
               </CardContent>
@@ -71,6 +88,13 @@ export default function Apply() {
           </div>
         </div>
       </section>
+
+      <ApplicationReceivedDialog
+        open={open}
+        onOpenChange={setOpen}
+        continueLabel="Proceed to registration"
+        onContinue={() => activeType && navigate(`/register?type=${activeType}`)}
+      />
     </Layout>
   );
 }

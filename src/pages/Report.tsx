@@ -6,16 +6,22 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { AlertTriangle } from "lucide-react";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "sonner";
+import ApplicationReceivedDialog from "@/components/site/ApplicationReceivedDialog";
+import { browserNotify, ensureNotificationPermission } from "@/lib/notify";
 
 const categories = ["Displacement", "Missing Persons", "Urgent Humanitarian Need", "Protection Concern", "Other"];
 
 export default function Report() {
   const [cat, setCat] = useState(categories[0]);
+  const [open, setOpen] = useState(false);
 
-  const onSubmit = (e: React.FormEvent) => {
+  const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast({ title: "Report received", description: "Our zonal team has been notified and will respond." });
+    setOpen(true);
+    toast.success("Report received", { description: "Our zonal team has been notified and will respond." });
+    const allowed = await ensureNotificationPermission();
+    if (allowed) browserNotify("NCFRMI — Report Received", "Your report has been received. We will notify you of progress.");
     (e.target as HTMLFormElement).reset();
   };
 
@@ -64,6 +70,13 @@ export default function Report() {
           </Card>
         </div>
       </section>
+      <ApplicationReceivedDialog
+        open={open}
+        onOpenChange={setOpen}
+        title="Report Received"
+        message="Your incident report has been received. Our zonal response team has been notified and you will receive progress updates via email, SMS, and in-app notifications."
+        continueLabel="Done"
+      />
     </Layout>
   );
 }
