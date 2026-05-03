@@ -1,11 +1,16 @@
 import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
 import { ArrowRight, ShieldCheck, FileText, AlertTriangle, MapPin, Users, HeartHandshake, Languages, Bot, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import Layout from "@/components/site/Layout";
-import hero from "@/assets/hero-humanitarian.jpg";
+import hero1 from "@/assets/hero-1.png";
+import hero2 from "@/assets/hero-2.png";
+import hero3 from "@/assets/hero-3.png";
 import logo from "@/assets/ncfrmi-logo.png";
 import commissioner from "@/assets/commissioner.jpg";
+
+const heroSlides = [hero1, hero2, hero3];
 
 const services = [
   { icon: ShieldCheck, title: "Protection & Asylum", desc: "Status determination, protection orders, and safe haven for those fleeing persecution." },
@@ -26,11 +31,25 @@ const stats = [
 const partners = ["UNHCR Nigeria", "IOM", "NEMA", "ICRC", "WFP", "UNICEF"];
 
 export default function Index() {
+  const [slide, setSlide] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setSlide((s) => (s + 1) % heroSlides.length), 2000);
+    return () => clearInterval(id);
+  }, []);
   return (
     <Layout>
       {/* HERO */}
       <section className="relative overflow-hidden">
-        <img src={hero} alt="" className="absolute inset-0 h-full w-full object-cover" width={1920} height={1080} />
+        {heroSlides.map((src, i) => (
+          <img
+            key={i}
+            src={src}
+            alt=""
+            className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-1000 ${i === slide ? "opacity-100" : "opacity-0"}`}
+            width={1920}
+            height={1080}
+          />
+        ))}
         <div className="absolute inset-0 bg-gradient-overlay" />
         <div className="relative">
           <div className="container-page py-24 sm:py-32 lg:py-40">
