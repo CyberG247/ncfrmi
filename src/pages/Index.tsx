@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import Layout from "@/components/site/Layout";
 import hero from "@/assets/hero-humanitarian.jpg";
 import logo from "@/assets/ncfrmi-logo.png";
+import commissioner from "@/assets/commissioner.jpg";
 
 const services = [
   { icon: ShieldCheck, title: "Protection & Asylum", desc: "Status determination, protection orders, and safe haven for those fleeing persecution." },
@@ -76,8 +77,23 @@ export default function Index() {
       <section className="bg-gradient-band">
         <div className="container-page grid gap-10 py-20 lg:grid-cols-[1fr_2fr] lg:items-center">
           <div className="flex flex-col items-center text-center lg:items-start lg:text-left">
-            <img src={logo} alt="NCFRMI seal" className="h-32 w-32 object-contain" width={128} height={128} />
-            <div className="mt-5 font-display text-lg font-bold">Hon. Aliyu Tijani Ahmed</div>
+            <div className="relative">
+              <img
+                src={commissioner}
+                alt="Hon. Aliyu Tijani Ahmed, Federal Commissioner of NCFRMI"
+                className="h-56 w-56 rounded-2xl object-cover shadow-elegant ring-4 ring-primary/15"
+                width={224}
+                height={224}
+              />
+              <img
+                src={logo}
+                alt="NCFRMI seal"
+                className="absolute -bottom-4 -right-4 h-16 w-16 rounded-full border-4 border-background bg-background object-contain shadow-card"
+                width={64}
+                height={64}
+              />
+            </div>
+            <div className="mt-7 font-display text-lg font-bold">Hon. Aliyu Tijani Ahmed</div>
             <div className="text-sm text-muted-foreground">Federal Commissioner / CEO</div>
           </div>
           <div>
