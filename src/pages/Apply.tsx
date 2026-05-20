@@ -1,20 +1,18 @@
 import { useState } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import Layout from "@/components/site/Layout";
 import PageHero from "@/components/site/PageHero";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ArrowRight, ShieldCheck, Users, HeartHandshake, FileText } from "lucide-react";
-import ApplicationReceivedDialog from "@/components/site/ApplicationReceivedDialog";
-import { toast } from "sonner";
-import { browserNotify, ensureNotificationPermission } from "@/lib/notify";
+import ApplicationFormDialog from "@/components/site/ApplicationFormDialog";
 
 const types = [
   { id: "asylum", icon: ShieldCheck, title: "Asylum Application", desc: "For persons fleeing persecution and seeking international protection in Nigeria.", time: "15–25 minutes" },
   { id: "refugee", icon: FileText, title: "Refugee Status Request", desc: "For recognition of refugee status under Nigerian and international law.", time: "20 minutes" },
   { id: "idp", icon: Users, title: "IDP Registration", desc: "For Nigerians displaced within the country due to conflict or disaster.", time: "10–15 minutes" },
   { id: "returnee", icon: HeartHandshake, title: "Returnee Reintegration", desc: "For Nigerian returnees seeking livelihood and reintegration support.", time: "15 minutes" },
-];
+] as const;
 
 const steps = [
   "Account Creation",
@@ -29,18 +27,12 @@ const steps = [
 export default function Apply() {
   const [params] = useSearchParams();
   const preset = params.get("type");
-  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
-  const [activeType, setActiveType] = useState<string | null>(null);
+  const [active, setActive] = useState<{ id: typeof types[number]["id"]; title: string } | null>(null);
 
-  const handleStart = async (id: string, title: string) => {
-    setActiveType(id);
+  const handleStart = (id: typeof types[number]["id"], title: string) => {
+    setActive({ id, title });
     setOpen(true);
-    toast.success("Application received", {
-      description: `Your ${title} request has been received. You will be notified of progress.`,
-    });
-    const allowed = await ensureNotificationPermission();
-    if (allowed) browserNotify("NCFRMI — Application Received", `Your ${title} request was received. We'll keep you updated.`);
   };
 
   return (
@@ -89,12 +81,14 @@ export default function Apply() {
         </div>
       </section>
 
-      <ApplicationReceivedDialog
-        open={open}
-        onOpenChange={setOpen}
-        continueLabel="Proceed to registration"
-        onContinue={() => activeType && navigate(`/register?type=${activeType}`)}
-      />
+      {active && (
+        <ApplicationFormDialog
+          open={open}
+          onOpenChange={setOpen}
+          type={active.id}
+          typeLabel={active.title}
+        />
+      )}
     </Layout>
   );
 }

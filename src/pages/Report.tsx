@@ -15,13 +15,16 @@ const categories = ["Displacement", "Missing Persons", "Urgent Humanitarian Need
 export default function Report() {
   const [cat, setCat] = useState(categories[0]);
   const [open, setOpen] = useState(false);
+  const [reference, setReference] = useState("");
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const ref = `NCF-RPT-${new Date().getFullYear().toString().slice(-2)}-${Math.random().toString(36).slice(2,7).toUpperCase()}`;
+    setReference(ref);
     setOpen(true);
-    toast.success("Report received", { description: "Our zonal team has been notified and will respond." });
+    toast.success("Report received", { description: `Reference ${ref} — our zonal team has been notified.` });
     const allowed = await ensureNotificationPermission();
-    if (allowed) browserNotify("NCFRMI — Report Received", "Your report has been received. We will notify you of progress.");
+    if (allowed) browserNotify("NCFRMI — Report Acknowledged", `Ref ${ref}. A response team has been notified.`);
     (e.target as HTMLFormElement).reset();
   };
 
@@ -73,8 +76,9 @@ export default function Report() {
       <ApplicationReceivedDialog
         open={open}
         onOpenChange={setOpen}
-        title="Report Received"
-        message="Your incident report has been received. Our zonal response team has been notified and you will receive progress updates via email, SMS, and in-app notifications."
+        title="Report Acknowledged"
+        reference={reference}
+        message={`Your ${cat.toLowerCase()} report has been received. Our zonal response team has been notified and you will receive progress updates via email, SMS, and in-app notifications.`}
         continueLabel="Done"
       />
     </Layout>
