@@ -5,12 +5,7 @@ export default function SplashScreen({ minDuration = 3000 }: { minDuration?: num
   const [visible, setVisible] = useState(true);
 
   useEffect(() => {
-    const seen = sessionStorage.getItem("ncfrmi_splash_seen");
-    if (seen) { setVisible(false); return; }
-    const t = setTimeout(() => {
-      sessionStorage.setItem("ncfrmi_splash_seen", "1");
-      setVisible(false);
-    }, minDuration);
+    const t = setTimeout(() => setVisible(false), minDuration);
     return () => clearTimeout(t);
   }, [minDuration]);
 
