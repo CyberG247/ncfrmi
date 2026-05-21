@@ -82,7 +82,7 @@ export default function ApplicationFormDialog({ open, onOpenChange, type, typeLa
   return (
     <>
       <Dialog open={open} onOpenChange={(o) => { onOpenChange(o); if (!o) reset(); }}>
-        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="w-[calc(100%-1.5rem)] sm:max-w-xl md:max-w-2xl max-h-[88vh] overflow-y-auto p-4 sm:p-6">
           <div className="flex items-center gap-3 border-b border-border pb-3">
             <img src={logo} alt="NCFRMI" className="h-12 w-12 object-contain" />
             <div>

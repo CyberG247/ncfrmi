@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -6,6 +7,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/hooks/useAuth";
 import ProtectedRoute from "@/components/site/ProtectedRoute";
 import SplashScreen from "@/components/site/SplashScreen";
+import { supabase } from "@/integrations/supabase/client";
 import Index from "./pages/Index.tsx";
 import NotFound from "./pages/NotFound.tsx";
 import About from "./pages/About.tsx";
@@ -23,10 +25,26 @@ import ApplicationDetail from "./pages/ApplicationDetail.tsx";
 
 const queryClient = new QueryClient();
 
-const App = () => (
+const App = () => {
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    // Preload critical data (auth session) before hiding splash.
+    const start = Date.now();
+    supabase.auth.getSession().finally(() => {
+      // Ensure at least a brief moment so the splash doesn't flash off instantly on fast networks.
+      const elapsed = Date.now() - start;
+      const wait = Math.max(0, 200 - elapsed);
+      setTimeout(() => { if (!cancelled) setReady(true); }, wait);
+    });
+    return () => { cancelled = true; };
+  }, []);
+
+  return (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <SplashScreen minDuration={3000} />
+      <SplashScreen minDuration={3000} ready={ready} />
       <Toaster />
       <Sonner />
       <BrowserRouter>
@@ -52,6 +70,7 @@ const App = () => (
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
-);
+  );
+};
 
 export default App;
