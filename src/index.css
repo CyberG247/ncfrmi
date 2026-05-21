@@ -115,6 +115,7 @@
   }
   .bg-gradient-hero {
     background: var(--gradient-hero);
+    background-size: 200% 200%;
   }
   .bg-gradient-overlay {
     background: var(--gradient-overlay);
@@ -131,4 +132,102 @@
   .transition-base {
     transition: all var(--transition-base);
   }
+
+  /* Hover lift card */
+  .hover-lift {
+    @apply transition-all duration-300 ease-out;
+  }
+  .hover-lift:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 24px 50px -24px hsl(var(--primary) / 0.35), 0 8px 20px -10px hsl(20 18% 14% / 0.12);
+  }
+
+  /* Glow on hover */
+  .hover-glow {
+    @apply transition-all duration-300;
+  }
+  .hover-glow:hover {
+    box-shadow: 0 0 0 4px hsl(var(--primary) / 0.12), 0 12px 30px -12px hsl(var(--primary) / 0.45);
+  }
+
+  /* Image zoom wrapper */
+  .img-zoom {
+    @apply overflow-hidden;
+  }
+  .img-zoom img {
+    @apply transition-transform duration-[1200ms] ease-out;
+  }
+  .img-zoom:hover img {
+    transform: scale(1.06);
+  }
+
+  /* Animated underline for nav links */
+  .link-underline {
+    position: relative;
+  }
+  .link-underline::after {
+    content: "";
+    position: absolute;
+    left: 12px;
+    right: 12px;
+    bottom: 6px;
+    height: 2px;
+    background: hsl(var(--primary));
+    transform: scaleX(0);
+    transform-origin: right;
+    transition: transform 300ms cubic-bezier(0.22,1,0.36,1);
+  }
+  .link-underline:hover::after,
+  .link-underline.is-active::after {
+    transform: scaleX(1);
+    transform-origin: left;
+  }
+
+  /* Scroll reveal */
+  .reveal {
+    opacity: 0;
+    transform: translateY(24px);
+    transition: opacity 700ms cubic-bezier(0.22,1,0.36,1), transform 700ms cubic-bezier(0.22,1,0.36,1);
+    will-change: opacity, transform;
+  }
+  .reveal.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  .reveal-scale { transform: scale(0.96); }
+  .reveal-scale.is-visible { transform: scale(1); }
+  .reveal-blur { filter: blur(10px); }
+  .reveal-blur.is-visible { filter: blur(0); }
+
+  /* Shimmer text/background */
+  .bg-shimmer {
+    background: linear-gradient(90deg, hsl(var(--muted)) 0%, hsl(var(--muted)/0.6) 40%, hsl(var(--background)) 50%, hsl(var(--muted)/0.6) 60%, hsl(var(--muted)) 100%);
+    background-size: 200% 100%;
+  }
+
+  /* Animated gradient hero */
+  .hero-animated {
+    background: var(--gradient-hero);
+    background-size: 200% 200%;
+    animation: gradient-shift 14s ease infinite;
+  }
+
+  /* Soft floating particles */
+  .particle {
+    position: absolute;
+    border-radius: 9999px;
+    background: hsl(var(--primary-foreground) / 0.18);
+    filter: blur(2px);
+    pointer-events: none;
+  }
 }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+  .reveal { opacity: 1 !important; transform: none !important; filter: none !important; }
+}
+
