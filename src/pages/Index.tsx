@@ -113,7 +113,7 @@ export default function Index() {
                   end={s.value}
                   prefix={s.prefix ?? ""}
                   suffix={s.suffix ?? ""}
-                  decimals={(s as { decimals?: number }).decimals ?? 0}
+                  decimals={s.decimals ?? 0}
                 />
               </div>
               <div className="mt-1 text-sm text-muted-foreground">{s.label}</div>
