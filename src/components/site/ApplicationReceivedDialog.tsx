@@ -36,8 +36,8 @@ export default function ApplicationReceivedDialog({
           </div>
         </div>
         <DialogHeader className="mt-2">
-          <DialogTitle className="text-center font-display text-2xl">{title}</DialogTitle>
-          <DialogDescription className="text-center text-base leading-relaxed">
+          <DialogTitle className="text-center font-display text-xl sm:text-2xl">{title}</DialogTitle>
+          <DialogDescription className="text-center text-sm sm:text-base leading-relaxed">
             {message}
             {reference && (
               <span className="mt-3 block rounded-md border border-dashed border-primary/40 bg-primary/5 px-3 py-2 font-mono text-sm text-primary">
