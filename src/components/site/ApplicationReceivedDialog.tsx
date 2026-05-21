@@ -24,10 +24,10 @@ export default function ApplicationReceivedDialog({
 }: Props) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="w-[calc(100%-1.5rem)] sm:max-w-md p-4 sm:p-6">
         <div className="flex flex-col items-center text-center">
-          <img src={logo} alt="NCFRMI seal" className="h-20 w-20 object-contain drop-shadow" />
-          <div className="mt-2 font-display text-sm font-bold uppercase tracking-wide text-primary">
+          <img src={logo} alt="NCFRMI seal" className="h-16 w-16 sm:h-20 sm:w-20 object-contain drop-shadow" />
+          <div className="mt-2 font-display text-xs sm:text-sm font-bold uppercase tracking-wide text-primary">
             National Commission for Refugees, Migrants & IDPs
           </div>
           <div className="text-[11px] text-muted-foreground">Federal Republic of Nigeria</div>
