@@ -33,7 +33,14 @@ export const Header = () => {
       </div>
       <div className="container-page flex h-20 items-center justify-between gap-4">
         <Link to="/" className="flex items-center gap-3">
-          <img src={logo} alt="NCFRMI seal" className="h-12 w-12 object-contain" width={48} height={48} />
+          <img
+            src={logo}
+            alt="NCFRMI seal"
+            className="h-12 w-12 object-contain animate-spin"
+            style={{ animationDuration: "8s", animationTimingFunction: "linear" }}
+            width={48}
+            height={48}
+          />
           <div className="leading-tight">
             <div className="font-display text-base font-bold text-primary">NCFRMI</div>
             <div className="hidden text-[11px] text-muted-foreground sm:block">
