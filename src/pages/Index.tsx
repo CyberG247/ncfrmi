@@ -23,8 +23,8 @@ const services = [
   { icon: AlertTriangle, title: "Returnee Reintegration", desc: "Support packages and livelihood programmes for Nigerian returnees." },
 ];
 
-const stats: { value: number; suffix?: string; prefix?: string; label: string }[] = [
-  { value: 3.4, suffix: "M+", decimals: 1 as never, label: "IDPs supported across Nigeria" } as never,
+const stats: { value: number; suffix?: string; prefix?: string; decimals?: number; label: string }[] = [
+  { value: 3.4, suffix: "M+", decimals: 1, label: "IDPs supported across Nigeria" },
   { value: 85, suffix: "k+", label: "Refugees & asylum seekers" },
   { value: 37, label: "States & FCT presence" },
   { value: 1989, label: "Established by Decree 52" },
