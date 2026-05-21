@@ -1,6 +1,7 @@
 import { useState } from "react";
 import Layout from "@/components/site/Layout";
 import PageHero from "@/components/site/PageHero";
+import Reveal from "@/components/site/Reveal";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { MapPin, Users } from "lucide-react";
