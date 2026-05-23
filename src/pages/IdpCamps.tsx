@@ -1,21 +1,12 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import Layout from "@/components/site/Layout";
 import PageHero from "@/components/site/PageHero";
 import Reveal from "@/components/site/Reveal";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
-import { MapPin, Users } from "lucide-react";
-
-const camps = [
-  { name: "Bakassi IDP Camp", state: "Borno", region: "North-East", lga: "Maiduguri", capacity: 12000, population: 9800, services: ["Health", "Food", "Shelter", "Education"] },
-  { name: "Dalori Camp I", state: "Borno", region: "North-East", lga: "Konduga", capacity: 18000, population: 16500, services: ["Health", "WASH", "Food"] },
-  { name: "Durumi IDP Settlement", state: "FCT", region: "North-Central", lga: "AMAC", capacity: 4500, population: 3900, services: ["Health", "Education"] },
-  { name: "Wassa Camp", state: "FCT", region: "North-Central", lga: "AMAC", capacity: 3000, population: 2700, services: ["Food", "Shelter"] },
-  { name: "Malkohi Camp", state: "Adamawa", region: "North-East", lga: "Yola South", capacity: 6500, population: 5200, services: ["Health", "Food", "WASH"] },
-  { name: "Geidam Transit Site", state: "Yobe", region: "North-East", lga: "Geidam", capacity: 2200, population: 1700, services: ["Shelter", "NFI"] },
-  { name: "Anguwan Rimi Camp", state: "Kaduna", region: "North-West", lga: "Kaduna North", capacity: 1800, population: 1250, services: ["Food", "Health"] },
-  { name: "Tegina Settlement", state: "Niger", region: "North-Central", lga: "Rafi", capacity: 2400, population: 2100, services: ["Shelter", "Food"] },
-];
+import { MapPin, Users, ArrowRight } from "lucide-react";
+import { idpCamps } from "@/data/idpCamps";
 
 const regions = ["All", "North-East", "North-West", "North-Central", "South-East", "South-West", "South-South"];
 
@@ -23,7 +14,7 @@ export default function IdpCamps() {
   const [q, setQ] = useState("");
   const [region, setRegion] = useState("All");
 
-  const filtered = camps.filter(
+  const filtered = idpCamps.filter(
     (c) =>
       (region === "All" || c.region === region) &&
       (c.name.toLowerCase().includes(q.toLowerCase()) ||
@@ -36,7 +27,7 @@ export default function IdpCamps() {
       <PageHero
         eyebrow="IDP Camps Directory"
         title="Find IDP camps and services across Nigeria"
-        description="Search a directory of registered IDP camps, view capacity and available services."
+        description="Search a directory of registered IDP camps, view capacity and available services. Click any camp to view full details."
       />
       <section className="container-page py-12">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
@@ -60,37 +51,45 @@ export default function IdpCamps() {
           {filtered.map((c, i) => {
             const pct = Math.round((c.population / c.capacity) * 100);
             return (
-              <Reveal key={c.name} delay={(i % 6) * 80} variant="scale">
-                <Card className="group h-full hover-lift hover-glow">
-                  <CardContent className="p-6">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <h3 className="font-display text-lg font-semibold transition-colors group-hover:text-primary">{c.name}</h3>
-                        <div className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
-                          <MapPin className="h-3.5 w-3.5" /> {c.lga}, {c.state} · {c.region}
+              <Reveal key={c.slug} delay={(i % 6) * 80} variant="scale">
+                <Link to={`/idp-camps/${c.slug}`} className="block h-full focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-lg">
+                  <Card className="group h-full hover-lift hover-glow cursor-pointer">
+                    <CardContent className="p-6">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <h3 className="font-display text-lg font-semibold transition-colors group-hover:text-primary">{c.name}</h3>
+                          <div className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
+                            <MapPin className="h-3.5 w-3.5" /> {c.lga}, {c.state} · {c.region}
+                          </div>
+                        </div>
+                        <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-primary">{c.status}</span>
+                      </div>
+                      <div className="mt-4">
+                        <div className="flex items-center justify-between text-xs text-muted-foreground">
+                          <span className="inline-flex items-center gap-1"><Users className="h-3.5 w-3.5" /> {c.population.toLocaleString()} / {c.capacity.toLocaleString()}</span>
+                          <span>{pct}% capacity</span>
+                        </div>
+                        <div className="mt-2 h-2 overflow-hidden rounded-full bg-muted">
+                          <div
+                            className="h-full rounded-full bg-gradient-to-r from-primary to-primary-glow transition-all duration-[1200ms] ease-out"
+                            style={{ width: `${pct}%` }}
+                          />
                         </div>
                       </div>
-                      <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-primary">Active</span>
-                    </div>
-                    <div className="mt-4">
-                      <div className="flex items-center justify-between text-xs text-muted-foreground">
-                        <span className="inline-flex items-center gap-1"><Users className="h-3.5 w-3.5" /> {c.population.toLocaleString()} / {c.capacity.toLocaleString()}</span>
-                        <span>{pct}% capacity</span>
+                      <div className="mt-4 flex flex-wrap gap-1.5">
+                        {c.services.slice(0, 4).map((s) => (
+                          <span key={s} className="rounded-md bg-muted px-2 py-1 text-[11px] font-medium text-foreground/70 transition-colors group-hover:bg-primary/10 group-hover:text-primary">{s}</span>
+                        ))}
+                        {c.services.length > 4 && (
+                          <span className="rounded-md bg-muted px-2 py-1 text-[11px] font-medium text-foreground/60">+{c.services.length - 4}</span>
+                        )}
                       </div>
-                      <div className="mt-2 h-2 overflow-hidden rounded-full bg-muted">
-                        <div
-                          className="h-full rounded-full bg-gradient-to-r from-primary to-primary-glow transition-all duration-[1200ms] ease-out"
-                          style={{ width: `${pct}%` }}
-                        />
+                      <div className="mt-4 inline-flex items-center gap-1 text-xs font-semibold text-primary opacity-0 transition-opacity group-hover:opacity-100">
+                        View camp details <ArrowRight className="h-3.5 w-3.5" />
                       </div>
-                    </div>
-                    <div className="mt-4 flex flex-wrap gap-1.5">
-                      {c.services.map((s) => (
-                        <span key={s} className="rounded-md bg-muted px-2 py-1 text-[11px] font-medium text-foreground/70 transition-colors hover:bg-primary/10 hover:text-primary">{s}</span>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
+                    </CardContent>
+                  </Card>
+                </Link>
               </Reveal>
             );
           })}
