@@ -14,6 +14,7 @@ import About from "./pages/About.tsx";
 import Services from "./pages/Services.tsx";
 import Apply from "./pages/Apply.tsx";
 import IdpCamps from "./pages/IdpCamps.tsx";
+import IdpCampDetail from "./pages/IdpCampDetail.tsx";
 import Offices from "./pages/Offices.tsx";
 import News from "./pages/News.tsx";
 import Report from "./pages/Report.tsx";
