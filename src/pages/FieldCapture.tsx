@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Card } from "@/components/ui/card";
 import { Camera, Fingerprint, CheckCircle2, Loader2, RotateCcw, ShieldCheck, UserPlus } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 const NG_STATES = ["Abia","Adamawa","Akwa Ibom","Anambra","Bauchi","Bayelsa","Benue","Borno","Cross River","Delta","Ebonyi","Edo","Ekiti","Enugu","FCT","Gombe","Imo","Jigawa","Kaduna","Kano","Katsina","Kebbi","Kogi","Kwara","Lagos","Nasarawa","Niger","Ogun","Ondo","Osun","Oyo","Plateau","Rivers","Sokoto","Taraba","Yobe","Zamfara"];
 
@@ -61,10 +62,32 @@ export default function FieldCapture() {
 
   const submit = async () => {
     setSubmitting(true);
-    await new Promise((r) => setTimeout(r, 900));
+    const reference = `NCF-REG-${new Date().getFullYear()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+    const { data: u } = await supabase.auth.getUser();
+    const { error } = await supabase.from("registrants").insert({
+      reference,
+      category: data.type as any,
+      full_name: data.full_name,
+      address: data.address,
+      phone: data.phone,
+      dob: data.dob,
+      gender: data.gender,
+      nationality: data.nationality,
+      state_origin: data.state_origin,
+      lga: data.lga,
+      dependants: Number(data.dependants) || 0,
+      circumstances: data.reason,
+      face_captured: !!face,
+      thumb_captured: !!thumb,
+      captured_by: u.user?.id ?? null,
+    });
     setSubmitting(false);
+    if (error) {
+      toast.error(error.message || "Failed to save registrant");
+      return;
+    }
     setSuccess(true);
-    toast.success("Data has been captured successfully");
+    toast.success(`Data captured — ${reference}`);
   };
 
   const typeLabel = TYPES.find((t) => t.value === data.type)?.label ?? "—";

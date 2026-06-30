@@ -162,6 +162,69 @@ export type Database = {
         }
         Relationships: []
       }
+      registrants: {
+        Row: {
+          address: string
+          captured_by: string | null
+          category: Database["public"]["Enums"]["registrant_category"]
+          circumstances: string
+          created_at: string
+          dependants: number
+          dob: string
+          face_captured: boolean
+          full_name: string
+          gender: string
+          id: string
+          lga: string
+          nationality: string
+          phone: string
+          reference: string
+          state_origin: string
+          thumb_captured: boolean
+          updated_at: string
+        }
+        Insert: {
+          address: string
+          captured_by?: string | null
+          category: Database["public"]["Enums"]["registrant_category"]
+          circumstances: string
+          created_at?: string
+          dependants?: number
+          dob: string
+          face_captured?: boolean
+          full_name: string
+          gender: string
+          id?: string
+          lga: string
+          nationality?: string
+          phone: string
+          reference: string
+          state_origin: string
+          thumb_captured?: boolean
+          updated_at?: string
+        }
+        Update: {
+          address?: string
+          captured_by?: string | null
+          category?: Database["public"]["Enums"]["registrant_category"]
+          circumstances?: string
+          created_at?: string
+          dependants?: number
+          dob?: string
+          face_captured?: boolean
+          full_name?: string
+          gender?: string
+          id?: string
+          lga?: string
+          nationality?: string
+          phone?: string
+          reference?: string
+          state_origin?: string
+          thumb_captured?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -207,6 +270,7 @@ export type Database = {
         | "rejected"
         | "closed"
       application_type: "asylum" | "refugee" | "idp" | "returnee"
+      registrant_category: "idp" | "refugee" | "migrant" | "returnee"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -345,6 +409,7 @@ export const Constants = {
         "closed",
       ],
       application_type: ["asylum", "refugee", "idp", "returnee"],
+      registrant_category: ["idp", "refugee", "migrant", "returnee"],
     },
   },
 } as const
