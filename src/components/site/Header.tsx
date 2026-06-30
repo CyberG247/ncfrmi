@@ -14,6 +14,7 @@ const nav = [
   { to: "/idp-camps", label: "IDP Camps" },
   { to: "/offices", label: "Offices" },
   { to: "/news", label: "News" },
+  { to: "/field-capture", label: "Field Capture" },
   { to: "/contact", label: "Contact" },
 ];
 
