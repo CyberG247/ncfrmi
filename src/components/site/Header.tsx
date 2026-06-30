@@ -15,6 +15,7 @@ const nav = [
   { to: "/offices", label: "Offices" },
   { to: "/news", label: "News" },
   { to: "/field-capture", label: "Field Capture" },
+  { to: "/registrants", label: "Registrants" },
   { to: "/contact", label: "Contact" },
 ];
 
