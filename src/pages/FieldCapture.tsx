@@ -72,8 +72,9 @@ export default function FieldCapture() {
   return (
     <Layout>
       <PageHero
+        eyebrow="Field Operations"
         title="Field Officer — Data Capture"
-        subtitle="Secure on-site enrolment of Migrants, Returnees, Refugees and IDPs with biometric verification."
+        description="Secure on-site enrolment of Migrants, Returnees, Refugees and IDPs with biometric verification."
       />
       <section className="container-page py-10">
         <div className="mx-auto max-w-3xl">
