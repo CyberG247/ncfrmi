@@ -58,6 +58,7 @@ const App = () => {
             <Route path="/apply" element={<Apply />} />
             <Route path="/idp-camps" element={<IdpCamps />} />
             <Route path="/idp-camps/:slug" element={<IdpCampDetail />} />
+            <Route path="/field-capture" element={<FieldCapture />} />
             <Route path="/offices" element={<Offices />} />
             <Route path="/news" element={<News />} />
             <Route path="/report" element={<Report />} />
