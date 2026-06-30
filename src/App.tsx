@@ -15,6 +15,7 @@ import Services from "./pages/Services.tsx";
 import Apply from "./pages/Apply.tsx";
 import IdpCamps from "./pages/IdpCamps.tsx";
 import IdpCampDetail from "./pages/IdpCampDetail.tsx";
+import FieldCapture from "./pages/FieldCapture.tsx";
 import Offices from "./pages/Offices.tsx";
 import News from "./pages/News.tsx";
 import Report from "./pages/Report.tsx";
@@ -57,6 +58,7 @@ const App = () => {
             <Route path="/apply" element={<Apply />} />
             <Route path="/idp-camps" element={<IdpCamps />} />
             <Route path="/idp-camps/:slug" element={<IdpCampDetail />} />
+            <Route path="/field-capture" element={<FieldCapture />} />
             <Route path="/offices" element={<Offices />} />
             <Route path="/news" element={<News />} />
             <Route path="/report" element={<Report />} />
