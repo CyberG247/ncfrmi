@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -26,6 +26,7 @@ import AuthPage from "./pages/AuthPage.tsx";
 import Dashboard from "./pages/Dashboard.tsx";
 import NewApplication from "./pages/NewApplication.tsx";
 import ApplicationDetail from "./pages/ApplicationDetail.tsx";
+import AdminDashboard from "./pages/AdminDashboard.tsx";
 
 const queryClient = new QueryClient();
 
@@ -60,9 +61,9 @@ const App = () => {
             <Route path="/apply" element={<Apply />} />
             <Route path="/idp-camps" element={<IdpCamps />} />
             <Route path="/idp-camps/:slug" element={<IdpCampDetail />} />
-            <Route path="/field-capture" element={<FieldCapture />} />
-            <Route path="/registrants" element={<RegistrantsList />} />
-            <Route path="/registrants/:id" element={<RegistrantDetail />} />
+            <Route path="/field-capture" element={<ProtectedRoute allowedRoles={["officer", "commissioner"]}><FieldCapture /></ProtectedRoute>} />
+            <Route path="/registrants" element={<ProtectedRoute allowedRoles={["officer", "commissioner"]}><RegistrantsList /></ProtectedRoute>} />
+            <Route path="/registrants/:id" element={<ProtectedRoute allowedRoles={["officer", "commissioner"]}><RegistrantDetail /></ProtectedRoute>} />
             <Route path="/offices" element={<Offices />} />
             <Route path="/news" element={<News />} />
             <Route path="/report" element={<Report />} />
@@ -72,6 +73,8 @@ const App = () => {
             <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
             <Route path="/dashboard/new" element={<ProtectedRoute><NewApplication /></ProtectedRoute>} />
             <Route path="/dashboard/applications/:id" element={<ProtectedRoute><ApplicationDetail /></ProtectedRoute>} />
+            <Route path="/admin/dashboard" element={<ProtectedRoute allowedRoles={["commissioner"]}><AdminDashboard /></ProtectedRoute>} />
+            <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>

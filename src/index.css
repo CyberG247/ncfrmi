@@ -68,25 +68,25 @@
   }
 
   .dark {
-    --background: 20 18% 8%;
-    --foreground: 40 20% 96%;
-    --card: 20 18% 10%;
-    --card-foreground: 40 20% 96%;
-    --popover: 20 18% 10%;
-    --popover-foreground: 40 20% 96%;
-    --primary: 158 65% 42%;
-    --primary-foreground: 20 18% 8%;
-    --secondary: 16 20% 30%;
-    --secondary-foreground: 40 20% 96%;
-    --muted: 20 12% 16%;
-    --muted-foreground: 40 10% 65%;
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 240 10% 5.9%;
+    --card-foreground: 0 0% 98%;
+    --popover: 240 10% 5.9%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 158 75% 38%;
+    --primary-foreground: 240 10% 3.9%;
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
     --accent: 0 65% 55%;
-    --accent-foreground: 0 0% 100%;
-    --destructive: 0 62.8% 40%;
-    --destructive-foreground: 40 20% 96%;
-    --border: 20 12% 20%;
-    --input: 20 12% 20%;
-    --ring: 158 65% 42%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 158 75% 38%;
   }
 }
 
@@ -230,5 +230,38 @@
     transition-duration: 0.001ms !important;
   }
   .reveal { opacity: 1 !important; transform: none !important; filter: none !important; }
+}
+
+/* Google Translate UI Custom Overrides */
+iframe.goog-te-banner-frame {
+  display: none !important;
+  visibility: hidden !important;
+}
+body {
+  top: 0 !important;
+}
+.skiptranslate {
+  display: none !important;
+}
+.goog-te-gadget {
+  display: none !important;
+}
+#goog-gt-tt, .goog-te-balloon-frame {
+  display: none !important;
+  visibility: hidden !important;
+}
+#google_translate_element {
+  position: absolute !important;
+  top: -9999px !important;
+  left: -9999px !important;
+  width: 1px !important;
+  height: 1px !important;
+  overflow: hidden !important;
+  opacity: 0 !important;
+}
+.goog-text-highlight {
+  background: transparent !important;
+  box-shadow: none !important;
+  color: inherit !important;
 }
 

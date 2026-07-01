@@ -9,7 +9,7 @@ import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowRight, Search, UserPlus, Users } from "lucide-react";
+import { ArrowRight, Search, UserPlus, Users, Download, FileText } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -50,8 +50,31 @@ export default function RegistrantsList() {
         .order("created_at", { ascending: false })
         .limit(500);
       if (!active) return;
-      if (error) toast.error(error.message);
-      setRows((data ?? []) as Registrant[]);
+
+      let localData: Registrant[] = [];
+      try {
+        localData = JSON.parse(localStorage.getItem("ncfrmi_local_registrants") || "[]");
+      } catch (e) {
+        console.error(e);
+      }
+
+      let merged: Registrant[] = [...localData];
+      if (data) {
+        const localRefs = new Set(localData.map(r => r.reference));
+        const remoteFiltered = (data ?? []).filter((r: any) => !localRefs.has(r.reference));
+        merged = [...localData, ...remoteFiltered] as Registrant[];
+      }
+      merged.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+      if (error) {
+        console.warn("Supabase fetch failed. Using local storage: ", error);
+        if (localData.length === 0) {
+          toast.error(error.message);
+        } else {
+          toast.info("Offline Mode: Showing locally captured registrants.");
+        }
+      }
+      setRows(merged);
       setLoading(false);
     })();
 
@@ -59,11 +82,20 @@ export default function RegistrantsList() {
       .channel("registrants-list")
       .on("postgres_changes", { event: "*", schema: "public", table: "registrants" }, (payload) => {
         setRows((prev) => {
-          if (payload.eventType === "INSERT") return [payload.new as Registrant, ...prev];
-          if (payload.eventType === "UPDATE")
-            return prev.map((r) => (r.id === (payload.new as Registrant).id ? (payload.new as Registrant) : r));
-          if (payload.eventType === "DELETE") return prev.filter((r) => r.id !== (payload.old as Registrant).id);
-          return prev;
+          let updated = [...prev];
+          if (payload.eventType === "INSERT") {
+            const newRec = payload.new as Registrant;
+            if (!updated.some(r => r.reference === newRec.reference)) {
+              updated = [newRec, ...updated];
+            }
+          } else if (payload.eventType === "UPDATE") {
+            const updatedRec = payload.new as Registrant;
+            updated = updated.map((r) => (r.id === updatedRec.id || r.reference === updatedRec.reference ? updatedRec : r));
+          } else if (payload.eventType === "DELETE") {
+            const deletedRec = payload.old as Registrant;
+            updated = updated.filter((r) => r.id !== deletedRec.id && r.reference !== deletedRec.reference);
+          }
+          return updated;
         });
       })
       .subscribe();
@@ -97,6 +129,138 @@ export default function RegistrantsList() {
     return c;
   }, [rows]);
 
+  const exportCSV = () => {
+    if (filtered.length === 0) {
+      toast.info("No records to export.");
+      return;
+    }
+
+    const headers = ["Reference", "Full Name", "Category", "State of Origin", "LGA", "Phone", "Dependants", "Enrolled Date"];
+    const csvContent = [
+      headers.join(","),
+      ...filtered.map((r) => {
+        const row = [
+          `"${r.reference}"`,
+          `"${r.full_name.replace(/"/g, '""')}"`,
+          `"${r.category.toUpperCase()}"`,
+          `"${r.state_origin.replace(/"/g, '""')}"`,
+          `"${r.lga.replace(/"/g, '""')}"`,
+          `"${r.phone}"`,
+          r.dependants,
+          `"${new Date(r.created_at).toLocaleDateString()}"`
+        ];
+        return row.join(",");
+      })
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `ncfrmi_registrants_export_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success("CSV exported successfully");
+  };
+
+  const exportPDF = () => {
+    if (filtered.length === 0) {
+      toast.info("No records to export.");
+      return;
+    }
+
+    import("jspdf").then(({ jsPDF }) => {
+      const doc = new jsPDF({
+        orientation: "landscape",
+        unit: "mm",
+        format: "a4",
+      });
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(18);
+      doc.text("NCFRMI REGISTRANTS DIRECTORY REPORT", 14, 18);
+      
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10);
+      doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 25);
+      doc.text(`Total Records: ${filtered.length}`, 14, 30);
+
+      const cols = [
+        { name: "Reference", x: 14, w: 45 },
+        { name: "Full Name", x: 59, w: 60 },
+        { name: "Category", x: 119, w: 25 },
+        { name: "State / LGA", x: 144, w: 50 },
+        { name: "Phone", x: 194, w: 35 },
+        { name: "Deps", x: 229, w: 15 },
+        { name: "Enrolled", x: 244, w: 38 },
+      ];
+
+      doc.setFillColor(11, 27, 43);
+      doc.rect(14, 35, 268, 8, "F");
+
+      doc.setTextColor(255, 255, 255);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(9);
+      cols.forEach((col) => {
+        doc.text(col.name, col.x + 2, 40);
+      });
+
+      let y = 43;
+      doc.setTextColor(0, 0, 0);
+      doc.setFont("helvetica", "normal");
+
+      filtered.forEach((r, index) => {
+        if (y > 185) {
+          doc.addPage();
+          doc.setFillColor(11, 27, 43);
+          doc.rect(14, 15, 268, 8, "F");
+          doc.setTextColor(255, 255, 255);
+          doc.setFont("helvetica", "bold");
+          cols.forEach((col) => {
+            doc.text(col.name, col.x + 2, 20);
+          });
+          y = 23;
+          doc.setTextColor(0, 0, 0);
+          doc.setFont("helvetica", "normal");
+        }
+
+        if (index % 2 === 1) {
+          doc.setFillColor(245, 247, 250);
+          doc.rect(14, y, 268, 7, "F");
+        }
+
+        doc.setDrawColor(220, 225, 230);
+        doc.line(14, y + 7, 282, y + 7);
+
+        doc.text(r.reference, cols[0].x + 2, y + 5);
+        
+        let displayName = r.full_name;
+        if (displayName.length > 28) displayName = displayName.slice(0, 25) + "...";
+        doc.text(displayName, cols[1].x + 2, y + 5);
+        
+        doc.text(r.category.toUpperCase(), cols[2].x + 2, y + 5);
+        
+        const origin = `${r.state_origin} / ${r.lga}`;
+        let displayOrigin = origin;
+        if (displayOrigin.length > 24) displayOrigin = displayOrigin.slice(0, 22) + "...";
+        doc.text(displayOrigin, cols[3].x + 2, y + 5);
+        
+        doc.text(r.phone, cols[4].x + 2, y + 5);
+        doc.text(String(r.dependants), cols[5].x + 2, y + 5);
+        doc.text(new Date(r.created_at).toLocaleDateString(), cols[6].x + 2, y + 5);
+
+        y += 7;
+      });
+
+      doc.save(`ncfrmi_registrants_report_${new Date().toISOString().slice(0, 10)}.pdf`);
+      toast.success("PDF report generated successfully");
+    }).catch((err) => {
+      console.error(err);
+      toast.error("Failed to load PDF library");
+    });
+  };
+
   return (
     <Layout>
       <PageHero
@@ -123,9 +287,17 @@ export default function RegistrantsList() {
             <div className="flex items-center gap-2 font-display text-lg font-semibold text-primary">
               <Users className="h-5 w-5" /> {filtered.length} registrant{filtered.length === 1 ? "" : "s"}
             </div>
-            <Button asChild size="sm">
-              <Link to="/field-capture"><UserPlus className="mr-2 h-4 w-4" /> New enrolment</Link>
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button onClick={exportCSV} variant="outline" size="sm" className="h-9">
+                <Download className="mr-2 h-4 w-4" /> Export CSV
+              </Button>
+              <Button onClick={exportPDF} variant="outline" size="sm" className="h-9">
+                <FileText className="mr-2 h-4 w-4" /> Export PDF
+              </Button>
+              <Button asChild size="sm" className="h-9">
+                <Link to="/field-capture"><UserPlus className="mr-2 h-4 w-4" /> New enrolment</Link>
+              </Button>
+            </div>
           </div>
 
           <div className="mt-4 grid gap-3 md:grid-cols-[1fr_180px_180px]">

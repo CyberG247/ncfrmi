@@ -1,6 +1,7 @@
 import Layout from "@/components/site/Layout";
 import PageHero from "@/components/site/PageHero";
 import { ShieldCheck, FileText, Users, MapPin, HeartHandshake, AlertTriangle } from "lucide-react";
+import Reveal from "@/components/site/Reveal";
 
 const items = [
   { icon: ShieldCheck, title: "Protection & Asylum Services", desc: "Refugee status determination, non-refoulement protection, family tracing and reunification." },
@@ -21,12 +22,18 @@ export default function Services() {
       />
       <section className="container-page py-16">
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {items.map(({ icon: Icon, title, desc }) => (
-            <div key={title} className="rounded-xl border border-border bg-card p-6 shadow-card">
-              <div className="inline-flex rounded-lg bg-primary/10 p-3 text-primary"><Icon className="h-5 w-5" /></div>
-              <h3 className="mt-5 font-display text-lg font-semibold">{title}</h3>
-              <p className="mt-2 text-sm text-muted-foreground">{desc}</p>
-            </div>
+          {items.map(({ icon: Icon, title, desc }, i) => (
+            <Reveal key={title} delay={i * 80} variant="scale">
+              <div className="rounded-xl border border-border bg-card p-6 shadow-card hover-lift hover-glow h-full flex flex-col justify-between">
+                <div>
+                  <div className="inline-flex rounded-lg bg-primary/10 p-3 text-primary transition-transform duration-300 group-hover:scale-110">
+                    <Icon className="h-5 w-5" />
+                  </div>
+                  <h3 className="mt-5 font-display text-lg font-semibold">{title}</h3>
+                  <p className="mt-2 text-sm text-muted-foreground">{desc}</p>
+                </div>
+              </div>
+            </Reveal>
           ))}
         </div>
       </section>

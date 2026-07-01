@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import { Link, NavLink } from "react-router-dom";
-import { Menu, X, Phone } from "lucide-react";
+import { Menu, X, Phone, Sun, Moon, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import logo from "@/assets/ncfrmi-logo.png";
 import { useAuth } from "@/hooks/useAuth";
 import NotificationBell from "./NotificationBell";
+import { useTheme } from "@/hooks/useTheme";
 
 const nav = [
   { to: "/", label: "Home" },
@@ -12,17 +13,16 @@ const nav = [
   { to: "/services", label: "Services" },
   { to: "/apply", label: "Apply" },
   { to: "/idp-camps", label: "IDP Camps" },
-  { to: "/offices", label: "Offices" },
   { to: "/news", label: "News" },
-  { to: "/field-capture", label: "Field Capture" },
-  { to: "/registrants", label: "Registrants" },
   { to: "/contact", label: "Contact" },
 ];
 
 export const Header = () => {
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const { session } = useAuth();
+  const { session, role } = useAuth();
+  const { theme, toggleTheme } = useTheme();
+  const [currentLang, setCurrentLang] = useState("en");
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
@@ -30,6 +30,42 @@ export const Header = () => {
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
+
+  useEffect(() => {
+    // Read the active language from the googtrans cookie on load
+    try {
+      const match = document.cookie.match(/googtrans=\/en\/([a-z]{2})/);
+      if (match && match[1]) {
+        setCurrentLang(match[1]);
+      }
+    } catch (e) {
+      console.error("Failed to parse googtrans cookie:", e);
+    }
+  }, []);
+
+  const changeLanguage = (langCode: string) => {
+    setCurrentLang(langCode);
+    try {
+      // 1. Set the googtrans cookie (works across page reloads and helps Google Translate engine pick it up)
+      const domain = window.location.hostname;
+      document.cookie = `googtrans=/en/${langCode}; path=/;`;
+      document.cookie = `googtrans=/en/${langCode}; path=/; domain=${domain};`;
+      document.cookie = `googtrans=/en/${langCode}; path=/; domain=.${domain};`;
+
+      // 2. Trigger the Google Translate dropdown in the DOM
+      const selectEl = document.querySelector(".goog-te-combo") as HTMLSelectElement;
+      if (selectEl) {
+        selectEl.value = langCode;
+        selectEl.dispatchEvent(new Event("change"));
+      } else {
+        // Fallback: Reload the page to force Google Translate to read the cookie and translate
+        window.location.reload();
+      }
+    } catch (e) {
+      console.error("Language change error:", e);
+      toast.error("Failed to apply translation.");
+    }
+  };
 
   return (
     <header
@@ -83,27 +119,100 @@ export const Header = () => {
         </nav>
 
         <div className="hidden items-center gap-2 lg:flex">
-          {session ? (
-            <>
-              <NotificationBell />
-              <Button asChild variant="outline" size="sm" className="hover-lift"><Link to="/dashboard">Dashboard</Link></Button>
-              <Button asChild size="sm" className="hover-lift"><Link to="/dashboard/new">New application</Link></Button>
-            </>
-          ) : (
-            <>
-              <Button asChild variant="outline" size="sm" className="hover-lift"><Link to="/login">Sign in</Link></Button>
-              <Button asChild size="sm" className="hover-lift"><Link to="/apply">Start application</Link></Button>
-            </>
+          {/* Language Selector */}
+          <div className="relative flex items-center gap-1.5 rounded-full border bg-background/50 px-2.5 py-1 text-xs transition-colors hover:bg-background/80">
+            <Globe className="h-3.5 w-3.5 opacity-60" />
+            <select
+              value={currentLang}
+              onChange={(e) => changeLanguage(e.target.value)}
+              className="bg-transparent font-medium focus:outline-none cursor-pointer text-foreground"
+            >
+              <option value="en" className="bg-background text-foreground">English</option>
+              <option value="ha" className="bg-background text-foreground">Hausa</option>
+              <option value="ig" className="bg-background text-foreground">Igbo</option>
+              <option value="yo" className="bg-background text-foreground">Yoruba</option>
+              <option value="ff" className="bg-background text-foreground">Fulani</option>
+              <option value="kr" className="bg-background text-foreground">Kanuri</option>
+            </select>
+          </div>
+
+          {/* Theme Toggle */}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={toggleTheme}
+            className="h-9 w-9 rounded-full transition-transform active:scale-95 hover:bg-muted"
+            aria-label="Toggle theme"
+          >
+            {theme === "dark" ? (
+              <Sun className="h-[1.1rem] w-[1.1rem] text-amber-500" />
+            ) : (
+              <Moon className="h-[1.1rem] w-[1.1rem] text-primary" />
+            )}
+          </Button>
+
+          {session && (
+            <div className="flex items-center gap-2">
+              {role === "commissioner" && (
+                <Button asChild size="sm" className="hover-lift">
+                  <Link to="/admin/dashboard">Admin Dashboard</Link>
+                </Button>
+              )}
+              {role === "officer" && (
+                <>
+                  <Button asChild variant="outline" size="sm" className="hover-lift">
+                    <Link to="/field-capture">Field Capture</Link>
+                  </Button>
+                  <Button asChild size="sm" className="hover-lift">
+                    <Link to="/registrants">Registrants Directory</Link>
+                  </Button>
+                </>
+              )}
+            </div>
           )}
         </div>
 
-        <button
-          className="inline-flex items-center justify-center rounded-md p-2 transition-transform active:scale-90 lg:hidden"
-          onClick={() => setOpen((v) => !v)}
-          aria-label="Toggle menu"
-        >
-          {open ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-        </button>
+        <div className="flex items-center gap-2 lg:hidden">
+          {/* Mobile Theme Toggle */}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={toggleTheme}
+            className="h-9 w-9 rounded-full transition-transform active:scale-95 hover:bg-muted"
+            aria-label="Toggle theme"
+          >
+            {theme === "dark" ? (
+              <Sun className="h-4 w-4 text-amber-500" />
+            ) : (
+              <Moon className="h-4 w-4 text-primary" />
+            )}
+          </Button>
+
+          {/* Mobile Language Selector */}
+          <div className="relative flex items-center gap-1.5 rounded-full border bg-background/50 px-2 py-0.5 text-xs transition-colors hover:bg-background/80">
+            <Globe className="h-3 w-3 opacity-60" />
+            <select
+              value={currentLang}
+              onChange={(e) => changeLanguage(e.target.value)}
+              className="bg-transparent font-medium focus:outline-none cursor-pointer text-foreground max-w-[65px] text-[10px]"
+            >
+              <option value="en" className="bg-background text-foreground">EN</option>
+              <option value="ha" className="bg-background text-foreground">HA</option>
+              <option value="ig" className="bg-background text-foreground">IG</option>
+              <option value="yo" className="bg-background text-foreground">YO</option>
+              <option value="ff" className="bg-background text-foreground">FF</option>
+              <option value="kr" className="bg-background text-foreground">KR</option>
+            </select>
+          </div>
+
+          <button
+            className="inline-flex items-center justify-center rounded-md p-2 transition-transform active:scale-90"
+            onClick={() => setOpen((v) => !v)}
+            aria-label="Toggle menu"
+          >
+            {open ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+          </button>
+        </div>
       </div>
 
       <div
@@ -128,16 +237,29 @@ export const Header = () => {
               {item.label}
             </NavLink>
           ))}
-          <div className="mt-3 flex gap-2">
-            <Button asChild variant="outline" className="flex-1">
-              <Link to="/login" onClick={() => setOpen(false)}>Sign in</Link>
-            </Button>
-            <Button asChild className="flex-1">
-              <Link to="/apply" onClick={() => setOpen(false)}>Apply</Link>
-            </Button>
-          </div>
+          {session && (
+            <div className="mt-3 flex flex-col gap-2">
+              {role === "commissioner" && (
+                <Button asChild className="flex-1">
+                  <Link to="/admin/dashboard" onClick={() => setOpen(false)}>Admin Dashboard</Link>
+                </Button>
+              )}
+              {role === "officer" && (
+                <>
+                  <Button asChild variant="outline" className="flex-1">
+                    <Link to="/field-capture" onClick={() => setOpen(false)}>Field Capture</Link>
+                  </Button>
+                  <Button asChild className="flex-1">
+                    <Link to="/registrants" onClick={() => setOpen(false)}>Registrants Directory</Link>
+                  </Button>
+                </>
+              )}
+            </div>
+          )}
         </div>
       </div>
+      {/* Invisible target element for Google Translate widget */}
+      <div id="google_translate_element" className="absolute -top-[9999px] -left-[9999px] h-px w-px overflow-hidden opacity-0 pointer-events-none" />
     </header>
   );
 };

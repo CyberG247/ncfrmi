@@ -92,10 +92,7 @@ export default function Index() {
                   <Link to="/apply?type=asylum">Apply for Asylum <ArrowRight className="ml-1 h-4 w-4 transition-transform group-hover:translate-x-1" /></Link>
                 </Button>
                 <Button asChild size="lg" variant="outline" className="border-primary-foreground/40 bg-transparent text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground hover-lift">
-                  <Link to="/apply?type=idp">Register as IDP</Link>
-                </Button>
-                <Button asChild size="lg" variant="outline" className="border-primary-foreground/40 bg-accent/90 text-accent-foreground hover:bg-accent hover-lift">
-                  <Link to="/report">Report Displacement</Link>
+                  <Link to="/field-capture">Field Capture</Link>
                 </Button>
               </Reveal>
             </div>

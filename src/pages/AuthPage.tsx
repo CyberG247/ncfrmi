@@ -24,7 +24,11 @@ export default function AuthPage({ mode }: { mode: "login" | "register" }) {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
         toast.success("Signed in");
-        navigate("/dashboard");
+        if (email.includes("commissioner")) {
+          navigate("/admin/dashboard");
+        } else {
+          navigate("/dashboard");
+        }
       } else {
         const full_name = String(f.get("full_name") || "");
         const phone = String(f.get("phone") || "");
@@ -39,6 +43,28 @@ export default function AuthPage({ mode }: { mode: "login" | "register" }) {
     } catch (err: any) {
       toast.error(err?.message || "Authentication failed");
     } finally { setLoading(false); }
+  };
+
+  const onSimulateLogin = async (role: "commissioner" | "officer") => {
+    const email = `${role}@ncfrmi.gov.ng`;
+    setLoading(true);
+    try {
+      const mockUser = { email, role };
+      localStorage.setItem("ncfrmi_simulated_user", JSON.stringify(mockUser));
+
+      const savedRoles = JSON.parse(localStorage.getItem("ncfrmi_user_roles") || "{}");
+      savedRoles[email] = role;
+      localStorage.setItem("ncfrmi_user_roles", JSON.stringify(savedRoles));
+
+      toast.success(`Signed in as simulated ${role}`);
+      
+      // Perform direct page redirect load to force synchronous context initialization on mount
+      window.location.href = role === "commissioner" ? "/admin/dashboard" : "/field-capture";
+    } catch (err: any) {
+      toast.error(err?.message || "Simulation login failed");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -72,6 +98,34 @@ export default function AuthPage({ mode }: { mode: "login" | "register" }) {
               ) : (
                 <>Already have an account? <Link to="/login" className="font-semibold text-primary hover:underline">Sign in</Link></>
               )}
+            </div>
+
+            <div className="mt-6 border-t pt-5">
+              <div className="text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+                Simulator Mode (Quick Access)
+              </div>
+              <div className="grid gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="hover-lift border-primary/25 text-primary bg-primary/5 hover:bg-primary hover:text-white"
+                  onClick={() => onSimulateLogin("commissioner")}
+                  disabled={loading}
+                >
+                  Login as Commissioner (Admin)
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="hover-lift border-accent/25 text-accent bg-accent/5 hover:bg-accent hover:text-white"
+                  onClick={() => onSimulateLogin("officer")}
+                  disabled={loading}
+                >
+                  Login as Field Officer
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
