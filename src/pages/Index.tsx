@@ -94,10 +94,10 @@ export default function Index() {
                 The official platform of the National Commission for Refugees, Migrants and Internally Displaced Persons. Apply, register, and access humanitarian services online.
               </Reveal>
               <Reveal delay={360} className="mt-8 flex flex-wrap gap-3">
-                <Button asChild size="lg" className="bg-primary-foreground text-primary hover:bg-primary-foreground/90 hover-lift">
+                <Button asChild size="lg" className="bg-emerald-650 hover:bg-emerald-700 text-white border border-emerald-650 hover-lift">
                   <Link to="/apply?type=asylum">Apply for Asylum <ArrowRight className="ml-1 h-4 w-4 transition-transform group-hover:translate-x-1" /></Link>
                 </Button>
-                <Button asChild size="lg" className="bg-red-600 hover:bg-red-700 text-white border border-red-600 hover-lift">
+                <Button asChild size="lg" className="bg-white hover:bg-slate-100 text-slate-900 border border-white hover-lift">
                   <Link to="/field-capture">Field Capture</Link>
                 </Button>
               </Reveal>
