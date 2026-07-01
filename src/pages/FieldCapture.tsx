@@ -51,6 +51,56 @@ const playBeep = () => {
   }
 };
 
+const HeadContourSVG = () => (
+  <svg viewBox="0 0 200 200" className="absolute inset-0 w-full h-full text-emerald-500 pointer-events-none z-10" fill="none">
+    {/* Head Outline */}
+    <path
+      d="M100,35 C70,35 60,55 60,85 C60,90 53,92 53,98 C53,104 60,105 60,110 C60,125 75,145 100,145 C125,145 140,125 140,110 C140,105 147,104 147,98 C147,92 140,90 140,85 C140,55 130,35 100,35 Z"
+      stroke="#10b981"
+      strokeWidth="2"
+      strokeDasharray="5,5"
+    />
+    {/* Shoulder Outline */}
+    <path
+      d="M60,140 C45,155 35,170 30,190 L170,190 C165,170 155,155 140,140"
+      stroke="#10b981"
+      strokeWidth="2"
+      strokeDasharray="5,5"
+    />
+  </svg>
+);
+
+const AvatarSVG = () => (
+  <div className="mx-auto h-16 w-16 rounded-full bg-[#e8f6f0] flex items-center justify-center shadow-inner">
+    <svg viewBox="0 0 100 100" className="h-14 w-14">
+      {/* Ears */}
+      <circle cx="23" cy="52" r="7" fill="#d29d78" />
+      <circle cx="77" cy="52" r="7" fill="#d29d78" />
+      
+      {/* Neck */}
+      <path d="M 40,60 L 40,80 L 60,80 L 60,60 Z" fill="#d29d78" />
+      
+      {/* Face */}
+      <circle cx="50" cy="48" r="25" fill="#e0ab85" />
+      
+      {/* Hair */}
+      <path d="M 25,44 C 25,18 75,18 75,44 C 70,42 60,38 50,42 C 40,38 30,42 25,44 Z" fill="#1d124b" />
+      
+      {/* Eyebrows */}
+      <path d="M 33,38 C 37,35 43,36 45,39" stroke="#100b2b" strokeWidth="2.5" fill="none" strokeLinecap="round" />
+      <path d="M 67,38 C 63,35 57,36 55,39" stroke="#100b2b" strokeWidth="2.5" fill="none" strokeLinecap="round" />
+      
+      {/* Eyes */}
+      <circle cx="39" cy="46" r="3" fill="#100b2b" />
+      <circle cx="61" cy="46" r="3" fill="#100b2b" />
+      
+      {/* Smile with teeth */}
+      <path d="M 37,56 Q 50,68 63,56 Z" fill="#ffffff" />
+      <path d="M 37,56 Q 50,68 63,56" stroke="#b17e5a" strokeWidth="1.5" fill="none" />
+    </svg>
+  </div>
+);
+
 export default function FieldCapture() {
   const [step, setStep] = useState(0);
   const [data, setData] = useState<Form>(empty);
@@ -596,11 +646,12 @@ function FaceCapture({ image, onCapture }: { image: string | null; onCapture: (d
 
   useEffect(() => {
     if (scanning && !image) {
-      setFacialInstruction("Please blink and smile...");
-      const t1 = setTimeout(() => setFacialInstruction("Open your mouth slightly..."), 700);
-      const t2 = setTimeout(() => setFacialInstruction("Slowly turn your head left..."), 1400);
-      const t3 = setTimeout(() => setFacialInstruction("Slowly turn your head right..."), 2200);
-      const t4 = setTimeout(() => {
+      setFacialInstruction("Kindly blink your eyes");
+      const t1 = setTimeout(() => setFacialInstruction("Kindly smile"), 600);
+      const t2 = setTimeout(() => setFacialInstruction("Kindly nod your head"), 1200);
+      const t3 = setTimeout(() => setFacialInstruction("Kindly look left"), 1800);
+      const t4 = setTimeout(() => setFacialInstruction("Kindly look right"), 2400);
+      const t5 = setTimeout(() => {
         snap();
       }, 3000);
 
@@ -609,51 +660,62 @@ function FaceCapture({ image, onCapture }: { image: string | null; onCapture: (d
         clearTimeout(t2);
         clearTimeout(t3);
         clearTimeout(t4);
+        clearTimeout(t5);
       };
     }
   }, [scanning, image, isSimulated]);
 
   return (
-    <div className="rounded-lg border border-border p-4">
-      <div className="mb-3 flex items-center justify-between font-display text-sm font-semibold text-primary">
-        <span className="flex items-center gap-2"><Camera className="h-4 w-4" /> Facial Capture</span>
-        {scanning && (
-          <span className="text-[9px] text-amber-600 bg-amber-50 dark:bg-amber-950/20 px-2 py-0.5 rounded animate-pulse font-medium">
-            {isSimulated ? "Simulator Mode: " : ""}{facialInstruction}
-          </span>
-        )}
-      </div>
-      <div className="relative aspect-square w-full overflow-hidden rounded-md bg-slate-900 border border-slate-800">
-        {image ? (
-          <img src={image} alt="Captured face" className="h-full w-full object-cover animate-fade-in" />
-        ) : isSimulated ? (
-          <div className="absolute inset-0 flex flex-col items-center justify-center p-3 text-center">
-            {/* Holographic simulated camera silhouette */}
-            <div className="relative h-28 w-28 rounded-full border border-emerald-500/30 flex items-center justify-center">
-              <div className="absolute inset-2 rounded-full border border-emerald-500/20 border-dashed" />
-              <div className="h-14 w-12 rounded-3xl border-2 border-emerald-500 bg-emerald-500/10 flex flex-col items-center justify-center">
-                <div className="h-3 w-3 rounded-full bg-emerald-500/30 mb-1" />
-                <div className="h-5 w-8 rounded-full bg-emerald-500/20" />
-              </div>
-              <div className="absolute inset-x-0 h-0.5 bg-emerald-500 animate-scanline" />
+    <div className="rounded-lg border border-border p-4 flex flex-col items-center text-center space-y-4">
+      {/* Top Instruction Header */}
+      <h3 className="text-emerald-500 font-display font-bold text-base tracking-wide animate-pulse h-6">
+        {scanning ? facialInstruction : image ? "Verification Completed ✓" : "Initialize Facial Scan"}
+      </h3>
+
+      {/* Circular Camera Preview Frame */}
+      <div className="relative h-48 w-48 rounded-full border-4 border-emerald-500 border-b-transparent p-1 bg-slate-900 shadow-lg flex items-center justify-center transition-all duration-500 overflow-hidden">
+        <div className="relative h-full w-full rounded-full overflow-hidden flex items-center justify-center bg-slate-950">
+          {image ? (
+            <img src={image} alt="Captured face" className="h-full w-full object-cover animate-fade-in" />
+          ) : isSimulated ? (
+            <div className="absolute inset-0 flex flex-col items-center justify-center p-3 text-center">
+              <HeadContourSVG />
+              <div className="absolute left-0 right-0 h-0.5 bg-emerald-500 animate-scanline z-20" />
+              <span className="text-[8px] font-bold text-white bg-black/55 px-2 py-0.5 rounded shadow-sm border border-emerald-500/20 uppercase tracking-wider z-20 animate-pulse mt-12">
+                Simulator
+              </span>
             </div>
-            <span className="text-[10px] font-bold text-emerald-450 uppercase mt-4 tracking-wider animate-pulse">{facialInstruction}</span>
-            <span className="text-[7.5px] text-slate-500 mt-1">Camera disabled · Secure simulator running</span>
-          </div>
-        ) : (
-          <>
-            <video ref={videoRef} className="h-full w-full object-cover transform -scale-x-100" muted playsInline />
-            {scanning && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/15 p-3 text-center">
-                <div className="absolute left-0 right-0 h-0.5 bg-emerald-500 animate-scanline" />
-                <span className="text-[9px] font-bold text-white uppercase bg-black/40 px-2 py-0.5 rounded shadow-sm">{facialInstruction}</span>
-              </div>
-            )}
-          </>
-        )}
+          ) : (
+            <>
+              <video ref={videoRef} className="h-full w-full object-cover transform -scale-x-100" muted playsInline />
+              {scanning && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center p-3 text-center">
+                  <HeadContourSVG />
+                  <div className="absolute left-0 right-0 h-0.5 bg-emerald-500 animate-scanline z-20" />
+                  <span className="text-[8px] font-bold text-white bg-black/55 px-2 py-0.5 rounded shadow-sm border border-emerald-500/20 uppercase tracking-wider z-20 animate-pulse mt-12">
+                    Liveness Check
+                  </span>
+                </div>
+              )}
+            </>
+          )}
+        </div>
       </div>
-      {err && <p className="mt-2 text-[10px] text-amber-500">{err}</p>}
-      <div className="mt-3">
+
+      {/* Step Chain Indicator: [✔] --- [2] */}
+      <div className="flex items-center justify-center gap-3 my-1">
+        <div className={`h-6 w-6 rounded-full flex items-center justify-center text-white ${image ? "bg-emerald-500" : "bg-emerald-500 animate-pulse"} text-xs font-bold`}>
+          {image ? "✓" : "1"}
+        </div>
+        <div className="h-[2px] w-10 bg-zinc-200" />
+        <div className="h-6 w-6 rounded-full bg-zinc-300 text-zinc-600 flex items-center justify-center text-xs font-bold">2</div>
+      </div>
+
+      {/* Animated Avatar at the bottom */}
+      <AvatarSVG />
+
+      {err && <p className="text-[9px] text-amber-500 font-medium">{err}</p>}
+      <div className="w-full pt-1">
         <Button disabled variant="outline" size="sm" className="w-full">
           {image ? "Facial Biometric Verified ✓" : scanning ? "Liveness check active..." : "Awaiting Scanner..."}
         </Button>

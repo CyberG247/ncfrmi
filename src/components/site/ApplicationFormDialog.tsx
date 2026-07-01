@@ -22,6 +22,56 @@ interface Props {
 
 const NG_STATES = ["Abia","Adamawa","Akwa Ibom","Anambra","Bauchi","Bayelsa","Benue","Borno","Cross River","Delta","Ebonyi","Edo","Ekiti","Enugu","FCT","Gombe","Imo","Jigawa","Kaduna","Kano","Katsina","Kebbi","Kogi","Kwara","Lagos","Nasarawa","Niger","Ogun","Ondo","Osun","Oyo","Plateau","Rivers","Sokoto","Taraba","Yobe","Zamfara"];
 
+const HeadContourSVG = () => (
+  <svg viewBox="0 0 200 200" className="absolute inset-0 w-full h-full text-emerald-500 pointer-events-none z-10" fill="none">
+    {/* Head Outline */}
+    <path
+      d="M100,35 C70,35 60,55 60,85 C60,90 53,92 53,98 C53,104 60,105 60,110 C60,125 75,145 100,145 C125,145 140,125 140,110 C140,105 147,104 147,98 C147,92 140,90 140,85 C140,55 130,35 100,35 Z"
+      stroke="#10b981"
+      strokeWidth="2"
+      strokeDasharray="5,5"
+    />
+    {/* Shoulder Outline */}
+    <path
+      d="M60,140 C45,155 35,170 30,190 L170,190 C165,170 155,155 140,140"
+      stroke="#10b981"
+      strokeWidth="2"
+      strokeDasharray="5,5"
+    />
+  </svg>
+);
+
+const AvatarSVG = () => (
+  <div className="mx-auto h-16 w-16 rounded-full bg-[#e8f6f0] flex items-center justify-center shadow-inner">
+    <svg viewBox="0 0 100 100" className="h-14 w-14">
+      {/* Ears */}
+      <circle cx="23" cy="52" r="7" fill="#d29d78" />
+      <circle cx="77" cy="52" r="7" fill="#d29d78" />
+      
+      {/* Neck */}
+      <path d="M 40,60 L 40,80 L 60,80 L 60,60 Z" fill="#d29d78" />
+      
+      {/* Face */}
+      <circle cx="50" cy="48" r="25" fill="#e0ab85" />
+      
+      {/* Hair */}
+      <path d="M 25,44 C 25,18 75,18 75,44 C 70,42 60,38 50,42 C 40,38 30,42 25,44 Z" fill="#1d124b" />
+      
+      {/* Eyebrows */}
+      <path d="M 33,38 C 37,35 43,36 45,39" stroke="#100b2b" strokeWidth="2.5" fill="none" strokeLinecap="round" />
+      <path d="M 67,38 C 63,35 57,36 55,39" stroke="#100b2b" strokeWidth="2.5" fill="none" strokeLinecap="round" />
+      
+      {/* Eyes */}
+      <circle cx="39" cy="46" r="3" fill="#100b2b" />
+      <circle cx="61" cy="46" r="3" fill="#100b2b" />
+      
+      {/* Smile with teeth */}
+      <path d="M 37,56 Q 50,68 63,56 Z" fill="#ffffff" />
+      <path d="M 37,56 Q 50,68 63,56" stroke="#b17e5a" strokeWidth="1.5" fill="none" />
+    </svg>
+  </div>
+);
+
 type Form = {
   full_name: string; phone: string; email: string; dob: string; gender: string;
   nationality: string; state: string; lga: string; address: string;
@@ -70,12 +120,13 @@ export default function ApplicationFormDialog({ open, onOpenChange, type, typeLa
   React.useEffect(() => {
     if (step === 3 && !faceVerified && !scanningFace) {
       setScanningFace(true);
-      setFacialInstruction("Please blink and smile...");
+      setFacialInstruction("Kindly blink your eyes");
       
-      const t1 = setTimeout(() => setFacialInstruction("Open your mouth slightly..."), 700);
-      const t2 = setTimeout(() => setFacialInstruction("Slowly turn your head left..."), 1400);
-      const t3 = setTimeout(() => setFacialInstruction("Slowly turn your head right..."), 2200);
-      const t4 = setTimeout(() => {
+      const t1 = setTimeout(() => setFacialInstruction("Kindly smile"), 600);
+      const t2 = setTimeout(() => setFacialInstruction("Kindly nod your head"), 1200);
+      const t3 = setTimeout(() => setFacialInstruction("Kindly look left"), 1800);
+      const t4 = setTimeout(() => setFacialInstruction("Kindly look right"), 2400);
+      const t5 = setTimeout(() => {
         setScanningFace(false);
         setFaceVerified(true);
         playBeep();
@@ -87,6 +138,7 @@ export default function ApplicationFormDialog({ open, onOpenChange, type, typeLa
         clearTimeout(t2);
         clearTimeout(t3);
         clearTimeout(t4);
+        clearTimeout(t5);
       };
     }
   }, [step, faceVerified, scanningFace]);
@@ -473,45 +525,57 @@ export default function ApplicationFormDialog({ open, onOpenChange, type, typeLa
               )}
 
               {step === 3 && (
-                <div className="space-y-4 text-center py-4">
-                  <div className="mx-auto h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                    <Camera className="h-6 w-6" />
-                  </div>
-                  <div className="space-y-1">
-                    <h4 className="font-semibold text-sm">Facial Biometrics Capturing</h4>
-                    <p className="text-xs text-muted-foreground max-w-sm mx-auto h-8 flex items-center justify-center">
+                <div className="space-y-6 text-center py-4 flex flex-col items-center">
+                  {/* Top Instruction Header */}
+                  <h3 className="text-emerald-500 font-display font-bold text-lg md:text-xl tracking-wide animate-pulse">
+                    {scanningFace ? facialInstruction : faceVerified ? "Verification Completed ✓" : "Initialize Facial Scan"}
+                  </h3>
+
+                  {/* Circular Camera Preview Frame */}
+                  <div className="relative h-60 w-60 rounded-full border-4 border-emerald-500 border-b-transparent p-1 bg-slate-900 shadow-xl flex items-center justify-center transition-all duration-500">
+                    <div className="relative h-full w-full rounded-full overflow-hidden flex items-center justify-center bg-slate-950">
                       {scanningFace ? (
-                        <span className="text-primary font-bold animate-pulse text-xs bg-primary/5 px-2 py-0.5 rounded border border-primary/10">{facialInstruction}</span>
+                        <div className="absolute inset-0 flex flex-col items-center justify-center p-3 text-center">
+                          {/* Holographic dashed silhouette overlay */}
+                          <HeadContourSVG />
+                          {/* Scanline grid animations */}
+                          <div className="absolute inset-0 bg-slate-900/10 pointer-events-none" />
+                          <div className="absolute left-0 right-0 h-0.5 bg-emerald-500 animate-scanline z-20" />
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <span className="text-[10px] font-bold text-white bg-black/55 px-2.5 py-1 rounded shadow-sm border border-emerald-500/20 uppercase tracking-wider z-20 animate-pulse">
+                              Liveness Check
+                            </span>
+                          </div>
+                        </div>
                       ) : faceVerified ? (
-                        <span className="text-emerald-600 font-semibold">Liveness verification passed.</span>
+                        <div className="absolute inset-0 flex flex-col items-center justify-center bg-emerald-950/15">
+                          <CheckCircle2 className="h-12 w-12 text-emerald-500 animate-bounce" />
+                          <span className="text-[10px] font-bold text-emerald-600 mt-2 uppercase tracking-wide">Biometrics Matched ✓</span>
+                        </div>
                       ) : (
-                        "Position your device camera directly in front of your face. Keep a neutral expression."
+                        <div className="text-center text-muted-foreground text-[10px] p-2 animate-pulse">
+                          Awaiting Automated Scanner...
+                        </div>
                       )}
-                    </p>
+                    </div>
                   </div>
 
-                  <div className="relative mx-auto h-36 w-36 rounded-full bg-slate-150 border-2 border-dashed border-slate-300 overflow-hidden flex items-center justify-center shadow-inner">
-                    {scanningFace ? (
-                      <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/15 p-3 text-center">
-                        <div className="absolute left-0 right-0 h-0.5 bg-emerald-500 animate-scanline" />
-                        <Loader2 className="h-6 w-6 text-primary animate-spin" />
-                        <span className="text-[9px] font-bold text-primary mt-1 uppercase tracking-wider">Liveness Check</span>
-                        <span className="text-[7.5px] font-bold text-slate-750 mt-1 bg-white/95 px-1 py-0.5 rounded border border-slate-200 shadow-sm leading-none max-w-[120px] truncate">{facialInstruction}</span>
-                      </div>
-                    ) : faceVerified ? (
-                      <div className="absolute inset-0 flex flex-col items-center justify-center bg-emerald-50/50">
-                        <CheckCircle2 className="h-10 w-10 text-emerald-500 animate-bounce" />
-                        <span className="text-[9px] font-bold text-emerald-600 mt-1">Biometrics Matched ✓</span>
-                      </div>
-                    ) : (
-                      <div className="text-center text-muted-foreground text-[10px] p-2 animate-pulse">
-                        Initialising automated facial scanner...
-                      </div>
-                    )}
+                  {/* Step Chain Indicator: [✔] --- [2] */}
+                  <div className="flex items-center justify-center gap-3 my-2">
+                    <div className={`h-7 w-7 rounded-full flex items-center justify-center text-white ${faceVerified ? "bg-emerald-500" : "bg-emerald-500 animate-pulse"}`}>
+                      {faceVerified ? <span className="font-bold text-xs">✓</span> : <span className="font-bold text-xs">1</span>}
+                    </div>
+                    <div className="h-[2px] w-12 bg-zinc-200" />
+                    <div className={`h-7 w-7 rounded-full flex items-center justify-center text-white ${thumbVerified ? "bg-emerald-500" : "bg-zinc-300 text-zinc-600 font-bold text-xs"}`}>
+                      {thumbVerified ? <span className="font-bold text-xs">✓</span> : <span className="font-bold text-xs">2</span>}
+                    </div>
                   </div>
 
-                  <div className="flex justify-center">
-                    <Button disabled className={`hover-lift transition-all duration-300 ${faceVerified ? "bg-emerald-600 hover:bg-emerald-600 text-white" : ""}`}>
+                  {/* Animated Avatar at the bottom */}
+                  <AvatarSVG />
+
+                  <div className="flex justify-center mt-2">
+                    <Button disabled className={`hover-lift transition-all duration-300 ${faceVerified ? "bg-emerald-650 text-white" : ""}`}>
                       {faceVerified ? "Facial Profile Verified ✓" : scanningFace ? "Liveness check active..." : "Awaiting Scanner..."}
                     </Button>
                   </div>
