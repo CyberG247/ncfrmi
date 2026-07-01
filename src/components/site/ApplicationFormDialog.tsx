@@ -120,26 +120,13 @@ export default function ApplicationFormDialog({ open, onOpenChange, type, typeLa
   React.useEffect(() => {
     if (step === 3 && !faceVerified && !scanningFace) {
       setScanningFace(true);
-      setFacialInstruction("Kindly blink your eyes");
-      
-      const t1 = setTimeout(() => setFacialInstruction("Kindly smile"), 600);
-      const t2 = setTimeout(() => setFacialInstruction("Kindly nod your head"), 1200);
-      const t3 = setTimeout(() => setFacialInstruction("Kindly look left"), 1800);
-      const t4 = setTimeout(() => setFacialInstruction("Kindly look right"), 2400);
-      const t5 = setTimeout(() => {
+      const timer = setTimeout(() => {
         setScanningFace(false);
         setFaceVerified(true);
         playBeep();
         toast.success("Facial biometric profile scanned automatically!");
-      }, 3000);
-
-      return () => {
-        clearTimeout(t1);
-        clearTimeout(t2);
-        clearTimeout(t3);
-        clearTimeout(t4);
-        clearTimeout(t5);
-      };
+      }, 2000);
+      return () => clearTimeout(timer);
     }
   }, [step, faceVerified, scanningFace]);
 
@@ -525,58 +512,45 @@ export default function ApplicationFormDialog({ open, onOpenChange, type, typeLa
               )}
 
               {step === 3 && (
-                <div className="space-y-6 text-center py-4 flex flex-col items-center">
-                  {/* Top Instruction Header */}
-                  <h3 className="text-emerald-500 font-display font-bold text-lg md:text-xl tracking-wide animate-pulse">
-                    {scanningFace ? facialInstruction : faceVerified ? "Verification Completed ✓" : "Initialize Facial Scan"}
-                  </h3>
-
-                  {/* Circular Camera Preview Frame */}
-                  <div className="relative h-60 w-60 rounded-full border-4 border-emerald-500 border-b-transparent p-1 bg-slate-900 shadow-xl flex items-center justify-center transition-all duration-500">
-                    <div className="relative h-full w-full rounded-full overflow-hidden flex items-center justify-center bg-slate-950">
+                <div className="space-y-4 text-center py-4 flex flex-col items-center">
+                  <div className="mx-auto h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                    <Camera className="h-6 w-6" />
+                  </div>
+                  <div className="space-y-1 text-center">
+                    <h4 className="font-semibold text-sm">Facial Capture</h4>
+                    <p className="text-xs text-muted-foreground max-w-sm mx-auto h-8 flex items-center justify-center">
                       {scanningFace ? (
-                        <div className="absolute inset-0 flex flex-col items-center justify-center p-3 text-center">
-                          {/* Holographic dashed silhouette overlay */}
-                          <HeadContourSVG />
-                          {/* Scanline grid animations */}
-                          <div className="absolute inset-0 bg-slate-900/10 pointer-events-none" />
-                          <div className="absolute left-0 right-0 h-0.5 bg-emerald-500 animate-scanline z-20" />
-                          <div className="absolute inset-0 flex items-center justify-center">
-                            <span className="text-[10px] font-bold text-white bg-black/55 px-2.5 py-1 rounded shadow-sm border border-emerald-500/20 uppercase tracking-wider z-20 animate-pulse">
-                              Liveness Check
-                            </span>
-                          </div>
-                        </div>
+                        <span className="text-primary font-semibold animate-pulse">Position your face in the camera frame...</span>
                       ) : faceVerified ? (
-                        <div className="absolute inset-0 flex flex-col items-center justify-center bg-emerald-950/15">
-                          <CheckCircle2 className="h-12 w-12 text-emerald-500 animate-bounce" />
-                          <span className="text-[10px] font-bold text-emerald-600 mt-2 uppercase tracking-wide">Biometrics Matched ✓</span>
-                        </div>
+                        <span className="text-emerald-600 font-semibold">Facial scan verified successfully.</span>
                       ) : (
-                        <div className="text-center text-muted-foreground text-[10px] p-2 animate-pulse">
-                          Awaiting Automated Scanner...
-                        </div>
+                        "Position your device camera directly in front of your face. Keep a neutral expression."
                       )}
-                    </div>
+                    </p>
                   </div>
 
-                  {/* Step Chain Indicator: [✔] --- [2] */}
-                  <div className="flex items-center justify-center gap-3 my-2">
-                    <div className={`h-7 w-7 rounded-full flex items-center justify-center text-white ${faceVerified ? "bg-emerald-500" : "bg-emerald-500 animate-pulse"}`}>
-                      {faceVerified ? <span className="font-bold text-xs">✓</span> : <span className="font-bold text-xs">1</span>}
-                    </div>
-                    <div className="h-[2px] w-12 bg-zinc-200" />
-                    <div className={`h-7 w-7 rounded-full flex items-center justify-center text-white ${thumbVerified ? "bg-emerald-500" : "bg-zinc-300 text-zinc-600 font-bold text-xs"}`}>
-                      {thumbVerified ? <span className="font-bold text-xs">✓</span> : <span className="font-bold text-xs">2</span>}
-                    </div>
+                  <div className="relative mx-auto h-36 w-36 rounded-full bg-slate-100 border-2 border-emerald-500 overflow-hidden flex items-center justify-center shadow-inner">
+                    {scanningFace ? (
+                      <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/10">
+                        <div className="absolute left-0 right-0 h-0.5 bg-emerald-500 animate-scanline z-20" />
+                        <Loader2 className="h-6 w-6 text-primary animate-spin" />
+                        <span className="text-[9px] font-bold text-primary mt-2">Scanning Face...</span>
+                      </div>
+                    ) : faceVerified ? (
+                      <div className="absolute inset-0 flex flex-col items-center justify-center bg-emerald-50/50">
+                        <CheckCircle2 className="h-10 w-10 text-emerald-500 animate-bounce" />
+                        <span className="text-[9px] font-bold text-emerald-600 mt-1">Matched ✓</span>
+                      </div>
+                    ) : (
+                      <div className="text-center text-muted-foreground text-[10px] p-2 animate-pulse">
+                        Awaiting Camera...
+                      </div>
+                    )}
                   </div>
-
-                  {/* Animated Avatar at the bottom */}
-                  <AvatarSVG />
 
                   <div className="flex justify-center mt-2">
-                    <Button disabled className={`hover-lift transition-all duration-300 ${faceVerified ? "bg-emerald-650 text-white" : ""}`}>
-                      {faceVerified ? "Facial Profile Verified ✓" : scanningFace ? "Liveness check active..." : "Awaiting Scanner..."}
+                    <Button disabled className={`hover-lift transition-all duration-300 ${faceVerified ? "bg-emerald-600 text-white" : ""}`}>
+                      {faceVerified ? "Facial Capture Verified ✓" : scanningFace ? "Scanning automatically..." : "Awaiting Scanner..."}
                     </Button>
                   </div>
                 </div>

@@ -506,9 +506,39 @@ export default function FieldCapture() {
               )}
 
               {step === 3 && (
-                <div className="grid gap-6 md:grid-cols-2">
-                  <FaceCapture image={face} onCapture={setFace} />
-                  <ThumbCapture image={thumb} scanning={scanning} setScanning={setScanning} onCapture={setThumb} />
+                <div className="mx-auto max-w-xl w-full">
+                  {!face ? (
+                    <FaceCapture image={face} onCapture={setFace} />
+                  ) : !thumb ? (
+                    <ThumbCapture image={thumb} scanning={scanning} setScanning={setScanning} onCapture={setThumb} />
+                  ) : (
+                    <Card className="p-6 border border-emerald-500/20 bg-emerald-50/5 text-center space-y-6 animate-fade-in w-full">
+                      <div className="mx-auto h-12 w-12 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">
+                        <CheckCircle2 className="h-6 w-6 stroke-[2.5]" />
+                      </div>
+                      <div>
+                        <h3 className="font-display text-lg font-bold text-primary">Biometric Profiles Locked</h3>
+                        <p className="text-xs text-muted-foreground mt-1">Both facial liveness and thumbprint indexes have been securely stored.</p>
+                      </div>
+                      
+                      <div className="grid gap-4 grid-cols-2">
+                        <div className="p-3 border border-border rounded-lg bg-card relative">
+                          <img src={face} className="h-28 w-full object-cover rounded" />
+                          <div className="text-[10px] font-semibold text-emerald-600 mt-2">Face Profile ✓</div>
+                          <Button variant="ghost" size="sm" onClick={() => setFace(null)} className="absolute top-2 right-2 h-6 w-6 p-0 rounded-full bg-black/40 hover:bg-black/60 text-white flex items-center justify-center text-xs">
+                            ✕
+                          </Button>
+                        </div>
+                        <div className="p-3 border border-border rounded-lg bg-card relative">
+                          <img src={thumb} className="h-28 w-full object-contain rounded bg-slate-900" />
+                          <div className="text-[10px] font-semibold text-emerald-600 mt-2">Thumbprint ✓</div>
+                          <Button variant="ghost" size="sm" onClick={() => setThumb(null)} className="absolute top-2 right-2 h-6 w-6 p-0 rounded-full bg-black/40 hover:bg-black/60 text-white flex items-center justify-center text-xs">
+                            ✕
+                          </Button>
+                        </div>
+                      </div>
+                    </Card>
+                  )}
                 </div>
               )}
 
