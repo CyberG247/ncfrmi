@@ -215,26 +215,37 @@ export default function FieldCapture() {
                         {/* Simulation Steps Container */}
                         <div className="flex-1 flex flex-col justify-center py-2 space-y-2 text-xs">
                           {simStep === 0 && (
-                            <div className="space-y-1.5 text-center animate-fade-in flex flex-col items-center">
-                              <img src={logo} alt="NCFRMI Crest" className="h-7 w-7 object-contain animate-bounce" />
-                              <div className="text-[9px] font-bold text-slate-800">Officer Portal Access</div>
-                              <p className="text-[7px] text-slate-500 leading-snug">Authenticate terminal credentials to launch capture services.</p>
+                            <div className="space-y-1 text-center animate-fade-in flex flex-col items-center w-full">
+                              <img src={logo} alt="NCFRMI Crest" className="h-6 w-6 object-contain" />
+                              <div className="text-[9px] font-bold text-slate-800 tracking-tight mt-0.5">Welcome back</div>
+                              <p className="text-[6px] text-slate-500">Sign in to continue your application.</p>
                               
-                              <div className="w-full space-y-1.5 text-left mt-1">
+                              <div className="w-full space-y-1 text-left mt-1.5">
                                 <div className="space-y-0.5">
-                                  <label className="text-[6px] text-slate-500 uppercase font-semibold">Field Officer ID</label>
-                                  <div className="h-3.5 bg-slate-100 border border-slate-200 rounded px-1.5 text-[7px] text-slate-700 flex items-center font-mono">
-                                    FO/NCF/001/A8
+                                  <label className="text-[5px] text-slate-500 font-semibold block">Email</label>
+                                  <div className="h-3 bg-slate-50 border border-slate-200 rounded px-1 text-[6px] text-slate-700 flex items-center font-mono">
+                                    officer@ncfrmi.gov.ng
                                   </div>
                                 </div>
                                 <div className="space-y-0.5">
-                                  <label className="text-[6px] text-slate-500 uppercase font-semibold">Terminal Password</label>
-                                  <div className="h-3.5 bg-slate-100 border border-slate-200 rounded px-1.5 text-[7px] text-slate-700 flex items-center">
+                                  <label className="text-[5px] text-slate-500 font-semibold block">Password</label>
+                                  <div className="h-3 bg-slate-50 border border-slate-200 rounded px-1 text-[6px] text-slate-700 flex items-center">
                                     ••••••••••••
                                   </div>
                                 </div>
-                                <div className="h-4 bg-primary text-white text-[7px] font-bold rounded flex items-center justify-center cursor-pointer hover:bg-primary/90 mt-1 shadow-sm">
-                                  Authenticate & Open Hub
+                                <div className="h-3.5 bg-primary text-white text-[6px] font-bold rounded flex items-center justify-center cursor-pointer hover:bg-primary/95 mt-1 shadow-sm font-sans">
+                                  Sign in
+                                </div>
+                                <div className="text-[5px] text-slate-500 text-center mt-0.5">
+                                  New to NCFRMI? <span className="text-primary font-bold">Create account</span>
+                                </div>
+                                
+                                <div className="border-t border-slate-200 pt-1 mt-1 space-y-1">
+                                  <div className="text-center text-[5px] font-bold uppercase tracking-wider text-slate-400">Simulator Mode (Quick Access)</div>
+                                  <div className="grid grid-cols-2 gap-1">
+                                    <div className="border border-slate-250 bg-slate-100/50 rounded text-[4.5px] font-semibold text-slate-600 p-0.5 text-center">Comm. Login</div>
+                                    <div className="border border-primary/20 bg-primary/5 rounded text-[4.5px] font-bold text-primary p-0.5 text-center">Officer Login</div>
+                                  </div>
                                 </div>
                               </div>
                             </div>

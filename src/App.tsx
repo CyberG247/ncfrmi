@@ -61,7 +61,7 @@ const App = () => {
             <Route path="/apply" element={<Apply />} />
             <Route path="/idp-camps" element={<IdpCamps />} />
             <Route path="/idp-camps/:slug" element={<IdpCampDetail />} />
-            <Route path="/field-capture" element={<ProtectedRoute allowedRoles={["officer", "commissioner"]}><FieldCapture /></ProtectedRoute>} />
+            <Route path="/field-capture" element={<FieldCapture />} />
             <Route path="/registrants" element={<ProtectedRoute allowedRoles={["officer", "commissioner"]}><RegistrantsList /></ProtectedRoute>} />
             <Route path="/registrants/:id" element={<ProtectedRoute allowedRoles={["officer", "commissioner"]}><RegistrantDetail /></ProtectedRoute>} />
             <Route path="/offices" element={<Offices />} />
