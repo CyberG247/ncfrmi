@@ -37,6 +37,7 @@ export default function Index() {
   const [slide, setSlide] = useState(0);
   const [scrollY, setScrollY] = useState(0);
   const [simStep, setSimStep] = useState(0);
+  const [appComingSoon, setAppComingSoon] = useState(false);
 
   const playBeep = () => {
     try {
@@ -415,8 +416,8 @@ export default function Index() {
                   </div>
 
                   {/* Download Button */}
-                  <Button variant="outline" size="sm" onClick={() => toast.info("App bundle download initiated.")} className="hover-lift">
-                    <Download className="mr-2 h-3.5 w-3.5" /> Download & Install the App
+                  <Button variant="outline" size="sm" onClick={() => { setAppComingSoon(true); toast.info("Coming soon!"); }} className="hover-lift">
+                    <Download className="mr-2 h-3.5 w-3.5" /> {appComingSoon ? "Coming Soon!" : "Download & Install the App"}
                   </Button>
                 </div>
               </div>
