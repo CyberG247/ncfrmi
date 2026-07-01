@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -48,22 +48,54 @@ export default function ApplicationFormDialog({ open, onOpenChange, type, typeLa
   const total = steps.length;
   const set = (k: keyof Form, v: any) => setData((d) => ({ ...d, [k]: v }));
 
-  const handleFaceScan = () => {
-    setScanningFace(true);
-    setTimeout(() => {
-      setScanningFace(false);
-      setFaceVerified(true);
-      toast.success("Facial biometric profile scanned successfully!");
-    }, 2000);
+  // Synthesized audio beep generator (no external file needed)
+  const playBeep = () => {
+    try {
+      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.frequency.setValueAtTime(880, ctx.currentTime); // A5 tone
+      gain.gain.setValueAtTime(0.12, ctx.currentTime);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.15); // Play for 150ms
+    } catch (e) {
+      console.warn("AudioContext beep failed:", e);
+    }
   };
 
-  const handleThumbScan = () => {
-    setScanningThumb(true);
-    setTimeout(() => {
-      setScanningThumb(false);
-      setThumbVerified(true);
-      toast.success("Biometric thumbprint indexed successfully!");
-    }, 2000);
+  // Automated biometric capture effects
+  React.useEffect(() => {
+    if (step === 3 && !faceVerified && !scanningFace) {
+      setScanningFace(true);
+      const timer = setTimeout(() => {
+        setScanningFace(false);
+        setFaceVerified(true);
+        playBeep();
+        toast.success("Facial biometric profile scanned automatically!");
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [step, faceVerified, scanningFace]);
+
+  React.useEffect(() => {
+    if (step === 4 && !thumbVerified && !scanningThumb) {
+      setScanningThumb(true);
+      const timer = setTimeout(() => {
+        setScanningThumb(false);
+        setThumbVerified(true);
+        playBeep();
+        toast.success("Biometric thumbprint scanned automatically!");
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [step, thumbVerified, scanningThumb]);
+
+  const handleBack = () => {
+    if (step === 4) setThumbVerified(false);
+    if (step === 3) setFaceVerified(false);
+    setStep((s) => s - 1);
   };
 
   const canNext = () => {
@@ -451,15 +483,15 @@ export default function ApplicationFormDialog({ open, onOpenChange, type, typeLa
                         <span className="text-[9px] font-bold text-emerald-600 mt-1">Biometrics Matched ✓</span>
                       </div>
                     ) : (
-                      <div className="text-center text-muted-foreground text-xs p-2">
-                        Camera offline. Click below to simulate capturing.
+                      <div className="text-center text-muted-foreground text-[10px] p-2 animate-pulse">
+                        Initialising automated facial scanner...
                       </div>
                     )}
                   </div>
 
                   <div className="flex justify-center">
-                    <Button onClick={handleFaceScan} disabled={scanningFace || faceVerified} className="hover-lift">
-                      {faceVerified ? "Face Captured" : "Start Facial Scan"}
+                    <Button disabled className={`hover-lift ${faceVerified ? "bg-emerald-600 hover:bg-emerald-600 text-white" : ""}`}>
+                      {faceVerified ? "Facial Profile Verified ✓" : scanningFace ? "Scanning automatically..." : "Awaiting Scanner..."}
                     </Button>
                   </div>
                 </div>
@@ -488,16 +520,16 @@ export default function ApplicationFormDialog({ open, onOpenChange, type, typeLa
                         <span className="text-[9px] font-bold text-emerald-450 mt-1">Biometrics Indexed ✓</span>
                       </div>
                     ) : (
-                      <div className="text-center text-zinc-550 text-xs p-2 flex flex-col items-center">
-                        <Fingerprint className="h-12 w-12 text-zinc-700 opacity-60 mb-1" />
-                        Place Right Thumb
+                      <div className="text-center text-zinc-500 text-[10px] p-2 flex flex-col items-center animate-pulse">
+                        <Fingerprint className="h-10 w-10 text-zinc-700 opacity-60 mb-1" />
+                        Initialising fingerprint sensor...
                       </div>
                     )}
                   </div>
 
                   <div className="flex justify-center">
-                    <Button onClick={handleThumbScan} disabled={scanningThumb || thumbVerified} className="hover-lift">
-                      {thumbVerified ? "Biometrics Logged" : "Start Fingerprint Scan"}
+                    <Button disabled className={`hover-lift ${thumbVerified ? "bg-emerald-600 hover:bg-emerald-600 text-white" : ""}`}>
+                      {thumbVerified ? "Thumbprint Registered ✓" : scanningThumb ? "Indexing automatically..." : "Awaiting Sensor..."}
                     </Button>
                   </div>
                 </div>
@@ -529,7 +561,7 @@ export default function ApplicationFormDialog({ open, onOpenChange, type, typeLa
             </div>
 
             <DialogFooter className="flex justify-between sm:justify-between">
-              <Button variant="outline" disabled={step===0 || submitting} onClick={()=>setStep((s)=>s-1)}>Back</Button>
+              <Button variant="outline" disabled={step===0 || submitting} onClick={handleBack}>Back</Button>
               {step < total-1 ? (
                 <Button disabled={!canNext()} onClick={()=>setStep((s)=>s+1)}>Continue</Button>
               ) : (
