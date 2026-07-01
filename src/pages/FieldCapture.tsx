@@ -516,6 +516,8 @@ function FaceCapture({ image, onCapture }: { image: string | null; onCapture: (d
   const streamRef = useRef<MediaStream | null>(null);
   const [live, setLive] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [scanning, setScanning] = useState(false);
+  const [facialInstruction, setFacialInstruction] = useState("Position your face in the frame...");
 
   const start = async () => {
     setErr(null);
@@ -524,6 +526,7 @@ function FaceCapture({ image, onCapture }: { image: string | null; onCapture: (d
       streamRef.current = s;
       if (videoRef.current) { videoRef.current.srcObject = s; await videoRef.current.play(); }
       setLive(true);
+      setScanning(true);
     } catch (e: any) {
       setErr(e?.message || "Unable to access camera. Please grant permission.");
     }
@@ -533,6 +536,7 @@ function FaceCapture({ image, onCapture }: { image: string | null; onCapture: (d
     streamRef.current?.getTracks().forEach((t) => t.stop());
     streamRef.current = null;
     setLive(false);
+    setScanning(false);
   };
 
   const snap = () => {
@@ -545,25 +549,58 @@ function FaceCapture({ image, onCapture }: { image: string | null; onCapture: (d
     stop();
   };
 
-  useEffect(() => () => stop(), []);
+  useEffect(() => {
+    if (!image) {
+      start();
+    }
+    return () => stop();
+  }, [image]);
+
+  useEffect(() => {
+    if (scanning && live && !image) {
+      setFacialInstruction("Please blink and smile...");
+      const t1 = setTimeout(() => setFacialInstruction("Open your mouth slightly..."), 700);
+      const t2 = setTimeout(() => setFacialInstruction("Slowly turn your head left..."), 1400);
+      const t3 = setTimeout(() => setFacialInstruction("Slowly turn your head right..."), 2200);
+      const t4 = setTimeout(() => {
+        snap();
+      }, 3000);
+
+      return () => {
+        clearTimeout(t1);
+        clearTimeout(t2);
+        clearTimeout(t3);
+        clearTimeout(t4);
+      };
+    }
+  }, [scanning, live, image]);
 
   return (
     <div className="rounded-lg border border-border p-4">
-      <div className="mb-3 flex items-center gap-2 font-display text-sm font-semibold text-primary">
-        <Camera className="h-4 w-4" /> Facial Capture
+      <div className="mb-3 flex items-center justify-between font-display text-sm font-semibold text-primary">
+        <span className="flex items-center gap-2"><Camera className="h-4 w-4" /> Facial Capture</span>
+        {scanning && <span className="text-[10px] text-amber-600 bg-amber-50 dark:bg-amber-950/20 px-2 py-0.5 rounded animate-pulse">{facialInstruction}</span>}
       </div>
-      <div className="aspect-square w-full overflow-hidden rounded-md bg-muted">
+      <div className="relative aspect-square w-full overflow-hidden rounded-md bg-muted">
         {image ? (
-          <img src={image} alt="Captured face" className="h-full w-full object-cover" />
+          <img src={image} alt="Captured face" className="h-full w-full object-cover animate-fade-in" />
         ) : (
-          <video ref={videoRef} className="h-full w-full object-cover" muted playsInline />
+          <>
+            <video ref={videoRef} className="h-full w-full object-cover" muted playsInline />
+            {scanning && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/15 p-3 text-center">
+                <div className="absolute left-0 right-0 h-0.5 bg-emerald-500 animate-scanline" />
+                <span className="text-[9px] font-bold text-white uppercase bg-black/40 px-2 py-0.5 rounded shadow-sm">{facialInstruction}</span>
+              </div>
+            )}
+          </>
         )}
       </div>
       {err && <p className="mt-2 text-xs text-destructive">{err}</p>}
-      <div className="mt-3 flex flex-wrap gap-2">
-        {!image && !live && <Button size="sm" onClick={start}><Camera className="mr-2 h-4 w-4" /> Start camera</Button>}
-        {!image && live && <Button size="sm" onClick={snap}>Capture</Button>}
-        {image && <Button size="sm" variant="outline" onClick={() => { onCapture(null); start(); }}><RotateCcw className="mr-2 h-4 w-4" /> Retake</Button>}
+      <div className="mt-3">
+        <Button disabled variant="outline" size="sm" className="w-full">
+          {image ? "Facial Biometric Verified ✓" : scanning ? "Liveness check active..." : "Awaiting Scanner..."}
+        </Button>
       </div>
     </div>
   );
@@ -574,7 +611,7 @@ function ThumbCapture({ image, scanning, setScanning, onCapture }: {
 }) {
   const scan = async () => {
     setScanning(true);
-    await new Promise((r) => setTimeout(r, 1600));
+    await new Promise((r) => setTimeout(r, 2000));
     // Generate a synthetic fingerprint pattern as a placeholder visualisation.
     const c = document.createElement("canvas");
     c.width = 240; c.height = 320;
@@ -593,14 +630,21 @@ function ThumbCapture({ image, scanning, setScanning, onCapture }: {
     setScanning(false);
   };
 
+  useEffect(() => {
+    if (!image && !scanning) {
+      scan();
+    }
+  }, [image]);
+
   return (
     <div className="rounded-lg border border-border p-4">
-      <div className="mb-3 flex items-center gap-2 font-display text-sm font-semibold text-primary">
-        <Fingerprint className="h-4 w-4" /> Thumbprint Capture
+      <div className="mb-3 flex items-center justify-between font-display text-sm font-semibold text-primary">
+        <span className="flex items-center gap-2"><Fingerprint className="h-4 w-4" /> Thumbprint Capture</span>
+        {scanning && <span className="text-[10px] text-primary bg-primary/5 px-2 py-0.5 rounded animate-pulse">Scanning thumb...</span>}
       </div>
       <div className="relative flex aspect-square w-full items-center justify-center overflow-hidden rounded-md bg-muted">
         {image ? (
-          <img src={image} alt="Captured thumbprint" className="h-full w-full object-contain" />
+          <img src={image} alt="Captured thumbprint" className="h-full w-full object-contain animate-fade-in" />
         ) : (
           <>
             <Fingerprint className={`h-32 w-32 text-primary/40 ${scanning ? "animate-pulse" : ""}`} />
@@ -611,12 +655,10 @@ function ThumbCapture({ image, scanning, setScanning, onCapture }: {
           </>
         )}
       </div>
-      <div className="mt-3 flex flex-wrap gap-2">
-        {!image && <Button size="sm" onClick={scan} disabled={scanning}>
-          {scanning ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Fingerprint className="mr-2 h-4 w-4" />}
-          {scanning ? "Scanning…" : "Scan thumb"}
-        </Button>}
-        {image && <Button size="sm" variant="outline" onClick={() => onCapture(null)}><RotateCcw className="mr-2 h-4 w-4" /> Rescan</Button>}
+      <div className="mt-3">
+        <Button disabled variant="outline" size="sm" className="w-full">
+          {image ? "Thumbprint Verified ✓" : scanning ? "Scanning automatically..." : "Awaiting Sensor..."}
+        </Button>
       </div>
       <style>{`@keyframes scanline { 0% { transform: translateY(0) } 100% { transform: translateY(100%) } }`}</style>
     </div>
