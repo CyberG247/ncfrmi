@@ -41,6 +41,7 @@ export default function ApplicationFormDialog({ open, onOpenChange, type, typeLa
   // Biometrics simulation states
   const [scanningFace, setScanningFace] = useState(false);
   const [faceVerified, setFaceVerified] = useState(false);
+  const [facialInstruction, setFacialInstruction] = useState("Position your face in the frame...");
   const [scanningThumb, setScanningThumb] = useState(false);
   const [thumbVerified, setThumbVerified] = useState(false);
 
@@ -69,13 +70,24 @@ export default function ApplicationFormDialog({ open, onOpenChange, type, typeLa
   React.useEffect(() => {
     if (step === 3 && !faceVerified && !scanningFace) {
       setScanningFace(true);
-      const timer = setTimeout(() => {
+      setFacialInstruction("Please blink and smile...");
+      
+      const t1 = setTimeout(() => setFacialInstruction("Open your mouth slightly..."), 700);
+      const t2 = setTimeout(() => setFacialInstruction("Slowly turn your head left..."), 1400);
+      const t3 = setTimeout(() => setFacialInstruction("Slowly turn your head right..."), 2200);
+      const t4 = setTimeout(() => {
         setScanningFace(false);
         setFaceVerified(true);
         playBeep();
         toast.success("Facial biometric profile scanned automatically!");
-      }, 2000);
-      return () => clearTimeout(timer);
+      }, 3000);
+
+      return () => {
+        clearTimeout(t1);
+        clearTimeout(t2);
+        clearTimeout(t3);
+        clearTimeout(t4);
+      };
     }
   }, [step, faceVerified, scanningFace]);
 
@@ -467,19 +479,28 @@ export default function ApplicationFormDialog({ open, onOpenChange, type, typeLa
                   </div>
                   <div className="space-y-1">
                     <h4 className="font-semibold text-sm">Facial Biometrics Capturing</h4>
-                    <p className="text-xs text-muted-foreground max-w-sm mx-auto">Position your device camera directly in front of your face. Keep a neutral expression in good lighting.</p>
+                    <p className="text-xs text-muted-foreground max-w-sm mx-auto h-8 flex items-center justify-center">
+                      {scanningFace ? (
+                        <span className="text-primary font-bold animate-pulse text-xs bg-primary/5 px-2 py-0.5 rounded border border-primary/10">{facialInstruction}</span>
+                      ) : faceVerified ? (
+                        <span className="text-emerald-600 font-semibold">Liveness verification passed.</span>
+                      ) : (
+                        "Position your device camera directly in front of your face. Keep a neutral expression."
+                      )}
+                    </p>
                   </div>
 
                   <div className="relative mx-auto h-36 w-36 rounded-full bg-slate-150 border-2 border-dashed border-slate-300 overflow-hidden flex items-center justify-center shadow-inner">
                     {scanningFace ? (
-                      <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/10">
+                      <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/15 p-3 text-center">
                         <div className="absolute left-0 right-0 h-0.5 bg-emerald-500 animate-scanline" />
                         <Loader2 className="h-6 w-6 text-primary animate-spin" />
-                        <span className="text-[9px] font-bold text-primary mt-1">Scanning Face...</span>
+                        <span className="text-[9px] font-bold text-primary mt-1 uppercase tracking-wider">Liveness Check</span>
+                        <span className="text-[7.5px] font-bold text-slate-750 mt-1 bg-white/95 px-1 py-0.5 rounded border border-slate-200 shadow-sm leading-none max-w-[120px] truncate">{facialInstruction}</span>
                       </div>
                     ) : faceVerified ? (
                       <div className="absolute inset-0 flex flex-col items-center justify-center bg-emerald-50/50">
-                        <CheckCircle2 className="h-10 w-10 text-emerald-500" />
+                        <CheckCircle2 className="h-10 w-10 text-emerald-500 animate-bounce" />
                         <span className="text-[9px] font-bold text-emerald-600 mt-1">Biometrics Matched ✓</span>
                       </div>
                     ) : (
@@ -490,8 +511,8 @@ export default function ApplicationFormDialog({ open, onOpenChange, type, typeLa
                   </div>
 
                   <div className="flex justify-center">
-                    <Button disabled className={`hover-lift ${faceVerified ? "bg-emerald-600 hover:bg-emerald-600 text-white" : ""}`}>
-                      {faceVerified ? "Facial Profile Verified ✓" : scanningFace ? "Scanning automatically..." : "Awaiting Scanner..."}
+                    <Button disabled className={`hover-lift transition-all duration-300 ${faceVerified ? "bg-emerald-600 hover:bg-emerald-600 text-white" : ""}`}>
+                      {faceVerified ? "Facial Profile Verified ✓" : scanningFace ? "Liveness check active..." : "Awaiting Scanner..."}
                     </Button>
                   </div>
                 </div>
