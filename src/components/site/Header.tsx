@@ -1,11 +1,10 @@
 import { useEffect, useState } from "react";
 import { Link, NavLink } from "react-router-dom";
-import { Menu, X, Phone, Sun, Moon, Globe } from "lucide-react";
+import { Menu, X, Phone, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import logo from "@/assets/ncfrmi-logo.png";
 import { useAuth } from "@/hooks/useAuth";
 import NotificationBell from "./NotificationBell";
-import { useTheme } from "@/hooks/useTheme";
 
 const nav = [
   { to: "/", label: "Home" },
@@ -21,7 +20,6 @@ export const Header = () => {
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const { session, role } = useAuth();
-  const { theme, toggleTheme } = useTheme();
   const [currentLang, setCurrentLang] = useState("en");
 
   useEffect(() => {
@@ -136,20 +134,7 @@ export const Header = () => {
             </select>
           </div>
 
-          {/* Theme Toggle */}
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={toggleTheme}
-            className="h-9 w-9 rounded-full transition-transform active:scale-95 hover:bg-muted"
-            aria-label="Toggle theme"
-          >
-            {theme === "dark" ? (
-              <Sun className="h-[1.1rem] w-[1.1rem] text-amber-500" />
-            ) : (
-              <Moon className="h-[1.1rem] w-[1.1rem] text-primary" />
-            )}
-          </Button>
+
 
           {session && (
             <div className="flex items-center gap-2">
@@ -173,20 +158,7 @@ export const Header = () => {
         </div>
 
         <div className="flex items-center gap-2 lg:hidden">
-          {/* Mobile Theme Toggle */}
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={toggleTheme}
-            className="h-9 w-9 rounded-full transition-transform active:scale-95 hover:bg-muted"
-            aria-label="Toggle theme"
-          >
-            {theme === "dark" ? (
-              <Sun className="h-4 w-4 text-amber-500" />
-            ) : (
-              <Moon className="h-4 w-4 text-primary" />
-            )}
-          </Button>
+
 
           {/* Mobile Language Selector */}
           <div className="relative flex items-center gap-1.5 rounded-full border bg-background/50 px-2 py-0.5 text-xs transition-colors hover:bg-background/80">
