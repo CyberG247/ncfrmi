@@ -97,7 +97,7 @@ export default function Index() {
                 <Button asChild size="lg" className="bg-primary-foreground text-primary hover:bg-primary-foreground/90 hover-lift">
                   <Link to="/apply?type=asylum">Apply for Asylum <ArrowRight className="ml-1 h-4 w-4 transition-transform group-hover:translate-x-1" /></Link>
                 </Button>
-                <Button asChild size="lg" variant="outline" className="border-primary-foreground/40 bg-transparent text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground hover-lift">
+                <Button asChild size="lg" className="bg-red-600 hover:bg-red-700 text-white border border-red-600 hover-lift">
                   <Link to="/field-capture">Field Capture</Link>
                 </Button>
               </Reveal>
