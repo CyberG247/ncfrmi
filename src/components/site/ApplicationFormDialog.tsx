@@ -125,6 +125,7 @@ export default function ApplicationFormDialog({ open, onOpenChange, type, typeLa
         setFaceVerified(true);
         playBeep();
         toast.success("Facial biometric profile scanned automatically!");
+        setStep(4);
       }, 2000);
       return () => clearTimeout(timer);
     }
@@ -138,6 +139,7 @@ export default function ApplicationFormDialog({ open, onOpenChange, type, typeLa
         setThumbVerified(true);
         playBeep();
         toast.success("Biometric thumbprint scanned automatically!");
+        setStep(5);
       }, 2000);
       return () => clearTimeout(timer);
     }
