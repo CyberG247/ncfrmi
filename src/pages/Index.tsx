@@ -38,6 +38,22 @@ export default function Index() {
   const [scrollY, setScrollY] = useState(0);
   const [simStep, setSimStep] = useState(0);
 
+  const playBeep = () => {
+    try {
+      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.frequency.setValueAtTime(880, ctx.currentTime);
+      gain.gain.setValueAtTime(0.12, ctx.currentTime);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.15);
+    } catch (e) {
+      console.warn("AudioContext beep failed:", e);
+    }
+  };
+
   useEffect(() => {
     const id = setInterval(() => setSlide((s) => (s + 1) % heroSlides.length), 4500);
     const simInterval = setInterval(() => setSimStep((s) => (s + 1) % 7), 4505);
@@ -46,6 +62,12 @@ export default function Index() {
       clearInterval(simInterval);
     };
   }, []);
+
+  useEffect(() => {
+    if (simStep === 5 || simStep === 6) {
+      playBeep();
+    }
+  }, [simStep]);
 
   useEffect(() => {
     const onScroll = () => setScrollY(window.scrollY);

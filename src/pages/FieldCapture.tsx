@@ -35,6 +35,22 @@ const empty: Form = {
 
 const steps = ["Registration Type", "Biodata", "Review", "Biometrics"];
 
+const playBeep = () => {
+  try {
+    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.frequency.setValueAtTime(880, ctx.currentTime);
+    gain.gain.setValueAtTime(0.12, ctx.currentTime);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.15);
+  } catch (e) {
+    console.warn("AudioContext beep failed:", e);
+  }
+};
+
 export default function FieldCapture() {
   const [step, setStep] = useState(0);
   const [data, setData] = useState<Form>(empty);
@@ -53,6 +69,12 @@ export default function FieldCapture() {
     }, 4500);
     return () => clearInterval(interval);
   }, [showIntro]);
+
+  useEffect(() => {
+    if (showIntro && (simStep === 5 || simStep === 6)) {
+      playBeep();
+    }
+  }, [simStep, showIntro]);
 
   const set = (k: keyof Form, v: string) => setData((d) => ({ ...d, [k]: v }));
 
@@ -519,6 +541,7 @@ function FaceCapture({ image, onCapture }: { image: string | null; onCapture: (d
     c.width = v.videoWidth; c.height = v.videoHeight;
     c.getContext("2d")!.drawImage(v, 0, 0);
     onCapture(c.toDataURL("image/jpeg", 0.85));
+    playBeep();
     stop();
   };
 
@@ -566,6 +589,7 @@ function ThumbCapture({ image, scanning, setScanning, onCapture }: {
       ctx.stroke();
     }
     onCapture(c.toDataURL("image/png"));
+    playBeep();
     setScanning(false);
   };
 
