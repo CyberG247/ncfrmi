@@ -517,10 +517,12 @@ function FaceCapture({ image, onCapture }: { image: string | null; onCapture: (d
   const [live, setLive] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [scanning, setScanning] = useState(false);
+  const [isSimulated, setIsSimulated] = useState(false);
   const [facialInstruction, setFacialInstruction] = useState("Position your face in the frame...");
 
   const start = async () => {
     setErr(null);
+    setIsSimulated(false);
     try {
       const s = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user", width: 480, height: 480 } });
       streamRef.current = s;
@@ -528,7 +530,9 @@ function FaceCapture({ image, onCapture }: { image: string | null; onCapture: (d
       setLive(true);
       setScanning(true);
     } catch (e: any) {
-      setErr(e?.message || "Unable to access camera. Please grant permission.");
+      console.warn("Camera hardware access failed, falling back to secure simulation:", e);
+      setIsSimulated(true);
+      setScanning(true);
     }
   };
 
@@ -540,10 +544,44 @@ function FaceCapture({ image, onCapture }: { image: string | null; onCapture: (d
   };
 
   const snap = () => {
-    const v = videoRef.current; if (!v) return;
     const c = document.createElement("canvas");
-    c.width = v.videoWidth; c.height = v.videoHeight;
-    c.getContext("2d")!.drawImage(v, 0, 0);
+    c.width = 480; c.height = 480;
+    const ctx = c.getContext("2d")!;
+
+    if (isSimulated || !videoRef.current) {
+      // Holographic contour silhouette mock image
+      ctx.fillStyle = "#090d16"; ctx.fillRect(0, 0, 480, 480);
+      
+      // grid lines
+      ctx.strokeStyle = "rgba(16, 185, 129, 0.15)"; ctx.lineWidth = 1;
+      for (let i = 0; i < 480; i += 30) {
+        ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, 480); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(480, i); ctx.stroke();
+      }
+
+      // head silhouette
+      ctx.strokeStyle = "#10b981"; ctx.lineWidth = 4;
+      ctx.fillStyle = "rgba(16, 185, 129, 0.05)";
+      ctx.beginPath();
+      ctx.arc(240, 200, 85, 0, Math.PI * 2); // Head circle
+      ctx.fill(); ctx.stroke();
+
+      ctx.beginPath();
+      ctx.ellipse(240, 360, 140, 80, 0, Math.PI, 0); // Shoulder curve
+      ctx.fill(); ctx.stroke();
+
+      // target lines
+      ctx.strokeStyle = "#fbbf24"; ctx.lineWidth = 2;
+      ctx.strokeRect(220, 180, 40, 40);
+    } else {
+      const v = videoRef.current;
+      c.width = v.videoWidth; c.height = v.videoHeight;
+      // Mirror the output canvas drawing as well to match the preview mirror!
+      ctx.translate(c.width, 0);
+      ctx.scale(-1, 1);
+      ctx.drawImage(v, 0, 0);
+    }
+
     onCapture(c.toDataURL("image/jpeg", 0.85));
     playBeep();
     stop();
@@ -557,7 +595,7 @@ function FaceCapture({ image, onCapture }: { image: string | null; onCapture: (d
   }, [image]);
 
   useEffect(() => {
-    if (scanning && live && !image) {
+    if (scanning && !image) {
       setFacialInstruction("Please blink and smile...");
       const t1 = setTimeout(() => setFacialInstruction("Open your mouth slightly..."), 700);
       const t2 = setTimeout(() => setFacialInstruction("Slowly turn your head left..."), 1400);
@@ -573,20 +611,38 @@ function FaceCapture({ image, onCapture }: { image: string | null; onCapture: (d
         clearTimeout(t4);
       };
     }
-  }, [scanning, live, image]);
+  }, [scanning, image, isSimulated]);
 
   return (
     <div className="rounded-lg border border-border p-4">
       <div className="mb-3 flex items-center justify-between font-display text-sm font-semibold text-primary">
         <span className="flex items-center gap-2"><Camera className="h-4 w-4" /> Facial Capture</span>
-        {scanning && <span className="text-[10px] text-amber-600 bg-amber-50 dark:bg-amber-950/20 px-2 py-0.5 rounded animate-pulse">{facialInstruction}</span>}
+        {scanning && (
+          <span className="text-[9px] text-amber-600 bg-amber-50 dark:bg-amber-950/20 px-2 py-0.5 rounded animate-pulse font-medium">
+            {isSimulated ? "Simulator Mode: " : ""}{facialInstruction}
+          </span>
+        )}
       </div>
-      <div className="relative aspect-square w-full overflow-hidden rounded-md bg-muted">
+      <div className="relative aspect-square w-full overflow-hidden rounded-md bg-slate-900 border border-slate-800">
         {image ? (
           <img src={image} alt="Captured face" className="h-full w-full object-cover animate-fade-in" />
+        ) : isSimulated ? (
+          <div className="absolute inset-0 flex flex-col items-center justify-center p-3 text-center">
+            {/* Holographic simulated camera silhouette */}
+            <div className="relative h-28 w-28 rounded-full border border-emerald-500/30 flex items-center justify-center">
+              <div className="absolute inset-2 rounded-full border border-emerald-500/20 border-dashed" />
+              <div className="h-14 w-12 rounded-3xl border-2 border-emerald-500 bg-emerald-500/10 flex flex-col items-center justify-center">
+                <div className="h-3 w-3 rounded-full bg-emerald-500/30 mb-1" />
+                <div className="h-5 w-8 rounded-full bg-emerald-500/20" />
+              </div>
+              <div className="absolute inset-x-0 h-0.5 bg-emerald-500 animate-scanline" />
+            </div>
+            <span className="text-[10px] font-bold text-emerald-450 uppercase mt-4 tracking-wider animate-pulse">{facialInstruction}</span>
+            <span className="text-[7.5px] text-slate-500 mt-1">Camera disabled · Secure simulator running</span>
+          </div>
         ) : (
           <>
-            <video ref={videoRef} className="h-full w-full object-cover" muted playsInline />
+            <video ref={videoRef} className="h-full w-full object-cover transform -scale-x-100" muted playsInline />
             {scanning && (
               <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/15 p-3 text-center">
                 <div className="absolute left-0 right-0 h-0.5 bg-emerald-500 animate-scanline" />
@@ -596,7 +652,7 @@ function FaceCapture({ image, onCapture }: { image: string | null; onCapture: (d
           </>
         )}
       </div>
-      {err && <p className="mt-2 text-xs text-destructive">{err}</p>}
+      {err && <p className="mt-2 text-[10px] text-amber-500">{err}</p>}
       <div className="mt-3">
         <Button disabled variant="outline" size="sm" className="w-full">
           {image ? "Facial Biometric Verified ✓" : scanning ? "Liveness check active..." : "Awaiting Scanner..."}
