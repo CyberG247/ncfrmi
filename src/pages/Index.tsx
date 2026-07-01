@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { ArrowRight, ShieldCheck, FileText, AlertTriangle, MapPin, Users, HeartHandshake, Languages, Bot, BarChart3 } from "lucide-react";
+import { ArrowRight, ShieldCheck, FileText, AlertTriangle, MapPin, Users, HeartHandshake, Languages, Bot, BarChart3, Fingerprint, Download } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import Layout from "@/components/site/Layout";
@@ -35,10 +36,15 @@ const partners = ["UNHCR Nigeria", "IOM", "NEMA", "ICRC", "WFP", "UNICEF"];
 export default function Index() {
   const [slide, setSlide] = useState(0);
   const [scrollY, setScrollY] = useState(0);
+  const [simStep, setSimStep] = useState(0);
 
   useEffect(() => {
     const id = setInterval(() => setSlide((s) => (s + 1) % heroSlides.length), 4500);
-    return () => clearInterval(id);
+    const simInterval = setInterval(() => setSimStep((s) => (s + 1) % 7), 4505);
+    return () => {
+      clearInterval(id);
+      clearInterval(simInterval);
+    };
   }, []);
 
   useEffect(() => {
@@ -181,6 +187,219 @@ export default function Index() {
               </Card>
             </Reveal>
           ))}
+        </div>
+      </section>
+
+      {/* FIELD CAPTURE DEMO */}
+      <section className="bg-muted/30 border-t border-b border-border py-20">
+        <div className="container-page">
+          <Reveal className="mx-auto max-w-2xl text-center mb-12">
+            <div className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Field Operations</div>
+            <h2 className="mt-3 font-display text-3xl sm:text-4xl">Field Officer Capture Station</h2>
+            <p className="mt-4 text-muted-foreground">Digital gateway for secure biometric collection, verification, and database synchronisation in real time.</p>
+          </Reveal>
+          
+          <Reveal variant="scale" className="mx-auto max-w-4xl">
+            <Card className="p-6 sm:p-8 shadow-card bg-card text-card-foreground border border-border/80">
+              <div className="grid gap-8 md:grid-cols-2 items-center">
+                {/* Left Side: Onboarding Text & API Credentials */}
+                <div className="space-y-6 text-left">
+                  <div>
+                    <div className="text-xs uppercase tracking-wider text-primary font-semibold">Active Workstation</div>
+                    <h3 className="font-display text-xl font-bold mt-1 text-foreground">Welcome to the Field Operations Gateway</h3>
+                    <p className="mt-4 text-muted-foreground leading-relaxed text-xs">
+                      The official NCFRMI Field Capture Hub coordinates remote intake and identity registrations. It enables certified officers to process biographical circumstances and capture digital biometrics.
+                    </p>
+                    <p className="mt-2 text-muted-foreground leading-relaxed text-xs">
+                      All collected profiles are cryptographically signed and synced to the secure national cloud database immediately upon verification.
+                    </p>
+                  </div>
+
+                  {/* API Credentials */}
+                  <div className="rounded-xl border bg-muted/40 p-4 space-y-3 shadow-inner text-xs">
+                    <div className="flex items-center justify-between border-b pb-2">
+                      <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Terminal API Status</div>
+                      <span className="flex items-center gap-1 text-[9px] font-semibold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/20 dark:text-emerald-450 px-2 py-0.5 rounded-full">
+                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" /> Live Gateway
+                      </span>
+                    </div>
+                    
+                    <div className="grid gap-2 text-[11px] sm:grid-cols-2">
+                      <div className="flex justify-between border-b pb-1"><span className="text-muted-foreground">Gateway URL:</span><span className="font-mono text-foreground">api.ncfrmi.gov.ng/v3</span></div>
+                      <div className="flex justify-between border-b pb-1"><span className="text-muted-foreground">Environment:</span><span className="text-primary font-medium">PRODUCTION-SECURE</span></div>
+                      <div className="flex justify-between border-b pb-1"><span className="text-muted-foreground">Active Key:</span><span className="font-mono text-foreground">ncf_live_8a73...3c2f</span></div>
+                      <div className="flex justify-between border-b pb-1"><span className="text-muted-foreground">SDK Version:</span><span className="font-mono text-foreground">v4.18.2-secure</span></div>
+                    </div>
+                  </div>
+
+                  <Button asChild size="lg" className="w-full hover-lift">
+                    <Link to="/field-capture">Launch Capture Workspace <ArrowRight className="ml-2 h-4 w-4" /></Link>
+                  </Button>
+                </div>
+
+                {/* Right Side: iPhone 16 Mockup & Download Button */}
+                <div className="flex flex-col items-center space-y-4">
+                  {/* iPhone 16 Mockup in Light Mode */}
+                  <div className="relative h-[480px] w-[240px] rounded-[42px] border-[6px] border-slate-800 bg-slate-900 p-2 shadow-2xl ring-4 ring-slate-700/30">
+                    {/* Dynamic Island */}
+                    <div className="absolute left-1/2 top-3.5 h-4 w-16 -translate-x-1/2 rounded-full bg-black z-30 flex items-center justify-center">
+                      <div className="h-1.5 w-1.5 rounded-full bg-slate-900/80 ml-auto mr-1.5" />
+                    </div>
+                    
+                    {/* Screen content (LIGHT MODE inside the iPhone) */}
+                    <div className="relative h-full w-full overflow-hidden rounded-[32px] bg-white text-slate-900 font-sans text-left flex flex-col border border-slate-200">
+                      {/* Status Bar */}
+                      <div className="flex justify-between items-center px-4 pt-2.5 pb-1 text-[8px] font-bold text-slate-600 bg-slate-100/50 z-20">
+                        <span>9:41</span>
+                        <div className="flex items-center gap-1">
+                          <span className="h-1.5 w-2.5 bg-slate-600 rounded-sm" />
+                          <span className="h-2 w-1 bg-slate-600 rounded-sm" />
+                        </div>
+                      </div>
+                      
+                      {/* App Screen Interface Mockup */}
+                      <div className="p-3 flex-1 flex flex-col justify-between overflow-hidden">
+                        {/* Micro Header */}
+                        <div className="flex items-center gap-1 border-b border-slate-200 pb-1.5">
+                          <img src={logo} alt="Crest" className="h-4 w-4 object-contain" />
+                          <span className="text-[9px] font-bold text-slate-800">NCFRMI Mobile</span>
+                          <span className="ml-auto text-[7px] px-1.5 py-0.5 bg-emerald-500/10 text-emerald-600 rounded-full font-medium">Zonal Hub</span>
+                        </div>
+
+                        {/* Simulation Steps Container */}
+                        <div className="flex-1 flex flex-col justify-center py-2 space-y-2 text-xs">
+                          {simStep === 0 && (
+                            <div className="space-y-1 text-center animate-fade-in flex flex-col items-center w-full">
+                              <img src={logo} alt="NCFRMI Crest" className="h-6 w-6 object-contain" />
+                              <div className="text-[9px] font-bold text-slate-800 tracking-tight mt-0.5">Welcome back</div>
+                              <p className="text-[6px] text-slate-550">Sign in to continue your application.</p>
+                              
+                              <div className="w-full space-y-1 text-left mt-1.5">
+                                <div className="space-y-0.5">
+                                  <label className="text-[5px] text-slate-500 font-semibold block">Email</label>
+                                  <div className="h-3 bg-slate-50 border border-slate-200 rounded px-1 text-[6px] text-slate-700 flex items-center font-mono">
+                                    officer@ncfrmi.gov.ng
+                                  </div>
+                                </div>
+                                <div className="space-y-0.5">
+                                  <label className="text-[5px] text-slate-500 font-semibold block">Password</label>
+                                  <div className="h-3 bg-slate-50 border border-slate-200 rounded px-1 text-[6px] text-slate-700 flex items-center">
+                                    ••••••••••••
+                                  </div>
+                                </div>
+                                <div className="h-3.5 bg-primary text-white text-[6px] font-bold rounded flex items-center justify-center cursor-pointer hover:bg-primary/95 mt-1 shadow-sm font-sans">
+                                  Sign in
+                                </div>
+                                <div className="text-[5px] text-slate-500 text-center mt-0.5">
+                                  New to NCFRMI? <span className="text-primary font-bold">Create account</span>
+                                </div>
+                                
+                                <div className="border-t border-slate-200 pt-1 mt-1 space-y-1">
+                                  <div className="text-center text-[5px] font-bold uppercase tracking-wider text-slate-400">Simulator Mode (Quick Access)</div>
+                                  <div className="grid grid-cols-2 gap-1">
+                                    <div className="border border-slate-250 bg-slate-100/50 rounded text-[4.5px] font-semibold text-slate-600 p-0.5 text-center">Comm. Login</div>
+                                    <div className="border border-primary/20 bg-primary/5 rounded text-[4.5px] font-bold text-primary p-0.5 text-center">Officer Login</div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          {simStep === 1 && (
+                            <div className="space-y-1.5 text-center animate-fade-in">
+                              <div className="mx-auto h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-[10px]">1</div>
+                              <div className="text-[9px] font-bold text-slate-800">Step 1: Category Selection</div>
+                              <p className="text-[8px] text-slate-500 leading-snug">Officer selects the intake category (IDP, Refugee, Migrant, Returnee).</p>
+                              <div className="rounded bg-slate-50 border border-slate-200 p-1 text-[8px] font-semibold text-slate-700 text-left">
+                                <div className="flex items-center gap-1 p-0.5 bg-slate-200/50 rounded"><span className="h-1.5 w-1.5 rounded-full bg-primary" /> Refugee</div>
+                                <div className="flex items-center gap-1 p-0.5 opacity-40"><span className="h-1.5 w-1.5 rounded-full bg-slate-300" /> IDP Camp</div>
+                              </div>
+                            </div>
+                          )}
+
+                          {simStep === 2 && (
+                            <div className="space-y-1.5 text-center animate-fade-in">
+                              <div className="mx-auto h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-[10px]">2</div>
+                              <div className="text-[9px] font-bold text-slate-800">Step 2: Collect Biodata</div>
+                              <p className="text-[8px] text-slate-500 leading-snug">Record full legal name, phone number, date of birth, and nationality.</p>
+                              <div className="space-y-1 text-left">
+                                <div className="h-3 bg-white border border-slate-200 rounded px-1 text-[7px] text-slate-750 flex items-center">Musa Musaq</div>
+                                <div className="h-3 bg-white border border-slate-200 rounded px-1 text-[7px] text-slate-750 flex items-center">+234 803 123...</div>
+                              </div>
+                            </div>
+                          )}
+
+                          {simStep === 3 && (
+                            <div className="space-y-1.5 text-center animate-fade-in">
+                              <div className="mx-auto h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-[10px]">3</div>
+                              <div className="text-[9px] font-bold text-slate-800">Step 3: Circumstances</div>
+                              <p className="text-[8px] text-slate-500 leading-snug">Describe displacement circumstances and detail the family dependants.</p>
+                              <div className="bg-slate-100 p-1 rounded text-[7px] text-slate-600 text-left border border-slate-200">
+                                Fled region due to climate floods, seeks rehabilitation shelter...
+                              </div>
+                            </div>
+                          )}
+
+                          {simStep === 4 && (
+                            <div className="space-y-1.5 text-center animate-fade-in">
+                              <div className="mx-auto h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-[10px]">4</div>
+                              <div className="text-[9px] font-bold text-slate-800">Step 4: Facial Biometrics</div>
+                              <p className="text-[8px] text-slate-500 leading-snug">Simulate digital facial capturing with real-time feedback detection.</p>
+                              <div className="relative mx-auto h-14 w-14 rounded-md bg-slate-200 border border-slate-350 overflow-hidden flex items-center justify-center">
+                                <div className="absolute h-8 w-8 border border-emerald-500 border-dashed rounded-full" />
+                                <div className="absolute left-0 right-0 h-0.5 bg-emerald-500 animate-scanline" />
+                                <span className="text-[5px] text-emerald-600 font-bold bg-white/80 px-1 rounded absolute bottom-0.5">Detecting...</span>
+                              </div>
+                            </div>
+                          )}
+
+                          {simStep === 5 && (
+                            <div className="space-y-1.5 text-center animate-fade-in">
+                              <div className="mx-auto h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-[10px]">5</div>
+                              <div className="text-[9px] font-bold text-slate-800">Step 5: Thumbprint Scan</div>
+                              <p className="text-[8px] text-slate-500 leading-snug">Scan left/right thumbprints for secure biometric index registration.</p>
+                              <div className="relative mx-auto h-14 w-10 rounded-md bg-slate-900 border border-slate-400 overflow-hidden flex items-center justify-center">
+                                <Fingerprint className="h-6 w-6 text-emerald-450" />
+                                <div className="absolute left-0 right-0 h-0.5 bg-emerald-500 animate-scanline" />
+                              </div>
+                            </div>
+                          )}
+
+                          {simStep === 6 && (
+                            <div className="space-y-1.5 text-center animate-fade-in">
+                              <div className="mx-auto h-7 w-7 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 font-bold text-[10px]">✓</div>
+                              <div className="text-[9px] font-bold text-emerald-600">Step 6: Sync Completed</div>
+                              <p className="text-[8px] text-slate-500 leading-snug">Record successfully compiled and uploaded to the NCFRMI security registry.</p>
+                              <div className="text-[7px] font-mono text-slate-400 bg-white border border-slate-200 p-0.5 rounded text-center">
+                                NCF-REG-2026-A9F3
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Looping Progress Dots */}
+                        <div className="flex justify-center gap-1 border-t border-slate-200 pt-2 pb-1">
+                          {[0, 1, 2, 3, 4, 5, 6].map((idx) => (
+                            <div
+                              key={idx}
+                              className={`h-1 w-1 rounded-full transition-all duration-300 ${
+                                simStep === idx ? "bg-primary w-2.5" : "bg-slate-305"
+                              }`}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Download Button */}
+                  <Button variant="outline" size="sm" onClick={() => toast.info("App bundle download initiated.")} className="hover-lift">
+                    <Download className="mr-2 h-3.5 w-3.5" /> Download & Install the App
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          </Reveal>
         </div>
       </section>
 
