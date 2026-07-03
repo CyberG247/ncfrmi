@@ -13,8 +13,6 @@ import NotFound from "./pages/NotFound.tsx";
 import About from "./pages/About.tsx";
 import Services from "./pages/Services.tsx";
 import Apply from "./pages/Apply.tsx";
-import IdpCamps from "./pages/IdpCamps.tsx";
-import IdpCampDetail from "./pages/IdpCampDetail.tsx";
 import FieldCapture from "./pages/FieldCapture.tsx";
 import RegistrantsList from "./pages/RegistrantsList.tsx";
 import RegistrantDetail from "./pages/RegistrantDetail.tsx";
@@ -59,8 +57,6 @@ const App = () => {
             <Route path="/about" element={<About />} />
             <Route path="/services" element={<Services />} />
             <Route path="/apply" element={<Apply />} />
-            <Route path="/idp-camps" element={<IdpCamps />} />
-            <Route path="/idp-camps/:slug" element={<IdpCampDetail />} />
             <Route path="/field-capture" element={<FieldCapture />} />
             <Route path="/registrants" element={<ProtectedRoute allowedRoles={["officer", "commissioner"]}><RegistrantsList /></ProtectedRoute>} />
             <Route path="/registrants/:id" element={<ProtectedRoute allowedRoles={["officer", "commissioner"]}><RegistrantDetail /></ProtectedRoute>} />

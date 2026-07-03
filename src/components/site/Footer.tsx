@@ -29,7 +29,6 @@ export const Footer = () => {
             {[
               ["About Us", "/about"],
               ["Online Application", "/apply"],
-              ["IDP Camps Directory", "/idp-camps"],
               ["Zonal & State Offices", "/offices"],
               ["News & Updates", "/news"],
               ["Report Incident", "/report"],

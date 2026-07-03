@@ -27,8 +27,7 @@ export default function SplashScreen({ minDuration = 3000, ready = true }: Props
         <img
           src={logo}
           alt="NCFRMI seal"
-          className="h-24 w-24 sm:h-32 sm:w-32 object-contain drop-shadow-xl animate-spin"
-          style={{ animationDuration: "1.6s", animationTimingFunction: "linear" }}
+          className="h-24 w-24 sm:h-32 sm:w-32 object-contain drop-shadow-xl"
         />
         <h1 className="mt-6 font-display text-lg sm:text-2xl md:text-3xl font-bold text-primary">
           Welcome to the Official Website of the
