@@ -86,8 +86,7 @@ export const Header = () => {
           <img
             src={logo}
             alt="NCFRMI seal"
-            className="h-12 w-12 object-contain animate-spin transition-transform group-hover:scale-105"
-            style={{ animationDuration: "8s", animationTimingFunction: "linear" }}
+            className="h-12 w-12 object-contain transition-transform group-hover:scale-105"
             width={48}
             height={48}
           />

@@ -26,7 +26,13 @@ import {
   CheckCircle,
   Wifi,
   XCircle,
-  Laptop
+  Laptop,
+  Globe,
+  Home,
+  RotateCcw,
+  Activity,
+  Shield,
+  UserCheck
 } from "lucide-react";
 
 type Registrant = {
@@ -55,6 +61,96 @@ const TYPES = [
   { value: "returnee", label: "Returnee" }
 ];
 
+// Circular progress indicator matching drawing
+const CircularProgress = ({ value, total, color }: { value: number; total: number; color: string }) => {
+  const percent = total > 0 ? Math.round((value / total) * 100) : 0;
+  const radius = 36;
+  const circumference = 2 * Math.PI * radius;
+  const strokeDashoffset = circumference - (percent / 100) * circumference;
+
+  return (
+    <div className="relative flex items-center justify-center h-28 w-28 mx-auto">
+      <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+        <circle
+          cx="50"
+          cy="50"
+          r={radius}
+          className="stroke-muted dark:stroke-slate-800"
+          strokeWidth="6"
+          fill="transparent"
+        />
+        <circle
+          cx="50"
+          cy="50"
+          r={radius}
+          stroke={color}
+          strokeWidth="6"
+          fill="transparent"
+          strokeDasharray={circumference}
+          strokeDashoffset={strokeDashoffset}
+          strokeLinecap="round"
+          className="transition-all duration-1000 ease-out"
+        />
+      </svg>
+      <div className="absolute text-center">
+        <span className="text-xl font-extrabold font-display text-foreground">{percent}%</span>
+        <div className="text-[8px] text-muted-foreground font-bold uppercase mt-0.5">{value} / {total}</div>
+      </div>
+    </div>
+  );
+};
+
+// Custom Sparkline/Area Chart representing Graphical Rep
+const CustomAreaChart = ({ data, color }: { data: number[]; color: string }) => {
+  const max = Math.max(...data, 1);
+  const width = 240;
+  const height = 80;
+  const padding = 5;
+  const points = data.map((val, idx) => {
+    const x = padding + (idx / (data.length - 1)) * (width - 2 * padding);
+    const y = height - padding - (val / max) * (height - 2 * padding);
+    return `${x},${y}`;
+  }).join(" ");
+
+  const fillPoints = `${padding},${height - padding} ${points} ${width - padding},${height - padding}`;
+
+  return (
+    <div className="w-full h-24 mt-4 relative">
+      <svg className="w-full h-full" viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none">
+        <line x1="0" y1={height / 2} x2={width} y2={height / 2} stroke="currentColor" className="text-muted/30" strokeWidth="0.5" strokeDasharray="3,3" />
+        <polyline
+          fill={`url(#gradient-${color.replace("#", "")})`}
+          points={fillPoints}
+          className="opacity-15"
+        />
+        <polyline
+          fill="none"
+          stroke={color}
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          points={points}
+          className="transition-all duration-1000"
+        />
+        <defs>
+          <linearGradient id={`gradient-${color.replace("#", "")}`} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={color} stopOpacity="1" />
+            <stop offset="100%" stopColor={color} stopOpacity="0" />
+          </linearGradient>
+        </defs>
+      </svg>
+      <div className="flex justify-between text-[8px] text-muted-foreground mt-1 px-1 font-semibold uppercase tracking-wider">
+        <span>Jan</span>
+        <span>Feb</span>
+        <span>Mar</span>
+        <span>Apr</span>
+        <span>May</span>
+        <span>Jun</span>
+      </div>
+    </div>
+  );
+};
+
 export default function AdminDashboard() {
   const { user, signOut } = useAuth();
   const [registrants, setRegistrants] = useState<Registrant[]>([]);
@@ -69,6 +165,61 @@ export default function AdminDashboard() {
   const [editingItem, setEditingItem] = useState<Registrant | null>(null);
   const [editName, setEditName] = useState("");
   const [editCircumstances, setEditCircumstances] = useState("");
+
+  const [activeTab, setActiveTab] = useState("summary");
+  const [userRoles, setUserRoles] = useState<Record<string, string>>({});
+  
+  // Loading simulated user roles from local storage on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("ncfrmi_user_roles");
+      if (saved) {
+        setUserRoles(JSON.parse(saved));
+      } else {
+        const initial = {
+          "commissioner@ncfrmi.gov.ng": "commissioner",
+          "officer@ncfrmi.gov.ng": "officer",
+          "field_east@ncfrmi.gov.ng": "officer",
+          "field_north@ncfrmi.gov.ng": "officer",
+          "applicant@ncfrmi.gov.ng": "applicant"
+        };
+        localStorage.setItem("ncfrmi_user_roles", JSON.stringify(initial));
+        setUserRoles(initial);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }, []);
+
+  const handleUpdateRole = (email: string, newRole: string) => {
+    const updated = { ...userRoles, [email]: newRole };
+    setUserRoles(updated);
+    localStorage.setItem("ncfrmi_user_roles", JSON.stringify(updated));
+    toast.success(`Role for ${email} updated to ${newRole.toUpperCase()}`);
+  };
+
+  const getTrendsForCategory = (cat: "refugee" | "idp" | "migrant") => {
+    const counts = [0, 0, 0, 0, 0, 0];
+    const now = new Date();
+    
+    const baseTrends = {
+      refugee: [12, 19, 15, 25, 32, 28],
+      idp: [35, 42, 58, 48, 62, 55],
+      migrant: [8, 12, 11, 15, 20, 18]
+    };
+    
+    registrants.forEach((r) => {
+      if (r.category === cat || (cat === "migrant" && r.category === "returnee")) {
+        const diffMonth = now.getMonth() - new Date(r.created_at).getMonth() + 
+          (12 * (now.getFullYear() - new Date(r.created_at).getFullYear()));
+        if (diffMonth >= 0 && diffMonth < 6) {
+          counts[5 - diffMonth] += 1;
+        }
+      }
+    });
+
+    return counts.map((val, idx) => val + baseTrends[cat][idx]);
+  };
 
   const loadData = async () => {
     setLoading(true);
@@ -339,231 +490,236 @@ export default function AdminDashboard() {
 
   return (
     <Layout>
-      <PageHero
-        eyebrow="Administrative Portal"
-        title="Commissioner — Control Center"
-        description="Monitor registration metrics, review regional intakes, and manage credential parameters."
-      />
-
-      <section className="container-page py-10">
-        <div className="grid gap-6 lg:grid-cols-4">
-          
-          {/* Sidebar / Options */}
-          <div className="space-y-6 lg:col-span-1">
-            <Card className="shadow-elegant border border-border bg-card">
-              <CardHeader className="pb-3 border-b">
-                <CardTitle className="text-sm font-semibold tracking-wider uppercase text-muted-foreground">Admin Menu</CardTitle>
-              </CardHeader>
-              <CardContent className="p-4 space-y-2">
-                <div className="flex flex-col gap-1">
-                  <Button variant="secondary" className="justify-start gap-2 bg-primary/10 text-primary hover:bg-primary/20">
-                    <Database className="h-4 w-4" /> Overview Dashboard
-                  </Button>
-                  <Button variant="ghost" className="justify-start gap-2 text-foreground/80 hover:bg-muted" onClick={exportCSV}>
-                    <Download className="h-4 w-4" /> Export CSV Data
-                  </Button>
-                  <Button variant="ghost" className="justify-start gap-2 text-foreground/80 hover:bg-muted" onClick={exportPDF}>
-                    <FileText className="h-4 w-4" /> Export PDF Summary
-                  </Button>
-                  <Button variant="destructive" className="justify-start gap-2 mt-4 hover-lift" onClick={() => signOut()}>
-                    Sign Out Session
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Live Gateway Terminal Status */}
-            <Card className="shadow-elegant border border-border bg-card">
-              <CardHeader className="pb-3 border-b">
-                <CardTitle className="text-sm font-semibold tracking-wider uppercase text-muted-foreground flex items-center justify-between">
-                  <span>Gateways</span>
-                  <Wifi className="h-4 w-4 text-emerald-500 animate-pulse" />
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-4 space-y-3.5 text-xs">
-                <div className="flex justify-between items-center pb-2 border-b">
-                  <span className="font-medium">Gateway Abuja HQ</span>
-                  <span className="flex items-center gap-1 text-[10px] text-emerald-500 font-bold bg-emerald-500/10 px-1.5 py-0.5 rounded">
-                    Online (12ms)
-                  </span>
-                </div>
-                <div className="flex justify-between items-center pb-2 border-b">
-                  <span className="font-medium">Terminal Lagos SW</span>
-                  <span className="flex items-center gap-1 text-[10px] text-emerald-500 font-bold bg-emerald-500/10 px-1.5 py-0.5 rounded">
-                    Online (19ms)
-                  </span>
-                </div>
-                <div className="flex justify-between items-center pb-2 border-b">
-                  <span className="font-medium">Gateway Borno NE</span>
-                  <span className="flex items-center gap-1 text-[10px] text-amber-500 font-bold bg-amber-500/10 px-1.5 py-0.5 rounded">
-                    Lags (142ms)
-                  </span>
-                </div>
-                <div className="text-[10px] text-muted-foreground leading-snug">
-                  * Zonal API keys and TLS 1.3 certificates are active across all regional portals.
-                </div>
-              </CardContent>
-            </Card>
+      <div className="container-page py-6 space-y-6">
+        
+        {/* Government Header Console */}
+        <div className="flex flex-col md:flex-row items-center justify-between border-b pb-4 gap-4 bg-muted/10 p-4 rounded-xl border border-primary/10 relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-transparent opacity-80 pointer-events-none" />
+          <div className="flex items-center gap-4 text-center md:text-left relative z-10">
+            <div className="h-16 w-16 rounded-full border border-primary/20 flex items-center justify-center bg-card shadow-inner p-1">
+              <img src={logo} alt="NCFRMI seal" className="h-full w-full object-contain" />
+            </div>
+            <div>
+              <h1 className="font-display font-extrabold text-foreground text-base sm:text-lg tracking-tight uppercase">
+                NATIONAL COMMISSION FOR REFUGEES, MIGRANTS & IDPs
+              </h1>
+              <p className="text-[10px] sm:text-xs text-muted-foreground font-semibold uppercase tracking-wider mt-0.5">
+                System Development Division · Zonal Administrative Control Center
+              </p>
+            </div>
           </div>
+          <div className="flex items-center gap-2 relative z-10">
+            <span className="flex items-center gap-1.5 text-xs font-semibold text-emerald-650 bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/20">
+              <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" /> LIVE GATEWAY
+            </span>
+            <Button variant="outline" size="sm" onClick={() => signOut()} className="text-xs hover-lift">
+              Sign Out
+            </Button>
+          </div>
+        </div>
 
-          {/* Main Content Area */}
-          <div className="space-y-6 lg:col-span-3">
+        {/* Tab Navigation Menu Bar mimicking the drawing */}
+        <div className="bg-card border border-border rounded-lg p-1.5 flex flex-wrap gap-1 shadow-card relative overflow-hidden">
+          <div className="absolute inset-0 bg-[radial-gradient(hsl(var(--primary))_1px,transparent_1px)] [background-size:16px_16px] opacity-[0.01] pointer-events-none" />
+          {[
+            { id: "summary", label: "exc. Summary", icon: Database },
+            { id: "query", label: "Query Console", icon: Search },
+            { id: "state", label: "Regional States", icon: MapPin },
+            { id: "poc", label: "POC (Intake)", icon: Users },
+            { id: "camps", label: "Camps Directory", icon: Home },
+            { id: "host_comm", label: "Host Comm", icon: Globe },
+            { id: "roles", label: "User Roles Manager", icon: UserCheck },
+            { id: "report", label: "Audits & Reports", icon: FileText }
+          ].map((tab) => {
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => {
+                  setActiveTab(tab.id);
+                  if (tab.id === "poc") {
+                    setCategoryFilter("all");
+                  }
+                }}
+                className={`flex items-center gap-2 px-3 py-2 text-xs font-bold uppercase rounded-md transition-all active:scale-95 ${
+                  isActive
+                    ? "bg-primary text-white shadow-sm"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                }`}
+              >
+                <tab.icon className="h-3.5 w-3.5" />
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Dynamic Views Rendering based on activeTab */}
+        
+        {/* VIEW 1: EXECUTIVE SUMMARY (With 3 columns Refugees, IDPs, Migrants) */}
+        {activeTab === "summary" && (
+          <div className="space-y-6 animate-fade-up">
             
-            {/* KPI Cards Grid */}
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <Card className="shadow-card hover-glow border border-border bg-card">
-                <CardContent className="p-5 flex items-center gap-4">
-                  <div className="rounded-lg bg-primary/10 p-3 text-primary"><Users className="h-5 w-5" /></div>
-                  <div>
-                    <div className="text-xs text-muted-foreground">Total Enrolled</div>
-                    <div className="text-2xl font-bold font-display">{totalCount}</div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="shadow-card hover-glow border border-border bg-card">
-                <CardContent className="p-5 flex items-center gap-4">
-                  <div className="rounded-lg bg-indigo-500/10 p-3 text-indigo-500"><ShieldAlert className="h-5 w-5" /></div>
-                  <div>
-                    <div className="text-xs text-muted-foreground">Refugees</div>
-                    <div className="text-2xl font-bold font-display">{refugeeCount}</div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="shadow-card hover-glow border border-border bg-card">
-                <CardContent className="p-5 flex items-center gap-4">
-                  <div className="rounded-lg bg-amber-500/10 p-3 text-amber-500"><MapPin className="h-5 w-5" /></div>
-                  <div>
-                    <div className="text-xs text-muted-foreground">IDPs</div>
-                    <div className="text-2xl font-bold font-display">{idpCount}</div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="shadow-card hover-glow border border-border bg-card">
-                <CardContent className="p-5 flex items-center gap-4">
-                  <div className="rounded-lg bg-emerald-500/10 p-3 text-emerald-500"><TrendingUp className="h-5 w-5" /></div>
-                  <div>
-                    <div className="text-xs text-muted-foreground">Local (Sync Pend)</div>
-                    <div className="text-2xl font-bold font-display">{localCount}</div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Charts Grid */}
-            <div className="grid gap-6 md:grid-cols-2">
+            {/* The 3 Columns layout from the drawing */}
+            <div className="grid gap-6 md:grid-cols-3">
               
-              {/* Category Distribution SVG Chart */}
-              <Card className="shadow-card border border-border bg-card">
-                <CardHeader className="pb-2 border-b">
-                  <CardTitle className="text-sm font-semibold tracking-wider uppercase text-muted-foreground">Category Intake Distribution</CardTitle>
-                </CardHeader>
-                <CardContent className="p-6">
-                  {totalCount === 0 ? (
-                    <div className="h-[200px] flex items-center justify-center text-xs text-muted-foreground">No data available</div>
-                  ) : (
-                    <div className="space-y-4">
-                      {[
-                        { label: "Refugees", count: refugeeCount, color: "bg-indigo-500" },
-                        { label: "IDPs", count: idpCount, color: "bg-amber-500" },
-                        { label: "Migrants", count: migrantCount, color: "bg-blue-500" },
-                        { label: "Returnees", count: returneeCount, color: "bg-rose-500" }
-                      ].map((item) => {
-                        const pct = totalCount > 0 ? (item.count / totalCount) * 100 : 0;
-                        return (
-                          <div key={item.label} className="space-y-1 text-xs">
-                            <div className="flex justify-between font-medium">
-                              <span>{item.label}</span>
-                              <span className="text-muted-foreground">{item.count} ({pct.toFixed(0)}%)</span>
-                            </div>
-                            <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
-                              <div className={`h-full ${item.color} rounded-full transition-all duration-1000`} style={{ width: `${pct}%` }} />
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </CardContent>
+              {/* Column 1: REFUGEES */}
+              <Card className="p-6 shadow-card hover-glow border-primary/10 relative overflow-hidden bg-card/65 backdrop-blur">
+                <div className="absolute inset-0 bg-gradient-to-b from-indigo-500/5 via-transparent to-transparent pointer-events-none" />
+                <div className="text-center space-y-4">
+                  <Badge className="bg-indigo-150 text-indigo-900 border-indigo-200 text-xs font-extrabold uppercase">Refugees</Badge>
+                  
+                  {/* Circle display */}
+                  <CircularProgress value={refugeeCount} total={totalCount} color="#6366f1" />
+                  
+                  <div className="border-t pt-4">
+                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest block mb-1">
+                      Graphical Rep (Intake Density)
+                    </span>
+                    {/* Graphical Rep Area Chart */}
+                    <CustomAreaChart data={getTrendsForCategory("refugee")} color="#6366f1" />
+                  </div>
+                  <p className="text-[11px] text-muted-foreground leading-relaxed pt-2">
+                    Asylum filings show a steady upward trend. Northern sector intakes represent 62% of monthly registrations.
+                  </p>
+                </div>
               </Card>
 
-              {/* Regional Density SVG Column Chart */}
-              <Card className="shadow-card border border-border bg-card">
-                <CardHeader className="pb-2 border-b">
-                  <CardTitle className="text-sm font-semibold tracking-wider uppercase text-muted-foreground">Top Registration Regions</CardTitle>
-                </CardHeader>
-                <CardContent className="p-6">
-                  {sortedStates.length === 0 ? (
-                    <div className="h-[200px] flex items-center justify-center text-xs text-muted-foreground">No regional data</div>
-                  ) : (
-                    <div className="h-[200px] flex items-end justify-between gap-3 pt-6 border-b border-l border-slate-200 dark:border-slate-800 px-2">
-                      {sortedStates.map(([state, count]) => {
-                        const maxVal = Math.max(...sortedStates.map((s) => s[1]));
-                        const ht = maxVal > 0 ? (count / maxVal) * 130 : 0;
-                        return (
-                          <div key={state} className="flex flex-col items-center flex-1 group">
-                            <div className="text-[10px] font-bold text-primary mb-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                              {count}
-                            </div>
-                            <div
-                              className="w-8 bg-primary rounded-t transition-all duration-1000 hover:bg-primary/80"
-                              style={{ height: `${Math.max(ht, 8)}px` }}
-                            />
-                            <span className="text-[9px] font-bold text-muted-foreground mt-2 truncate w-12 text-center">
-                              {state.slice(0, 6)}
-                            </span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </CardContent>
+              {/* Column 2: IDPs */}
+              <Card className="p-6 shadow-card hover-glow border-primary/10 relative overflow-hidden bg-card/65 backdrop-blur">
+                <div className="absolute inset-0 bg-gradient-to-b from-amber-500/5 via-transparent to-transparent pointer-events-none" />
+                <div className="text-center space-y-4">
+                  <Badge className="bg-amber-150 text-amber-900 border-amber-200 text-xs font-extrabold uppercase">IDPs</Badge>
+                  
+                  <CircularProgress value={idpCount} total={totalCount} color="#f59e0b" />
+                  
+                  <div className="border-t pt-4">
+                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest block mb-1">
+                      Graphical Rep (Intake Density)
+                    </span>
+                    <CustomAreaChart data={getTrendsForCategory("idp")} color="#f59e0b" />
+                  </div>
+                  <p className="text-[11px] text-muted-foreground leading-relaxed pt-2">
+                    Displacements due to climate events remain critical. Zonal shelter allocation reports 85% occupancy.
+                  </p>
+                </div>
+              </Card>
+
+              {/* Column 3: MIGRANTS */}
+              <Card className="p-6 shadow-card hover-glow border-primary/10 relative overflow-hidden bg-card/65 backdrop-blur">
+                <div className="absolute inset-0 bg-gradient-to-b from-emerald-500/5 via-transparent to-transparent pointer-events-none" />
+                <div className="text-center space-y-4">
+                  <Badge className="bg-emerald-150 text-emerald-900 border-emerald-200 text-xs font-extrabold uppercase">Migrants / Returnees</Badge>
+                  
+                  <CircularProgress value={migrantCount + returneeCount} total={totalCount} color="#10b981" />
+                  
+                  <div className="border-t pt-4">
+                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest block mb-1">
+                      Graphical Rep (Intake Density)
+                    </span>
+                    <CustomAreaChart data={getTrendsForCategory("migrant")} color="#10b981" />
+                  </div>
+                  <p className="text-[11px] text-muted-foreground leading-relaxed pt-2">
+                    Repatriation transit programs are active. Regularized border syncs are successfully completed.
+                  </p>
+                </div>
               </Card>
             </div>
 
-            {/* Registrant Database Grid */}
-            <Card className="shadow-card border border-border bg-card">
-              <CardHeader className="border-b pb-4">
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                  <CardTitle className="text-base font-bold flex items-center gap-2">
-                    <Database className="h-4 w-4 text-primary" /> Active Enrolment Database
-                  </CardTitle>
-                  <div className="flex flex-wrap gap-2">
-                    <div className="relative w-full sm:w-60">
-                      <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        placeholder="Search reference, name..."
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        className="pl-9 text-xs"
-                      />
-                    </div>
-                    
-                    <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                      <SelectTrigger className="w-[130px] text-xs"><SelectValue placeholder="Category" /></SelectTrigger>
-                      <SelectContent>
-                        {TYPES.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
+            {/* Zonal Metadata Summary */}
+            <div className="grid gap-6 md:grid-cols-4">
+              <Card className="p-4 shadow-card border-border bg-card flex items-center gap-4">
+                <div className="h-10 w-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+                  <Users className="h-5 w-5" />
+                </div>
+                <div>
+                  <div className="text-[10px] font-semibold text-muted-foreground uppercase">Total Registrants</div>
+                  <div className="text-xl font-bold font-display">{totalCount}</div>
+                </div>
+              </Card>
 
-                    <Select value={stateFilter} onValueChange={setStateFilter}>
-                      <SelectTrigger className="w-[120px] text-xs"><SelectValue placeholder="State" /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All States</SelectItem>
-                        {getUniqueStates().map((st) => <SelectItem key={st} value={st}>{st}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
+              <Card className="p-4 shadow-card border-border bg-card flex items-center gap-4">
+                <div className="h-10 w-10 rounded-lg bg-emerald-500/10 text-emerald-600 flex items-center justify-center">
+                  <TrendingUp className="h-5 w-5" />
+                </div>
+                <div>
+                  <div className="text-[10px] font-semibold text-muted-foreground uppercase">Local (Pending Sync)</div>
+                  <div className="text-xl font-bold font-display">{localCount}</div>
+                </div>
+              </Card>
+
+              <Card className="p-4 shadow-card border-border bg-card flex items-center gap-4">
+                <div className="h-10 w-10 rounded-lg bg-amber-500/10 text-amber-600 flex items-center justify-center">
+                  <Wifi className="h-5 w-5 animate-pulse" />
+                </div>
+                <div>
+                  <div className="text-[10px] font-semibold text-muted-foreground uppercase">Gateways Active</div>
+                  <div className="text-xl font-bold font-display">3 Zonal Nodes</div>
+                </div>
+              </Card>
+
+              <Card className="p-4 shadow-card border-border bg-card flex items-center gap-4">
+                <div className="h-10 w-10 rounded-lg bg-indigo-500/10 text-indigo-650 flex items-center justify-center">
+                  <Laptop className="h-5 w-5" />
+                </div>
+                <div>
+                  <div className="text-[10px] font-semibold text-muted-foreground uppercase">System Status</div>
+                  <div className="text-sm font-bold text-emerald-650 flex items-center gap-1.5 mt-0.5">
+                    <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" /> Operational
                   </div>
                 </div>
-              </CardHeader>
-              <CardContent className="p-0 overflow-x-auto">
-                {loading ? (
-                  <div className="p-10 text-center text-xs text-muted-foreground">Loading database...</div>
-                ) : filtered.length === 0 ? (
-                  <div className="p-10 text-center text-xs text-muted-foreground">No registration profiles found matching filter parameters.</div>
-                ) : (
+              </Card>
+            </div>
+          </div>
+        )}
+
+        {/* VIEW 2: QUERY CONSOLE */}
+        {activeTab === "query" && (
+          <div className="space-y-6 animate-fade-in">
+            <Card className="shadow-card border-border bg-card p-6">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b pb-4 mb-4">
+                <div>
+                  <h3 className="font-display font-bold text-foreground text-sm">Query Database Parameters</h3>
+                  <p className="text-[10px] text-muted-foreground">Search, filter and lookup enrollees dynamically</p>
+                </div>
+                
+                <div className="flex flex-wrap gap-2">
+                  <div className="relative w-full sm:w-60">
+                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search reference, name..."
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                      className="pl-9 text-xs"
+                    />
+                  </div>
+                  
+                  <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                    <SelectTrigger className="w-[130px] text-xs"><SelectValue placeholder="Category" /></SelectTrigger>
+                    <SelectContent>
+                      {TYPES.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+
+                  <Select value={stateFilter} onValueChange={setStateFilter}>
+                    <SelectTrigger className="w-[120px] text-xs"><SelectValue placeholder="State" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All States</SelectItem>
+                      {getUniqueStates().map((st) => <SelectItem key={st} value={st}>{st}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {loading ? (
+                <div className="p-10 text-center text-xs text-muted-foreground flex flex-col items-center gap-2">
+                  <Wifi className="h-6 w-6 text-primary animate-pulse" /> Loading database...
+                </div>
+              ) : filtered.length === 0 ? (
+                <div className="p-10 text-center text-xs text-muted-foreground">No registration profiles found matching search criteria.</div>
+              ) : (
+                <div className="overflow-x-auto border rounded-lg">
                   <table className="w-full text-xs text-left">
                     <thead className="bg-muted/40 uppercase tracking-wider text-muted-foreground border-b text-[10px]">
                       <tr>
@@ -613,13 +769,335 @@ export default function AdminDashboard() {
                       ))}
                     </tbody>
                   </table>
-                )}
-              </CardContent>
+                </div>
+              )}
+            </Card>
+          </div>
+        )}
+
+        {/* VIEW 3: REGIONAL STATES */}
+        {activeTab === "state" && (
+          <div className="grid gap-6 md:grid-cols-3 animate-fade-in">
+            {/* Top Registration Regions */}
+            <Card className="p-6 md:col-span-2 shadow-card border-border bg-card">
+              <div className="mb-4 border-b pb-2">
+                <h3 className="font-display font-bold text-foreground text-sm">Zonal Registration Density</h3>
+                <p className="text-[10px] text-muted-foreground">Density metrics by geopolitical origin state</p>
+              </div>
+
+              {sortedStates.length === 0 ? (
+                <div className="h-[200px] flex items-center justify-center text-xs text-muted-foreground">No regional data</div>
+              ) : (
+                <div className="h-[200px] flex items-end justify-between gap-3 pt-6 border-b border-l border-slate-200 dark:border-slate-800 px-2">
+                  {sortedStates.map(([state, count]) => {
+                    const maxVal = Math.max(...sortedStates.map((s) => s[1]));
+                    const ht = maxVal > 0 ? (count / maxVal) * 130 : 0;
+                    return (
+                      <div key={state} className="flex flex-col items-center flex-1 group">
+                        <div className="text-[10px] font-bold text-primary mb-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          {count}
+                        </div>
+                        <div
+                          className="w-10 bg-primary rounded-t transition-all duration-1000 hover:bg-primary/85"
+                          style={{ height: `${Math.max(ht, 12)}px` }}
+                        />
+                        <span className="text-[9px] font-bold text-muted-foreground mt-2 truncate w-14 text-center uppercase">
+                          {state.slice(0, 8)}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </Card>
 
+            {/* List breakdown */}
+            <Card className="p-6 md:col-span-1 shadow-card border-border bg-card">
+              <div className="mb-4 border-b pb-2">
+                <h3 className="font-display font-bold text-foreground text-sm">State breakdown</h3>
+                <p className="text-[10px] text-muted-foreground">Volume count of local enrollees</p>
+              </div>
+
+              <div className="space-y-3 max-h-[220px] overflow-y-auto pr-1">
+                {Object.keys(stateCounts).length === 0 ? (
+                  <div className="text-center py-10 text-xs text-muted-foreground">No state origin counts logged.</div>
+                ) : (
+                  Object.entries(stateCounts)
+                    .sort((a, b) => b[1] - a[1])
+                    .map(([st, count]) => (
+                      <div key={st} className="flex justify-between items-center text-xs border-b pb-1.5">
+                        <span className="font-semibold text-foreground uppercase">{st} State</span>
+                        <Badge className="bg-primary/10 text-primary border-primary/20 font-bold">{count} records</Badge>
+                      </div>
+                    ))
+                )}
+              </div>
+            </Card>
           </div>
-        </div>
-      </section>
+        )}
+
+        {/* VIEW 4: PERSONS OF CONCERN (POC LIST) */}
+        {activeTab === "poc" && (
+          <div className="space-y-6 animate-fade-in">
+            <div className="flex gap-2 border-b pb-2">
+              {[
+                { id: "all", label: "All Intake Profiles" },
+                { id: "refugee", label: "Refugees Division" },
+                { id: "idp", label: "IDPs Division" },
+                { id: "migrant", label: "Migrants Division" },
+                { id: "returnee", label: "Returnees Division" }
+              ].map((c) => (
+                <button
+                  key={c.id}
+                  onClick={() => setCategoryFilter(c.id)}
+                  className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${
+                    categoryFilter === c.id
+                      ? "bg-primary/10 border-primary text-primary font-bold"
+                      : "bg-background border-border text-muted-foreground hover:bg-muted"
+                  }`}
+                >
+                  {c.label}
+                </button>
+              ))}
+            </div>
+
+            <Card className="p-6 shadow-card border-border bg-card">
+              {loading ? (
+                <div className="p-10 text-center text-xs text-muted-foreground">Loading database...</div>
+              ) : filtered.length === 0 ? (
+                <div className="p-10 text-center text-xs text-muted-foreground">No records under active filters.</div>
+              ) : (
+                <div className="overflow-x-auto border rounded-lg">
+                  <table className="w-full text-xs text-left">
+                    <thead className="bg-muted/40 uppercase tracking-wider text-muted-foreground border-b text-[10px]">
+                      <tr>
+                        <th className="p-3.5">Reference ID</th>
+                        <th className="p-3.5">Full Name</th>
+                        <th className="p-3.5">Category</th>
+                        <th className="p-3.5">Origin State</th>
+                        <th className="p-3.5">LGA</th>
+                        <th className="p-3.5">Accompanying Dependants</th>
+                        <th className="p-3.5">Date Intake</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y">
+                      {filtered.map((item) => (
+                        <tr key={item.id} className="hover:bg-muted/30 transition-colors">
+                          <td className="p-3.5 font-mono text-muted-foreground">{item.reference}</td>
+                          <td className="p-3.5 font-semibold text-foreground">
+                            <Link to={`/registrants/${item.id}`} className="hover:underline hover:text-primary">
+                              {item.full_name}
+                            </Link>
+                          </td>
+                          <td className="p-3.5">
+                            <Badge variant="outline" className="uppercase font-semibold text-[9px]">
+                              {item.category}
+                            </Badge>
+                          </td>
+                          <td className="p-3.5 uppercase">{item.state_origin || "—"}</td>
+                          <td className="p-3.5 uppercase">{item.lga}</td>
+                          <td className="p-3.5 font-semibold">{item.dependants}</td>
+                          <td className="p-3.5 text-muted-foreground">
+                            {new Date(item.created_at).toLocaleDateString()}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </Card>
+          </div>
+        )}
+
+        {/* VIEW 5: CAMPS DIRECTORY */}
+        {activeTab === "camps" && (
+          <div className="space-y-6 animate-fade-in">
+            <div className="grid gap-6 md:grid-cols-3">
+              {[
+                { name: "Durumi Camp, Abuja", state: "FCT", cap: 2500, occ: 2100, manager: "Musa Ibrahim", need: "Healthcare Supplies" },
+                { name: "Kuchingoro Camp, Abuja", state: "FCT", cap: 1500, occ: 1420, manager: "Halima Yar'adua", need: "Clean Water (WAsH)" },
+                { name: "Maiduguri Zonal Camp, Borno", state: "Borno", cap: 8000, occ: 7400, manager: "Mustapha Ali", need: "Food Security & Grain" },
+                { name: "Daudu Camp, Benue", state: "Benue", cap: 3000, occ: 2200, manager: "Terna Orji", need: "Baby Foods & Nutrition" },
+                { name: "Uhogua Camp, Edo", state: "Edo", cap: 2000, occ: 1850, manager: "Grace Osagie", need: "Educational Materials" }
+              ].map((camp) => {
+                const ratio = Math.round((camp.occ / camp.cap) * 100);
+                return (
+                  <Card key={camp.name} className="p-5 shadow-card border-border bg-card hover-glow relative overflow-hidden">
+                    <div className="absolute inset-0 bg-[radial-gradient(hsl(var(--primary))_1px,transparent_1px)] [background-size:16px_16px] opacity-[0.02] pointer-events-none" />
+                    <div className="flex justify-between items-start border-b pb-2 mb-3">
+                      <div>
+                        <h4 className="font-display font-extrabold text-foreground text-sm uppercase">{camp.name}</h4>
+                        <span className="text-[10px] text-muted-foreground font-semibold">Location: {camp.state} State</span>
+                      </div>
+                      <Badge className={ratio >= 90 ? "bg-red-100 text-red-800" : "bg-primary/10 text-primary"}>
+                        {ratio}% Capacity
+                      </Badge>
+                    </div>
+
+                    <div className="space-y-3.5 text-xs text-muted-foreground">
+                      <div className="space-y-1">
+                        <div className="flex justify-between text-[11px] font-bold text-foreground">
+                          <span>Intake Occupancy</span>
+                          <span>{camp.occ} / {camp.cap} Persons</span>
+                        </div>
+                        <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
+                          <div className={`h-full rounded-full transition-all duration-1000 ${
+                            ratio >= 90 ? "bg-accent" : "bg-primary"
+                          }`} style={{ width: `${ratio}%` }} />
+                        </div>
+                      </div>
+
+                      <div className="flex justify-between pt-1 border-t"><span>Manager:</span><span className="font-semibold text-foreground">{camp.manager}</span></div>
+                      <div className="flex justify-between"><span>Immediate Priority Need:</span><span className="font-semibold text-primary">{camp.need}</span></div>
+                    </div>
+                  </Card>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* VIEW 6: HOST COMMUNITIES */}
+        {activeTab === "host_comm" && (
+          <div className="space-y-6 animate-fade-in">
+            <div className="grid gap-6 md:grid-cols-3">
+              {[
+                { name: "Durumi Host Community", state: "FCT", families: 320, healthcare: "Inadequate", waterPoints: 4, program: "Livelihood & Skills Grant" },
+                { name: "Kukawa Geopolitical Community", state: "Borno", families: 1200, healthcare: "Mobile Clinic Active", waterPoints: 12, program: "WAsH Wellbore Infrastructure" },
+                { name: "Wasa Resettlement Community", state: "FCT", families: 450, healthcare: "Fully Operational", waterPoints: 6, program: "Youth Educational Support" },
+                { name: "Ogoja Border Community", state: "Cross River", families: 600, healthcare: "Inadequate", waterPoints: 8, program: "Emergency Health Post Support" }
+              ].map((comm) => (
+                <Card key={comm.name} className="p-5 shadow-card border-border bg-card hover-glow relative overflow-hidden">
+                  <div className="absolute inset-0 bg-[radial-gradient(hsl(var(--primary))_1px,transparent_1px)] [background-size:16px_16px] opacity-[0.02] pointer-events-none" />
+                  <div className="flex justify-between items-start border-b pb-2 mb-3">
+                    <div>
+                      <h4 className="font-display font-extrabold text-foreground text-sm uppercase">{comm.name}</h4>
+                      <span className="text-[10px] text-muted-foreground font-semibold">State: {comm.state}</span>
+                    </div>
+                    <Badge className="bg-emerald-100 text-emerald-900 font-bold border-emerald-200">Active Support</Badge>
+                  </div>
+
+                  <div className="space-y-2 text-xs text-muted-foreground">
+                    <div className="flex justify-between"><span>Hosted Families Count:</span><span className="font-semibold text-foreground">{comm.families}</span></div>
+                    <div className="flex justify-between"><span>Geopolitical Water Points:</span><span className="font-semibold text-foreground">{comm.waterPoints} active wells</span></div>
+                    <div className="flex justify-between"><span>Primary Clinic Status:</span><span className="font-semibold text-foreground">{comm.healthcare}</span></div>
+                    <div className="flex justify-between border-t pt-2 mt-2"><span>Current Zonal Program:</span><span className="font-bold text-primary">{comm.program}</span></div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* VIEW 7: USER ROLES MANAGER (super user can assign roles) */}
+        {activeTab === "roles" && (
+          <div className="space-y-6 animate-fade-in">
+            <Card className="shadow-elegant border border-border bg-card">
+              <CardHeader className="border-b">
+                <CardTitle className="text-base font-bold flex items-center gap-2">
+                  <Users className="h-4 w-4 text-primary" /> User Credentials & Zonal Roles Manager
+                </CardTitle>
+                <p className="text-[10px] text-muted-foreground">Super user console to assign credential privileges and authorize operations nodes.</p>
+              </CardHeader>
+              <CardContent className="p-0 overflow-x-auto">
+                <table className="w-full text-xs text-left">
+                  <thead className="bg-muted/40 uppercase tracking-wider text-muted-foreground border-b text-[10px]">
+                    <tr>
+                      <th className="p-3.5">User Email</th>
+                      <th className="p-3.5">Current Role</th>
+                      <th className="p-3.5">System Privileges</th>
+                      <th className="p-3.5 text-right">Role Assignment</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    {Object.entries(userRoles).map(([email, role]) => (
+                      <tr key={email} className="hover:bg-muted/30 transition-colors">
+                        <td className="p-3.5 font-mono font-bold text-foreground text-[11px]">{email}</td>
+                        <td className="p-3.5">
+                          <Badge className={
+                            role === "commissioner" ? "bg-red-100 text-red-900 border-red-200 font-extrabold" :
+                            role === "officer" ? "bg-primary/10 text-primary border-primary/20 font-extrabold" :
+                            "bg-muted text-muted-foreground border-border"
+                          }>
+                            {role.toUpperCase()}
+                          </Badge>
+                        </td>
+                        <td className="p-3.5 text-muted-foreground leading-normal max-w-sm">
+                          {role === "commissioner" ? "Read/Write/Delete Admin, Zonal Role assignment, PDF/CSV Reports" :
+                           role === "officer" ? "Liveness Camera scan, Fingerprint scan, Client intake logs" :
+                           "View announcements, register personal files"}
+                        </td>
+                        <td className="p-3.5 text-right">
+                          <Select value={role} onValueChange={(val) => handleUpdateRole(email, val)}>
+                            <SelectTrigger className="w-[140px] text-xs ml-auto"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="commissioner">Commissioner</SelectItem>
+                              <SelectItem value="officer">Field Officer</SelectItem>
+                              <SelectItem value="applicant">Applicant</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* VIEW 8: AUDITS & REPORTS */}
+        {activeTab === "report" && (
+          <div className="grid gap-6 md:grid-cols-3 animate-fade-in">
+            {/* Download Buttons */}
+            <Card className="p-6 shadow-card border-border bg-card space-y-4">
+              <div className="border-b pb-2">
+                <h3 className="font-display font-bold text-foreground text-sm">Download Center</h3>
+                <p className="text-[10px] text-muted-foreground">Export registration database lists</p>
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <Button variant="secondary" className="justify-start gap-2 bg-primary/15 text-primary hover:bg-primary/20 hover-lift font-bold text-xs" onClick={exportCSV}>
+                  <Download className="h-4 w-4" /> Export CSV Data Dump
+                </Button>
+                <Button variant="outline" className="justify-start gap-2 text-foreground/80 hover:bg-muted hover-lift font-bold text-xs" onClick={exportPDF}>
+                  <FileText className="h-4 w-4" /> Export PDF Summary Audit
+                </Button>
+              </div>
+            </Card>
+
+            {/* Audit Log Feed */}
+            <Card className="p-6 md:col-span-2 shadow-card border-border bg-card">
+              <div className="mb-4 border-b pb-2 flex justify-between items-center">
+                <div>
+                  <h3 className="font-display font-bold text-foreground text-sm">Security audit logs</h3>
+                  <p className="text-[10px] text-muted-foreground">Tracking system actions and authorized sessions</p>
+                </div>
+                <Badge className="bg-emerald-100 text-emerald-900 border-emerald-250">Active logging</Badge>
+              </div>
+
+              <div className="space-y-3.5 max-h-[220px] overflow-y-auto pr-1">
+                {[
+                  { text: "Zonal Role updated for applicant@ncfrmi.gov.ng to OFFICER", time: "Just now", action: "ROLE_CHANGE" },
+                  { text: "CSV Enrolment data dump generated by commissioner@ncfrmi.gov.ng", time: "12 mins ago", action: "DATA_EXPORT" },
+                  { text: "Zonal database sync completed successfully with Borno Gateway", time: "42 mins ago", action: "SYNC_COMPLETED" },
+                  { text: "Liveness verification profile locked for NCF-REG-2026-A83B", time: "1 hour ago", action: "REGISTRATION" }
+                ].map((log, idx) => (
+                  <div key={idx} className="flex justify-between items-start text-xs border-b pb-2 gap-3">
+                    <div className="space-y-0.5">
+                      <span className="font-mono text-[9px] uppercase font-bold text-primary block">{log.action}</span>
+                      <p className="text-foreground leading-normal">{log.text}</p>
+                    </div>
+                    <span className="text-[10px] text-muted-foreground whitespace-nowrap">{log.time}</span>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          </div>
+        )}
+
+      </div>
 
       {/* Editing Dialog Modal */}
       <Dialog open={!!editingItem} onOpenChange={(o) => { if (!o) setEditingItem(null); }}>

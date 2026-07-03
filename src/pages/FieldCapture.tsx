@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Card } from "@/components/ui/card";
-import { Camera, Fingerprint, CheckCircle2, Loader2, RotateCcw, ShieldCheck, UserPlus, Download, Globe } from "lucide-react";
+import { Camera, Fingerprint, CheckCircle2, Loader2, RotateCcw, ShieldCheck, UserPlus, Download, Globe, Home, Activity } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import logo from "@/assets/ncfrmi-logo.png";
@@ -26,14 +26,16 @@ type Form = {
   type: string;
   full_name: string; address: string; phone: string; dob: string; gender: string;
   nationality: string; state_origin: string; lga: string; dependants: string; reason: string;
+  education_level: string; skills: string; primary_needs: string[]; needs_details: string;
 };
 
 const empty: Form = {
   type: "", full_name: "", address: "", phone: "", dob: "", gender: "",
   nationality: "Nigeria", state_origin: "", lga: "", dependants: "0", reason: "",
+  education_level: "", skills: "", primary_needs: [], needs_details: "",
 };
 
-const steps = ["Registration Type", "Biodata", "Review", "Biometrics"];
+const steps = ["Registration Type", "Biodata & Needs", "Review", "Thumbprint Scan"];
 
 const playBeep = () => {
   try {
@@ -112,6 +114,66 @@ export default function FieldCapture() {
   const [showIntro, setShowIntro] = useState(true);
   const [simStep, setSimStep] = useState(0);
   const [appComingSoon, setAppComingSoon] = useState(false);
+  const [subCategoryOpen, setSubCategoryOpen] = useState(false);
+  const [showInterventions, setShowInterventions] = useState(false);
+  const [interventionsList, setInterventionsList] = useState<any[]>([]);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("ncfrmi_interventions");
+      if (saved) {
+        setInterventionsList(JSON.parse(saved));
+      } else {
+        const initialMock = [
+          {
+            id: "int-1",
+            camp: "Durumi Camp, Abuja",
+            category: "Food & Nutrition",
+            details: "Distributed 300 units of dry food rations and cooking oil supplies.",
+            count: 450,
+            date: new Date(Date.now() - 3600000 * 4).toLocaleString(),
+            officer: "officer@ncfrmi.gov.ng"
+          },
+          {
+            id: "int-2",
+            camp: "Kuchingoro Camp, Abuja",
+            category: "Medical & Healthcare",
+            details: "Conducted medical screening and distributed basic hygiene materials.",
+            count: 220,
+            date: new Date(Date.now() - 3600000 * 28).toLocaleString(),
+            officer: "officer@ncfrmi.gov.ng"
+          }
+        ];
+        localStorage.setItem("ncfrmi_interventions", JSON.stringify(initialMock));
+        setInterventionsList(initialMock);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }, []);
+
+  const handleAddIntervention = (camp: string, category: string, details: string, count: number) => {
+    if (!camp || !category || !details || count <= 0) {
+      toast.error("Please fill in all intervention details correctly.");
+      return;
+    }
+    const newEntry = {
+      id: `int-${Math.random().toString(36).slice(2, 8)}`,
+      camp,
+      category,
+      details,
+      count,
+      date: new Date().toLocaleString(),
+      officer: localStorage.getItem("ncfrmi_simulated_user") 
+        ? JSON.parse(localStorage.getItem("ncfrmi_simulated_user")!).email 
+        : "officer@ncfrmi.gov.ng"
+    };
+    const updated = [newEntry, ...interventionsList];
+    setInterventionsList(updated);
+    localStorage.setItem("ncfrmi_interventions", JSON.stringify(updated));
+    playBeep();
+    toast.success("Intervention entry logged and synced!");
+  };
 
   useEffect(() => {
     if (!showIntro) return;
@@ -132,11 +194,12 @@ export default function FieldCapture() {
   const canNext = () => {
     if (step === 0) return !!data.type;
     if (step === 1) {
-      return data.full_name && data.address && data.phone && data.dob && data.gender &&
-        data.nationality && data.state_origin && data.lga && data.reason.length >= 20;
+      return !!face && !!data.full_name && !!data.address && !!data.phone && !!data.dob && !!data.gender &&
+        !!data.nationality && !!data.state_origin && !!data.lga && data.reason.length >= 20 &&
+        !!data.education_level && !!data.needs_details;
     }
     if (step === 2) return true;
-    if (step === 3) return !!face && !!thumb;
+    if (step === 3) return !!thumb;
     return false;
   };
 
@@ -148,6 +211,20 @@ export default function FieldCapture() {
     setSubmitting(true);
     const reference = `NCF-REG-${new Date().getFullYear()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
     const { data: u } = await supabase.auth.getUser();
+
+    const circumstancesMerged = `
+CAUSE OF DISPLACEMENT:
+${data.reason}
+
+EDUCATION BACKGROUND:
+- Level: ${data.education_level}
+- Skills/Specialization: ${data.skills || "None"}
+
+NEEDS ASSESSMENT:
+- Immediate Needs: ${data.primary_needs.join(", ") || "None"}
+- Details: ${data.needs_details}
+`;
+
     const payload = {
       reference,
       category: data.type as any,
@@ -160,7 +237,7 @@ export default function FieldCapture() {
       state_origin: data.state_origin,
       lga: data.lga,
       dependants: Number(data.dependants) || 0,
-      circumstances: data.reason,
+      circumstances: circumstancesMerged,
       face_captured: !!face,
       thumb_captured: !!thumb,
       captured_by: u.user?.id ?? null,
@@ -186,6 +263,10 @@ export default function FieldCapture() {
         const newLocalRecord = {
           id: Math.random().toString(36).slice(2, 11) + "-" + Math.random().toString(36).slice(2, 11),
           ...payload,
+          education_level: data.education_level,
+          skills: data.skills,
+          primary_needs: data.primary_needs,
+          needs_details: data.needs_details,
           created_at: new Date().toISOString(),
           is_local: true,
         };
@@ -419,97 +500,445 @@ export default function FieldCapture() {
               </div>
             </Card>
           </div>
+        ) : showInterventions ? (
+          <InterventionsPortal
+            onBack={() => setShowInterventions(false)}
+            list={interventionsList}
+            onAdd={handleAddIntervention}
+          />
         ) : (
-          <div className="mx-auto max-w-3xl">
-            <Card className="p-6 sm:p-8 shadow-card">
-              <div className="mb-6 flex items-center justify-between">
-                <div>
-                  <div className="text-xs uppercase tracking-wide text-muted-foreground">Step {step + 1} of {steps.length}</div>
-                  <h2 className="font-display text-2xl font-bold text-primary">{steps[step]}</h2>
-                </div>
-                <ShieldCheck className="h-8 w-8 text-accent" />
-              </div>
-              <Progress value={((step + 1) / steps.length) * 100} className="mb-6 h-2" />
+          <div className={`${step === 0 ? "mx-auto max-w-4xl relative animate-fade-up" : "mx-auto max-w-3xl animate-fade-up"}`}>
+            {step === 0 && (
+              <div className="absolute -inset-4 bg-gradient-to-tr from-emerald-500/5 via-primary/5 to-accent/5 rounded-3xl -z-10 blur-xl opacity-80" />
+            )}
+            <Card className={`p-6 sm:p-8 shadow-card overflow-hidden transition-all duration-300 relative ${
+              step === 0 ? "border-primary/20 bg-card/90 backdrop-blur-sm shadow-elegant" : ""
+            }`}>
+              {step === 0 && (
+                <div className="absolute inset-0 bg-[radial-gradient(hsl(var(--primary))_1px,transparent_1px)] [background-size:16px_16px] opacity-[0.03] pointer-events-none" />
+              )}
+              
+              {step > 0 && (
+                <>
+                  <div className="mb-6 flex items-center justify-between">
+                    <div>
+                      <div className="text-xs uppercase tracking-wide text-muted-foreground">Step {step + 1} of {steps.length}</div>
+                      <h2 className="font-display text-2xl font-bold text-primary">{steps[step]}</h2>
+                    </div>
+                    <ShieldCheck className="h-8 w-8 text-accent" />
+                  </div>
+                  <Progress value={((step + 1) / steps.length) * 100} className="mb-6 h-2" />
+                </>
+              )}
 
               {step === 0 && (
-                <div className="space-y-4">
-                  <Field label="Select registration category *">
-                    <Select value={data.type} onValueChange={(v) => set("type", v)}>
-                      <SelectTrigger><SelectValue placeholder="Choose category" /></SelectTrigger>
-                      <SelectContent>
-                        {TYPES.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </Field>
-                  <p className="text-sm text-muted-foreground">
-                    The category determines the relevant intake protocol, partner agencies and follow-up workflow.
-                  </p>
+                <div className="space-y-6">
+                  <div className="border-b pb-4 mb-6 flex justify-between items-center">
+                    <div>
+                      <h3 className="text-xs uppercase tracking-widest text-primary font-bold">Federal Republic of Nigeria</h3>
+                      <h2 className="font-display text-xl sm:text-2xl font-extrabold text-foreground mt-0.5">DATA COLLECTION FORM</h2>
+                    </div>
+                    <img src={logo} alt="NCFRMI Crest" className="h-10 w-10 object-contain hover:scale-110 transition-transform duration-300" />
+                  </div>
+
+                  {/* 4 Professional Category Cards */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    
+                    {/* Card 1: REFUGEES */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        set("type", "refugee");
+                        setStep(1);
+                      }}
+                      className="group flex flex-col items-start p-5 rounded-xl border border-border bg-card text-left transition-all duration-300 hover:border-primary/45 hover:shadow-elegant relative overflow-hidden active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-primary/40"
+                    >
+                      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                      <div className="flex items-center gap-3.5 z-10">
+                        <div className="h-10 w-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-bold group-hover:scale-110 transition-transform duration-300">
+                          <Globe className="h-5 w-5" />
+                        </div>
+                        <div>
+                          <h4 className="font-display font-extrabold text-foreground text-sm tracking-wide uppercase">Refugees</h4>
+                          <span className="text-[9px] font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded-full mt-1 inline-block">
+                            Protection Division
+                          </span>
+                        </div>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-3.5 leading-relaxed z-10">
+                        Enrol asylum seekers and certified refugees. Capture origin files and migration circumstances.
+                      </p>
+                    </button>
+
+                    {/* Card 2: IDPs */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        set("type", "idp");
+                        setStep(1);
+                      }}
+                      className="group flex flex-col items-start p-5 rounded-xl border border-border bg-card text-left transition-all duration-300 hover:border-primary/45 hover:shadow-elegant relative overflow-hidden active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-primary/40"
+                    >
+                      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                      <div className="flex items-center gap-3.5 z-10">
+                        <div className="h-10 w-10 rounded-lg bg-accent/10 text-accent flex items-center justify-center font-bold group-hover:scale-110 transition-transform duration-300">
+                          <Home className="h-5 w-5" />
+                        </div>
+                        <div>
+                          <h4 className="font-display font-extrabold text-foreground text-sm tracking-wide uppercase">IDPs</h4>
+                          <span className="text-[9px] font-semibold text-accent bg-accent/10 px-2 py-0.5 rounded-full mt-1 inline-block">
+                            Camp Enrolment
+                          </span>
+                        </div>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-3.5 leading-relaxed z-10">
+                        Register Internally Displaced Persons. Track shelter coordinates, camp assignments, and dependants.
+                      </p>
+                    </button>
+
+                    {/* Card 3: MIGRANTS / RETURNEES */}
+                    <div className="relative group flex flex-col items-start p-5 rounded-xl border border-border bg-card text-left transition-all duration-300 hover:border-primary/45 hover:shadow-elegant overflow-hidden">
+                      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                      
+                      {!subCategoryOpen ? (
+                        <div className="flex flex-col h-full w-full justify-between z-10">
+                          <div>
+                            <div className="flex items-center gap-3.5">
+                              <div className="h-10 w-10 rounded-lg bg-amber-500/10 text-amber-600 flex items-center justify-center font-bold group-hover:scale-110 transition-transform duration-300">
+                                <RotateCcw className="h-5 w-5" />
+                              </div>
+                              <div>
+                                <h4 className="font-display font-extrabold text-foreground text-sm tracking-wide uppercase">Migrants / Returnees</h4>
+                                <span className="text-[9px] font-semibold text-amber-600 bg-amber-500/10 px-2 py-0.5 rounded-full mt-1 inline-block">
+                                  Repatriation & Transit
+                                </span>
+                              </div>
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-3.5 leading-relaxed">
+                              Enrol regularized migrants or returnee citizens. Track border transit and reintegration assets.
+                            </p>
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            onClick={() => setSubCategoryOpen(true)}
+                            className="mt-4 w-full text-xs font-bold bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200/50 hover-lift"
+                          >
+                            Choose Category
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col w-full h-full justify-between z-10 animate-fade-in">
+                          <div>
+                            <h4 className="font-display font-extrabold text-foreground text-xs uppercase mb-2">Select category type:</h4>
+                            <p className="text-[10px] text-muted-foreground mb-4 leading-normal">Specify whether this enrollee is a regular Migrant or a Returnee.</p>
+                            <div className="grid grid-cols-2 gap-2">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  set("type", "migrant");
+                                  setStep(1);
+                                  setSubCategoryOpen(false);
+                                }}
+                                className="flex items-center justify-center p-2.5 rounded bg-muted hover:bg-primary hover:text-white text-xs font-bold text-foreground transition-all active:scale-95 text-center"
+                              >
+                                Migrant
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  set("type", "returnee");
+                                  setStep(1);
+                                  setSubCategoryOpen(false);
+                                }}
+                                className="flex items-center justify-center p-2.5 rounded bg-muted hover:bg-primary hover:text-white text-xs font-bold text-foreground transition-all active:scale-95 text-center"
+                              >
+                                Returnee
+                              </button>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setSubCategoryOpen(false)}
+                            className="mt-3 text-center text-[10px] font-semibold text-muted-foreground hover:underline"
+                          >
+                            ← Back
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Card 4: INTERVENTIONS */}
+                    <button
+                      type="button"
+                      onClick={() => setShowInterventions(true)}
+                      className="group flex flex-col items-start p-5 rounded-xl border border-border bg-card text-left transition-all duration-300 hover:border-primary/45 hover:shadow-elegant relative overflow-hidden active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-primary/40"
+                    >
+                      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                      <div className="flex items-center gap-3.5 z-10">
+                        <div className="h-10 w-10 rounded-lg bg-teal-500/10 text-teal-600 flex items-center justify-center font-bold group-hover:scale-110 transition-transform duration-300">
+                          <Activity className="h-5 w-5" />
+                        </div>
+                        <div>
+                          <h4 className="font-display font-extrabold text-foreground text-sm tracking-wide uppercase">Interventions</h4>
+                          <span className="text-[9px] font-semibold text-teal-600 bg-teal-500/10 px-2 py-0.5 rounded-full mt-1 inline-block">
+                            Aid Distribution
+                          </span>
+                        </div>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-3.5 leading-relaxed z-10">
+                        Log zonal support activities, resource deliveries, medical aids, and relief material tracking.
+                      </p>
+                    </button>
+
+                  </div>
                 </div>
               )}
 
               {step === 1 && (
-                <div className="grid gap-4">
-                  <Field label="Full legal name *"><Input value={data.full_name} onChange={(e) => set("full_name", e.target.value)} /></Field>
-                  <Field label="Current address / shelter *"><Textarea rows={2} value={data.address} onChange={(e) => set("address", e.target.value)} /></Field>
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <Field label="Phone *"><Input type="tel" value={data.phone} onChange={(e) => set("phone", e.target.value)} placeholder="+234…" /></Field>
-                    <Field label="Date of birth *"><Input type="date" value={data.dob} onChange={(e) => set("dob", e.target.value)} /></Field>
-                    <Field label="Gender *">
-                      <Select value={data.gender} onValueChange={(v) => set("gender", v)}>
-                        <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="female">Female</SelectItem>
-                          <SelectItem value="male">Male</SelectItem>
-                          <SelectItem value="other">Other</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </Field>
-                    <Field label="Nationality *"><Input value={data.nationality} onChange={(e) => set("nationality", e.target.value)} /></Field>
-                    <Field label="State of origin *">
-                      <Select value={data.state_origin} onValueChange={(v) => set("state_origin", v)}>
-                        <SelectTrigger><SelectValue placeholder="Select state" /></SelectTrigger>
-                        <SelectContent className="max-h-60">{NG_STATES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
-                      </Select>
-                    </Field>
-                    <Field label="LGA *"><Input value={data.lga} onChange={(e) => set("lga", e.target.value)} /></Field>
-                    <Field label="Number of dependants"><Input type="number" min={0} value={data.dependants} onChange={(e) => set("dependants", e.target.value)} /></Field>
+                <div className="space-y-6 animate-fade-in">
+                  {/* Image/Picture at the very top of the Data Collection Form */}
+                  <div className="flex flex-col items-center border-b pb-6 mb-6">
+                    <div className="w-full max-w-md">
+                      <FaceCapture image={face} onCapture={setFace} />
+                    </div>
                   </div>
-                  <Field label={`Circumstances & reason for ${typeLabel.toLowerCase()} * (min 20 characters)`}>
-                    <Textarea rows={6} value={data.reason} onChange={(e) => set("reason", e.target.value)} placeholder="Describe the situation: what happened, when, where, who is affected, assistance required." />
-                    <div className="mt-1 text-xs text-muted-foreground">{data.reason.length} characters</div>
-                  </Field>
+
+                  {/* Section 1: BIODATA */}
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2 border-b pb-1.5">
+                      <span className="text-xs font-extrabold text-primary bg-primary/10 px-2 py-0.5 rounded">I</span>
+                      <h3 className="text-sm font-extrabold uppercase tracking-wide text-foreground">BIODATA</h3>
+                    </div>
+                    
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <div className="sm:col-span-2">
+                        <Field label="Full legal name *">
+                          <Input value={data.full_name} onChange={(e) => set("full_name", e.target.value)} placeholder="Firstname Middlename Lastname" />
+                        </Field>
+                      </div>
+                      <div className="sm:col-span-2">
+                        <Field label="Current address / shelter *">
+                          <Textarea rows={2} value={data.address} onChange={(e) => set("address", e.target.value)} placeholder="Detail current IDP camp name, community shelter, or transient host address..." />
+                        </Field>
+                      </div>
+                      <Field label="Phone *">
+                        <Input type="tel" value={data.phone} onChange={(e) => set("phone", e.target.value)} placeholder="+234…" />
+                      </Field>
+                      <Field label="Date of birth *">
+                        <Input type="date" value={data.dob} onChange={(e) => set("dob", e.target.value)} />
+                      </Field>
+                      <Field label="Gender *">
+                        <Select value={data.gender} onValueChange={(v) => set("gender", v)}>
+                          <SelectTrigger><SelectValue placeholder="Select gender" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="female">Female</SelectItem>
+                            <SelectItem value="male">Male</SelectItem>
+                            <SelectItem value="other">Other</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </Field>
+                      <Field label="Nationality *">
+                        <Input value={data.nationality} onChange={(e) => set("nationality", e.target.value)} />
+                      </Field>
+                      <Field label="State of origin *">
+                        <Select value={data.state_origin} onValueChange={(v) => set("state_origin", v)}>
+                          <SelectTrigger><SelectValue placeholder="Select state" /></SelectTrigger>
+                          <SelectContent className="max-h-60">
+                            {NG_STATES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </Field>
+                      <Field label="LGA *">
+                        <Input value={data.lga} onChange={(e) => set("lga", e.target.value)} placeholder="Local Government Area" />
+                      </Field>
+                      <div className="sm:col-span-2">
+                        <Field label="Number of dependants accompanying enrolee *">
+                          <Input type="number" min={0} value={data.dependants} onChange={(e) => set("dependants", e.target.value)} />
+                        </Field>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Section 2: Education background */}
+                  <div className="space-y-4 pt-4">
+                    <div className="flex items-center gap-2 border-b pb-1.5">
+                      <span className="text-xs font-extrabold text-primary bg-primary/10 px-2 py-0.5 rounded">II</span>
+                      <h3 className="text-sm font-extrabold uppercase tracking-wide text-foreground">Education background</h3>
+                    </div>
+
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <Field label="Highest Level of Education Completed *">
+                        <Select value={data.education_level} onValueChange={(v) => set("education_level", v)}>
+                          <SelectTrigger><SelectValue placeholder="Select education level" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">No Formal Education</SelectItem>
+                            <SelectItem value="primary">Primary Education</SelectItem>
+                            <SelectItem value="secondary">Secondary Education</SelectItem>
+                            <SelectItem value="tertiary">Tertiary / University Degree</SelectItem>
+                            <SelectItem value="vocational">Vocational / Technical training</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </Field>
+                      
+                      <Field label="Specialized Skills / Trade / Talents">
+                        <Input value={data.skills} onChange={(e) => set("skills", e.target.value)} placeholder="e.g. Farming, Carpentry, Tailoring, none" />
+                      </Field>
+                    </div>
+                  </div>
+
+                  {/* Section 3: cause of displacement */}
+                  <div className="space-y-4 pt-4">
+                    <div className="flex items-center gap-2 border-b pb-1.5">
+                      <span className="text-xs font-extrabold text-primary bg-primary/10 px-2 py-0.5 rounded">III</span>
+                      <h3 className="text-sm font-extrabold uppercase tracking-wide text-foreground">cause of displacement</h3>
+                    </div>
+                    
+                    <Field label={`Describe circumstances & cause of displacement * (min 20 characters)`}>
+                      <Textarea
+                        rows={4}
+                        value={data.reason}
+                        onChange={(e) => set("reason", e.target.value)}
+                        placeholder="Detail the events that caused displacement (e.g. communal conflict, natural disaster, banditry), dates of event, and transit hurdles..."
+                      />
+                      <div className="mt-1 text-right text-[10px] text-muted-foreground">{data.reason.length} characters</div>
+                    </Field>
+                  </div>
+
+                  {/* Section 4: Needs assessment */}
+                  <div className="space-y-4 pt-4">
+                    <div className="flex items-center gap-2 border-b pb-1.5">
+                      <span className="text-xs font-extrabold text-primary bg-primary/10 px-2 py-0.5 rounded">IV</span>
+                      <h3 className="text-sm font-extrabold uppercase tracking-wide text-foreground">Needs assessment</h3>
+                    </div>
+
+                    <div className="space-y-4">
+                      <div>
+                        <label className="text-xs font-bold text-foreground">Select Immediate Priority Needs (Select all that apply)</label>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
+                          {[
+                            "Food Security & Nutrition",
+                            "Emergency Shelter & Housing",
+                            "Medical Supplies & Healthcare",
+                            "Clean Water, Sanitation & Hygiene (WAsH)",
+                            "Educational Materials & Schools",
+                            "Livelihood & Cash Assistance"
+                          ].map((need) => {
+                            const isChecked = data.primary_needs.includes(need);
+                            return (
+                              <label
+                                key={need}
+                                className={`flex items-center gap-3 p-3 rounded-lg border text-xs font-semibold cursor-pointer transition-all ${
+                                  isChecked
+                                    ? "bg-primary/5 border-primary text-primary"
+                                    : "bg-background border-border text-foreground hover:bg-muted/50"
+                                }`}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={isChecked}
+                                  onChange={() => {
+                                    const updated = isChecked
+                                      ? data.primary_needs.filter((n) => n !== need)
+                                      : [...data.primary_needs, need];
+                                    setData((d) => ({ ...d, primary_needs: updated }));
+                                  }}
+                                  className="h-4.5 w-4.5 rounded border-input text-primary focus:ring-primary focus:outline-none"
+                                />
+                                {need}
+                              </label>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      <Field label="Needs Assessment & Support Details *">
+                        <Textarea
+                          rows={3}
+                          value={data.needs_details}
+                          onChange={(e) => set("needs_details", e.target.value)}
+                          placeholder="Detail specific urgent needs (e.g. baby foods, chronic illness medicine, mental health, family tracking assistance)..."
+                        />
+                      </Field>
+                    </div>
+                  </div>
                 </div>
               )}
 
               {step === 2 && (
-                <div className="space-y-4">
-                  <div className="rounded-lg border border-border bg-muted/40 p-4">
-                    <div className="font-display font-semibold text-primary">Review captured information</div>
-                    <dl className="mt-3 grid gap-2 sm:grid-cols-2 text-sm">
-                      <Row k="Category" v={typeLabel} />
-                      <Row k="Full name" v={data.full_name} />
-                      <Row k="Phone" v={data.phone} />
-                      <Row k="DOB" v={data.dob} />
-                      <Row k="Gender" v={data.gender} />
-                      <Row k="Nationality" v={data.nationality} />
-                      <Row k="State of origin" v={data.state_origin} />
-                      <Row k="LGA" v={data.lga} />
-                      <Row k="Dependants" v={data.dependants} />
-                    </dl>
-                    <div className="mt-3"><span className="text-xs font-semibold text-muted-foreground">Address:</span><p className="mt-1 text-sm">{data.address}</p></div>
-                    <div className="mt-3"><span className="text-xs font-semibold text-muted-foreground">Reason:</span><p className="mt-1 whitespace-pre-wrap text-sm">{data.reason}</p></div>
+                <div className="space-y-6 animate-fade-in">
+                  <div className="rounded-lg border border-border bg-muted/40 p-5 space-y-4">
+                    <div className="flex flex-col sm:flex-row items-center gap-4 border-b pb-4">
+                      {face && (
+                        <img src={face} className="h-20 w-20 rounded-full object-cover border-2 border-primary shadow-sm" />
+                      )}
+                      <div className="text-center sm:text-left">
+                        <h4 className="font-display font-bold text-primary text-lg">{data.full_name || "Un-named Registrant"}</h4>
+                        <p className="text-xs text-muted-foreground">{typeLabel} · {data.nationality}</p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-4">
+                      <div>
+                        <h4 className="text-xs font-bold uppercase tracking-wider text-primary border-b pb-1">Biodata Details</h4>
+                        <dl className="mt-2 grid gap-2 sm:grid-cols-2 text-sm">
+                          <Row k="Phone" v={data.phone} />
+                          <Row k="DOB" v={data.dob} />
+                          <Row k="Gender" v={data.gender} />
+                          <Row k="State of origin" v={data.state_origin} />
+                          <Row k="LGA" v={data.lga} />
+                          <Row k="Dependants" v={data.dependants} />
+                        </dl>
+                        <div className="mt-2"><span className="text-[10px] font-bold text-muted-foreground">Current Address:</span><p className="mt-0.5 text-xs">{data.address}</p></div>
+                      </div>
+
+                      <div>
+                        <h4 className="text-xs font-bold uppercase tracking-wider text-primary border-b pb-1">Education Background</h4>
+                        <dl className="mt-2 grid gap-2 sm:grid-cols-2 text-xs">
+                          <Row k="Highest Education" v={data.education_level || "None"} />
+                          <Row k="Specialized Skills / Trade" v={data.skills || "None"} />
+                        </dl>
+                      </div>
+
+                      <div>
+                        <h4 className="text-xs font-bold uppercase tracking-wider text-primary border-b pb-1">Cause of Displacement</h4>
+                        <p className="mt-2 text-xs leading-relaxed whitespace-pre-wrap">{data.reason}</p>
+                      </div>
+
+                      <div>
+                        <h4 className="text-xs font-bold uppercase tracking-wider text-primary border-b pb-1">Needs Assessment</h4>
+                        <dl className="mt-2 text-xs space-y-2">
+                          <div className="flex gap-2">
+                            <span className="min-w-28 text-[10px] font-bold text-muted-foreground">Immediate Needs:</span>
+                            <div className="flex flex-wrap gap-1">
+                              {data.primary_needs.length > 0 ? (
+                                data.primary_needs.map((need) => (
+                                  <span key={need} className="bg-primary/5 text-primary text-[10px] px-2 py-0.5 rounded-full font-semibold">
+                                    {need}
+                                  </span>
+                                ))
+                              ) : (
+                                <span className="text-muted-foreground">None selected</span>
+                              )}
+                            </div>
+                          </div>
+                          <div>
+                            <span className="text-[10px] font-bold text-muted-foreground">Assessment Details:</span>
+                            <p className="mt-0.5 text-xs leading-relaxed">{data.needs_details}</p>
+                          </div>
+                        </dl>
+                      </div>
+                    </div>
                   </div>
-                  <p className="text-sm text-muted-foreground">
-                    Confirm the above details with the registrant, then proceed to biometric capture.
+                  <p className="text-xs text-muted-foreground">
+                    Verify all information with the registrant. Click below to proceed to thumbprint scan.
                   </p>
                 </div>
               )}
 
               {step === 3 && (
                 <div className="mx-auto max-w-xl w-full">
-                  {!face ? (
-                    <FaceCapture image={face} onCapture={setFace} />
-                  ) : !thumb ? (
+                  {!thumb ? (
                     <ThumbCapture image={thumb} scanning={scanning} setScanning={setScanning} onCapture={setThumb} />
                   ) : (
                     <Card className="p-6 border border-emerald-500/20 bg-emerald-50/5 text-center space-y-6 animate-fade-in w-full">
@@ -517,17 +946,14 @@ export default function FieldCapture() {
                         <CheckCircle2 className="h-6 w-6 stroke-[2.5]" />
                       </div>
                       <div>
-                        <h3 className="font-display text-lg font-bold text-primary">Biometric Profiles Locked</h3>
+                        <h3 className="font-display text-lg font-bold text-primary">Biometric Profile Locked</h3>
                         <p className="text-xs text-muted-foreground mt-1">Both facial liveness and thumbprint indexes have been securely stored.</p>
                       </div>
                       
                       <div className="grid gap-4 grid-cols-2">
                         <div className="p-3 border border-border rounded-lg bg-card relative">
-                          <img src={face} className="h-28 w-full object-cover rounded" />
+                          <img src={face!} className="h-28 w-full object-cover rounded" />
                           <div className="text-[10px] font-semibold text-emerald-600 mt-2">Face Profile ✓</div>
-                          <Button variant="ghost" size="sm" onClick={() => setFace(null)} className="absolute top-2 right-2 h-6 w-6 p-0 rounded-full bg-black/40 hover:bg-black/60 text-white flex items-center justify-center text-xs">
-                            ✕
-                          </Button>
                         </div>
                         <div className="p-3 border border-border rounded-lg bg-card relative">
                           <img src={thumb} className="h-28 w-full object-contain rounded bg-slate-900" />
@@ -542,23 +968,25 @@ export default function FieldCapture() {
                 </div>
               )}
 
-              <div className="mt-8 flex items-center justify-between gap-3">
-                <Button variant="outline" disabled={step === 0 || submitting} onClick={() => setStep((s) => s - 1)}>Back</Button>
-                {step < 2 && (
-                  <Button disabled={!canNext()} onClick={() => setStep((s) => s + 1)}>Continue</Button>
-                )}
-                {step === 2 && (
-                  <Button disabled={!canNext()} onClick={() => setStep(3)}>
-                    <Fingerprint className="mr-2 h-4 w-4" /> Proceed to Biometric Capturing
-                  </Button>
-                )}
-                {step === 3 && (
-                  <Button disabled={!canNext() || submitting} onClick={submit}>
-                    {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-2 h-4 w-4" />}
-                    Submit enrolment
-                  </Button>
-                )}
-              </div>
+              {step > 0 && (
+                <div className="mt-8 flex items-center justify-between gap-3">
+                  <Button variant="outline" disabled={submitting} onClick={() => setStep((s) => s - 1)}>Back</Button>
+                  {step < 2 && (
+                    <Button disabled={!canNext()} onClick={() => setStep((s) => s + 1)}>Continue</Button>
+                  )}
+                  {step === 2 && (
+                    <Button disabled={!canNext()} onClick={() => setStep(3)}>
+                      <Fingerprint className="mr-2 h-4 w-4" /> Proceed to Biometric Capturing
+                    </Button>
+                  )}
+                  {step === 3 && (
+                    <Button disabled={!canNext() || submitting} onClick={submit}>
+                      {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-2 h-4 w-4" />}
+                      Submit enrolment
+                    </Button>
+                  )}
+                </div>
+              )}
             </Card>
           </div>
         )}
@@ -810,6 +1238,213 @@ function ThumbCapture({ image, scanning, setScanning, onCapture }: {
         </Button>
       </div>
       <style>{`@keyframes scanline { 0% { transform: translateY(0) } 100% { transform: translateY(100%) } }`}</style>
+    </div>
+  );
+}
+
+function InterventionsPortal({
+  onBack,
+  list,
+  onAdd
+}: {
+  onBack: () => void;
+  list: any[];
+  onAdd: (camp: string, category: string, details: string, count: number) => void;
+}) {
+  const [camp, setCamp] = useState("");
+  const [category, setCategory] = useState("");
+  const [details, setDetails] = useState("");
+  const [count, setCount] = useState("");
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onAdd(camp, category, details, Number(count) || 0);
+    setCamp("");
+    setCategory("");
+    setDetails("");
+    setCount("");
+  };
+
+  const MOCK_CAMPS = [
+    "Durumi Camp, Abuja",
+    "Kuchingoro Camp, Abuja",
+    "Maiduguri Zonal Camp, Borno",
+    "Gombe Zonal Camp",
+    "Daudu Camp, Benue",
+    "Uhogua Camp, Edo"
+  ];
+
+  const MOCK_CATEGORIES = [
+    "Food & Nutrition",
+    "Medical & Healthcare",
+    "Shelter & WAsH",
+    "Education & Training",
+    "Cash Assistance",
+    "Legal Aid & Security"
+  ];
+
+  return (
+    <div className="mx-auto max-w-5xl animate-fade-up">
+      {/* Header Bar */}
+      <div className="flex items-center justify-between mb-6">
+        <button
+          onClick={onBack}
+          className="flex items-center gap-2 text-sm font-semibold text-primary hover:underline transition-all"
+        >
+          <span className="h-7 w-7 rounded-full border border-primary/20 flex items-center justify-center bg-primary/5 hover:bg-primary/10 transition-colors text-xs font-bold">
+            ←
+          </span>
+          Back to Selection
+        </button>
+        <span className="flex items-center gap-1.5 text-xs font-semibold text-teal-650 bg-teal-500/10 px-2.5 py-1 rounded-full border border-teal-500/20">
+          <span className="h-2 w-2 rounded-full bg-teal-500 animate-pulse" /> Intervention Registry
+        </span>
+      </div>
+
+      <div className="grid gap-6 md:grid-cols-3">
+        {/* Log Form (Col Span 1) */}
+        <Card className="p-6 md:col-span-1 shadow-card border-primary/10 relative overflow-hidden">
+          <div className="absolute inset-0 bg-[radial-gradient(hsl(var(--primary))_1px,transparent_1px)] [background-size:16px_16px] opacity-[0.02] pointer-events-none" />
+          <div className="flex items-center gap-2 mb-4 relative z-10">
+            <div className="h-8 w-8 rounded bg-primary/10 text-primary flex items-center justify-center">
+              <ShieldCheck className="h-4 w-4" />
+            </div>
+            <div>
+              <h3 className="font-display font-bold text-foreground text-sm">Log Distribution</h3>
+              <p className="text-[10px] text-muted-foreground">Register resource delivery events</p>
+            </div>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-4 relative z-10">
+            <div>
+              <label className="text-xs font-semibold text-foreground">Target Camp / Zonal Hub</label>
+              <select
+                value={camp}
+                onChange={(e) => setCamp(e.target.value)}
+                required
+                className="mt-1.5 w-full rounded-md border border-input bg-background px-3 py-2 text-xs focus:ring-2 focus:ring-primary focus:outline-none text-foreground"
+              >
+                <option value="" className="text-foreground">Select location</option>
+                {MOCK_CAMPS.map((c) => <option key={c} value={c} className="text-foreground">{c}</option>)}
+              </select>
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold text-foreground">Intervention Type</label>
+              <select
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                required
+                className="mt-1.5 w-full rounded-md border border-input bg-background px-3 py-2 text-xs focus:ring-2 focus:ring-primary focus:outline-none text-foreground"
+              >
+                <option value="" className="text-foreground">Select type</option>
+                {MOCK_CATEGORIES.map((c) => <option key={c} value={c} className="text-foreground">{c}</option>)}
+              </select>
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold text-foreground">Beneficiaries Reached (Count)</label>
+              <input
+                type="number"
+                min="1"
+                value={count}
+                onChange={(e) => setCount(e.target.value)}
+                required
+                placeholder="e.g. 150"
+                className="mt-1.5 w-full rounded-md border border-input bg-background px-3 py-2 text-xs focus:ring-2 focus:ring-primary focus:outline-none text-foreground"
+              />
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold text-foreground">Distribution & Action Details</label>
+              <textarea
+                value={details}
+                onChange={(e) => setDetails(e.target.value)}
+                required
+                rows={4}
+                placeholder="Detail what was distributed, brand/lot, delivery partners, and any distribution metrics..."
+                className="mt-1.5 w-full rounded-md border border-input bg-background px-3 py-2 text-xs focus:ring-2 focus:ring-primary focus:outline-none resize-none text-foreground"
+              />
+            </div>
+
+            <Button type="submit" className="w-full text-xs font-bold py-2.5 hover-lift">
+              Log Intervention Entry
+            </Button>
+          </form>
+        </Card>
+
+        {/* Activity Feed (Col Span 2) */}
+        <Card className="p-6 md:col-span-2 shadow-card border-primary/10 flex flex-col justify-between relative overflow-hidden">
+          <div className="absolute inset-0 bg-[radial-gradient(hsl(var(--primary))_1px,transparent_1px)] [background-size:16px_16px] opacity-[0.02] pointer-events-none" />
+          <div className="relative z-10 flex flex-col h-full justify-between">
+            <div>
+              <div className="flex items-center justify-between mb-4 border-b pb-3">
+                <div className="flex items-center gap-2">
+                  <div className="h-8 w-8 rounded bg-teal-500/10 text-teal-650 flex items-center justify-center">
+                    <Activity className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <h3 className="font-display font-bold text-foreground text-sm">Registry Logs</h3>
+                    <p className="text-[10px] text-muted-foreground">Historical relief tracking at zonal nodes</p>
+                  </div>
+                </div>
+                <span className="text-[10px] font-bold text-muted-foreground uppercase bg-muted px-2 py-0.5 rounded">
+                  {list.length} Records
+                </span>
+              </div>
+
+              {/* List */}
+              <div className="space-y-3.5 max-h-[350px] overflow-y-auto pr-1">
+                {list.length === 0 ? (
+                  <div className="text-center py-12 text-muted-foreground text-xs">
+                    No interventions logged yet in local session.
+                  </div>
+                ) : (
+                  list.map((item) => (
+                    <div
+                      key={item.id}
+                      className="p-3.5 rounded-lg border border-border bg-muted/20 hover:bg-muted/40 transition-colors flex flex-col sm:flex-row sm:items-start justify-between gap-3 text-xs"
+                    >
+                      <div className="space-y-1.5">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="font-bold text-foreground">{item.camp}</span>
+                          <span className="text-[9px] font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                            {item.category}
+                          </span>
+                        </div>
+                        <p className="text-muted-foreground text-[11px] leading-relaxed">
+                          {item.details}
+                        </p>
+                        <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
+                          <span className="flex items-center gap-1">
+                            <span className="font-medium text-foreground">{item.count}</span> beneficiaries
+                          </span>
+                          <span>•</span>
+                          <span>Logged by {item.officer}</span>
+                        </div>
+                      </div>
+                      
+                      <div className="flex flex-col items-end gap-1.5 min-w-[90px] text-right">
+                        <span className="text-[9px] font-bold text-emerald-600 bg-emerald-500/10 px-2 py-0.5 rounded-full flex items-center gap-1 ml-auto">
+                          <span className="h-1 w-1 rounded-full bg-emerald-500" /> SECURE SYNC
+                        </span>
+                        <span className="text-[9px] text-muted-foreground font-mono">
+                          {item.date}
+                        </span>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
+            <div className="mt-4 pt-3 border-t flex items-center justify-between text-[10px] text-muted-foreground">
+              <span>NCFRMI Secure Gateway Protocol v3.0</span>
+              <span>Local caching enabled</span>
+            </div>
+          </div>
+        </Card>
+      </div>
     </div>
   );
 }
