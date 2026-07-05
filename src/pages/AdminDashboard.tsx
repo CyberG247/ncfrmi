@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import logo from "@/assets/ncfrmi-logo.png";
+import nigeriaPovertyMap from "@/assets/nigeria-poverty-map.jpg";
 import {
   Users,
   ShieldAlert,
@@ -156,56 +157,6 @@ const CustomAreaChart = ({ data, color }: { data: number[]; color: string }) => 
   );
 };
 
-const STATES_MAP_DATA = [
-  // North West
-  { id: "sokoto", name: "Sokoto", points: "40,30 80,30 80,60 40,60", value: 92, color: "#7f1d1d", labelX: 60, labelY: 48 }, // 81-100 Deep Red
-  { id: "kebbi", name: "Kebbi", points: "15,50 40,50 40,90 20,95", value: 55, color: "#fbbf24", labelX: 30, labelY: 72 }, // 41-60 Gold/Orange
-  { id: "zamfara", name: "Zamfara", points: "80,35 115,35 110,65 80,60", value: 78, color: "#b45309", labelX: 98, labelY: 50 }, // 61-80 Brown
-  { id: "katsina", name: "Katsina", points: "115,35 140,35 138,65 110,65", value: 58, color: "#fbbf24", labelX: 128, labelY: 50 }, // 41-60 Gold/Orange
-  { id: "kano", name: "Kano", points: "140,40 180,40 170,75 138,65", value: 38, color: "#fbbf24", labelX: 158, labelY: 55 }, // 21-40 Yellow
-  { id: "jigawa", name: "Jigawa", points: "180,30 220,35 210,65 170,60", value: 85, color: "#7f1d1d", labelX: 195, labelY: 48 }, // 81-100 Deep Red
-  { id: "kaduna", name: "Kaduna", points: "110,65 170,75 160,110 110,95", value: 35, color: "#fbbf24", labelX: 135, labelY: 88 }, // 21-40 Yellow
-  
-  // North East
-  { id: "yobe", name: "Yobe", points: "220,35 255,40 250,90 210,85", value: 68, color: "#b45309", labelX: 235, labelY: 62 }, // 61-80 Brown
-  { id: "borno", name: "Borno", points: "255,40 288,50 288,110 248,110 250,90", value: 0, color: "#ffffff", stroke: "#000000", strokeWidth: "1.8", labelX: 268, labelY: 75, isNA: true }, // N/A (White with thick black border)
-  { id: "bauchi", name: "Bauchi", points: "170,75 210,85 200,120 160,110", value: 72, color: "#b45309", labelX: 185, labelY: 98 }, // 61-80 Brown
-  { id: "gombe", name: "Gombe", points: "210,85 240,90 235,115 210,110", value: 65, color: "#b45309", labelX: 222, labelY: 100 }, // 61-80 Brown
-  { id: "adamawa", name: "Adamawa", points: "240,90 268,110 250,150 220,135", value: 75, color: "#b45309", labelX: 245, labelY: 125 }, // 61-80 Brown
-  { id: "taraba", name: "Taraba", points: "180,140 220,135 238,185 190,195", value: 89, color: "#7f1d1d", labelX: 208, labelY: 165 }, // 81-100 Deep Red
-  
-  // North Central
-  { id: "niger", name: "Niger", points: "40,90 110,95 95,145 50,135", value: 74, color: "#b45309", labelX: 75, labelY: 118 }, // 61-80 Brown
-  { id: "kwara", name: "Kwara", points: "30,120 60,120 60,150 28,150", value: 32, color: "#fbbf24", labelX: 44, labelY: 135 }, // 21-40 Yellow
-  { id: "fct", name: "Fct Abuja", points: "105,125 130,125 125,142 105,142", value: 48, color: "#fbbf24", labelX: 118, labelY: 134 }, // 41-60 Gold/Orange
-  { id: "nasarawa", name: "Nasarawa", points: "125,125 165,125 160,150 125,150", value: 34, color: "#fbbf24", labelX: 145, labelY: 138 }, // 21-40 Yellow
-  { id: "plateau", name: "Plateau", points: "160,110 200,120 180,150 160,140", value: 39, color: "#fbbf24", labelX: 178, labelY: 130 }, // 21-40 Yellow
-  { id: "kogi", name: "Kogi", points: "78,145 125,150 115,182 72,175", value: 31, color: "#fbbf24", labelX: 95, labelY: 165 }, // 21-40 Yellow
-  { id: "benue", name: "Benue", points: "125,150 180,150 170,185 120,185", value: 37, color: "#fbbf24", labelX: 148, labelY: 170 }, // 21-40 Yellow
-  
-  // South West
-  { id: "oyo", name: "Oyo", points: "12,150 48,150 42,185 10,180", value: 12, color: "#fef08a", labelX: 26, labelY: 168 }, // 1-20 Light Yellow
-  { id: "ogun", name: "Ogun", points: "10,180 35,180 32,205 10,200", value: 8, color: "#fef08a", labelX: 20, labelY: 192 }, // 1-20 Light Yellow
-  { id: "lagos", name: "Lagos", points: "10,200 32,205 32,212 10,210", value: 5, color: "#fef08a", labelX: 21, labelY: 208 }, // 1-20 Light Yellow
-  { id: "osun", name: "Osun", points: "42,170 65,170 62,188 42,185", value: 14, color: "#fef08a", labelX: 52, labelY: 179 }, // 1-20 Light Yellow
-  { id: "ekiti", name: "Ekiti", points: "65,170 78,170 75,185 62,185", value: 18, color: "#fef08a", labelX: 71, labelY: 178 }, // 1-20 Light Yellow
-  { id: "ondo", name: "Ondo", points: "48,185 78,185 70,210 40,210", value: 15, color: "#fef08a", labelX: 59, labelY: 198 }, // 1-20 Light Yellow
-  
-  // South South & South East
-  { id: "edo", name: "Edo", points: "72,175 92,175 90,205 68,205", value: 19, color: "#fef08a", labelX: 81, labelY: 190 }, // 1-20 Light Yellow
-  { id: "delta", name: "Delta", points: "50,210 88,210 85,232 45,232", value: 13, color: "#fef08a", labelX: 68, labelY: 222 }, // 1-20 Light Yellow
-  { id: "bayelsa", name: "Bayelsa", points: "60,232 82,232 80,248 55,248", value: 24, color: "#fbbf24", labelX: 68, labelY: 240 }, // 21-40 Yellow
-  { id: "rivers", name: "Rivers", points: "82,225 105,225 100,245 80,245", value: 29, color: "#fbbf24", labelX: 92, labelY: 235 }, // 21-40 Yellow
-  { id: "akwa_ibom", name: "Akwa Ibom", points: "105,222 120,222 118,242 100,242", value: 27, color: "#fbbf24", labelX: 112, labelY: 232 }, // 21-40 Yellow
-  { id: "cross_river", name: "Cross River", points: "120,185 140,185 140,230 118,230", value: 33, color: "#fbbf24", labelX: 130, labelY: 208 }, // 21-40 Yellow
-  
-  { id: "enugu", name: "Enugu", points: "92,175 112,175 110,195 90,195", value: 43, color: "#fbbf24", labelX: 101, labelY: 185 }, // 41-60 Gold/Orange
-  { id: "ebonyi", name: "Ebonyi", points: "112,175 125,175 120,198 108,198", value: 76, color: "#b45309", labelX: 117, labelY: 186 }, // 61-80 Brown
-  { id: "anambra", name: "Anambra", points: "88,195 102,195 100,212 85,212", value: 11, color: "#fef08a", labelX: 93, labelY: 203 }, // 1-20 Light Yellow
-  { id: "abia", name: "Abia", points: "102,198 116,198 112,220 98,220", value: 36, color: "#fbbf24", labelX: 107, labelY: 210 }, // 21-40 Yellow
-  { id: "imo", name: "Imo", points: "88,212 102,212 98,225 82,225", value: 25, color: "#fbbf24", labelX: 93, labelY: 218 }  // 21-40 Yellow
-];
-
 const MAP_NODES = [
   {
     id: "abuja",
@@ -300,191 +251,62 @@ const MAP_NODES = [
 ];
 
 const NigeriaMapSVG = ({ activeNode, onHoverNode }: { activeNode: string; onHoverNode: (id: string) => void }) => {
-  const [hoveredState, setHoveredState] = useState<string>("fct");
-
   return (
-    <div className="bg-[#fbfbfa] rounded-lg p-2.5 shadow-elegant max-w-full">
-      <svg className="w-full h-auto bg-[#fafaf8]" viewBox="0 0 320 270" width="100%">
-        {/* Graticule gridlines (subtle background layout) */}
-        <line x1="0" y1="50" x2="320" y2="50" stroke="#ddd" strokeWidth="0.3" strokeDasharray="2,2" />
-        <line x1="0" y1="100" x2="320" y2="100" stroke="#ddd" strokeWidth="0.3" strokeDasharray="2,2" />
-        <line x1="0" y1="150" x2="320" y2="150" stroke="#ddd" strokeWidth="0.3" strokeDasharray="2,2" />
-        <line x1="0" y1="200" x2="320" y2="200" stroke="#ddd" strokeWidth="0.3" strokeDasharray="2,2" />
-        <line x1="50" y1="0" x2="50" y2="270" stroke="#ddd" strokeWidth="0.3" strokeDasharray="2,2" />
-        <line x1="100" y1="0" x2="100" y2="270" stroke="#ddd" strokeWidth="0.3" strokeDasharray="2,2" />
-        <line x1="150" y1="0" x2="150" y2="270" stroke="#ddd" strokeWidth="0.3" strokeDasharray="2,2" />
-        <line x1="200" y1="0" x2="200" y2="270" stroke="#ddd" strokeWidth="0.3" strokeDasharray="2,2" />
-        <line x1="250" y1="0" x2="250" y2="270" stroke="#ddd" strokeWidth="0.3" strokeDasharray="2,2" />
+    <div className="relative w-full max-w-[520px] mx-auto overflow-hidden rounded-xl border border-border shadow-elegant bg-white p-3 select-none">
+      <div className="relative w-full">
+        {/* The Exact Geographical Map Image from NBS/Inspiration */}
+        <img
+          src={nigeriaPovertyMap}
+          alt="Nigeria Poverty Headcount and Registry Density Map"
+          className="w-full h-auto object-contain pointer-events-none rounded-lg"
+        />
 
-        {/* State Polygons */}
-        {STATES_MAP_DATA.map((state) => {
-          const isSelected = hoveredState === state.id;
-          return (
-            <polygon
-              key={state.id}
-              points={state.points}
-              fill={state.color}
-              stroke={state.stroke || (isSelected ? "#555555" : "none")}
-              strokeWidth={state.strokeWidth || (isSelected ? "1" : "0")}
-              className="transition-all duration-300 hover:scale-[1.05] hover:brightness-[1.08] cursor-pointer transform origin-center"
-              style={{ transformOrigin: `${state.labelX}px ${state.labelY}px` }}
-              onMouseEnter={() => {
-                setHoveredState(state.id);
-                // Try to find if a camp node is matching
-                const matchNode = MAP_NODES.find(
-                  (n) => n.id === state.id || n.state.toLowerCase().includes(state.name.toLowerCase())
-                );
-                if (matchNode) {
-                  onHoverNode(matchNode.id);
-                }
-              }}
-            />
-          );
-        })}
-
-        {/* State Name Label Texts */}
-        {STATES_MAP_DATA.map((state) => (
-          <text
-            key={`label-${state.id}`}
-            x={state.labelX}
-            y={state.labelY}
-            fontSize="4.2"
-            fontWeight="900"
-            fill={state.isNA ? "#000" : (state.color === "#7f1d1d" || state.color === "#b45309" ? "#fff" : "#222")}
-            textAnchor="middle"
-            className="pointer-events-none select-none font-sans tracking-tighter"
-          >
-            {state.name}
-          </text>
-        ))}
-
-        {/* Soft telemetry dots for every state with registry data, blinking slowly */}
-        {STATES_MAP_DATA.map((state) => {
-          if (state.value === 0) return null;
-          const pulseDuration = `${3.8 + (state.value % 4) * 0.8}s`;
-          return (
-            <g key={`telemetry-${state.id}`} className="pointer-events-none opacity-45">
-              <circle
-                cx={state.labelX}
-                cy={state.labelY + 6}
-                r="3"
-                fill={state.color === "#7f1d1d" ? "#fecaca" : "#374151"}
-                className="animate-ping"
-                style={{ animationDuration: pulseDuration }}
-              />
-              <circle
-                cx={state.labelX}
-                cy={state.labelY + 6}
-                r="1.2"
-                fill={state.color === "#7f1d1d" ? "#f87171" : "#1f2937"}
-              />
-            </g>
-          );
-        })}
-
-        {/* Blinking campsite dots overlaid on the map */}
+        {/* Dynamic, Slow-Pulsing Zonal Hotspot Dots */}
         {MAP_NODES.map((node) => {
           const isActive = activeNode === node.id;
+          
+          // Map to precise geographical coordinates on the NBS map image
+          let leftPercent = "50%";
+          let topPercent = "50%";
+          
+          if (node.id === "abuja") { leftPercent = "45.5%"; topPercent = "51%"; }
+          else if (node.id === "borno") { leftPercent = "81%"; topPercent = "28%"; }
+          else if (node.id === "lagos") { leftPercent = "17%"; topPercent = "77.5%"; }
+          else if (node.id === "benue") { leftPercent = "55.5%"; topPercent = "64.5%"; }
+          else if (node.id === "edo") { leftPercent = "33%"; topPercent = "72%"; }
+          else if (node.id === "cross_river") { leftPercent = "50%"; topPercent = "77.5%"; }
+          
           return (
-            <g
-              key={`dot-${node.id}`}
-              className="cursor-pointer group"
-              onMouseEnter={() => {
-                onHoverNode(node.id);
-                const stateMatch = STATES_MAP_DATA.find(
-                  (s) => s.id === node.id || s.name.toLowerCase() === node.state.split(" ")[0].toLowerCase()
-                );
-                if (stateMatch) setHoveredState(stateMatch.id);
-              }}
+            <div
+              key={node.id}
+              className="absolute transform -translate-x-1/2 -translate-y-1/2 cursor-pointer z-30 group"
+              style={{ left: leftPercent, top: topPercent }}
+              onMouseEnter={() => onHoverNode(node.id)}
             >
-              {/* Blinking Ping Effect */}
-              <circle
-                cx={node.x}
-                cy={node.y}
-                r="7"
-                fill={node.color}
-                className="animate-ping opacity-75"
-                style={{ animationDuration: node.pingSpeed }}
+              {/* Pulsing ring check animation */}
+              <span
+                className="absolute inline-flex h-7 w-7 rounded-full opacity-60 animate-ping"
+                style={{
+                  backgroundColor: node.color,
+                  animationDuration: node.pingSpeed
+                }}
               />
-              {/* Solid Center Dot */}
-              <circle
-                cx={node.x}
-                cy={node.y}
-                r="3.5"
-                fill={node.color}
-                className={`transition-all duration-200 stroke-white dark:stroke-slate-900 stroke-[0.8] ${
-                  isActive ? "scale-125" : ""
+              {/* Solid inner dot */}
+              <span
+                className={`relative inline-flex rounded-full h-3.5 w-3.5 border-2 border-white shadow-elegant transition-all duration-300 group-hover:scale-125 ${
+                  isActive ? "scale-125 ring-2 ring-primary/30" : ""
                 }`}
+                style={{ backgroundColor: node.color }}
               />
-            </g>
+              
+              {/* Hover Tooltip Box */}
+              <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block bg-slate-900/95 text-white text-[9px] font-bold py-1 px-2 rounded shadow-lg whitespace-nowrap z-50 animate-fade-in">
+                {node.name}
+              </div>
+            </div>
           );
         })}
-
-        {/* Compass Rose (Top Right) */}
-        <g transform="translate(292, 28)">
-          <circle cx="0" cy="0" r="9" fill="none" stroke="#222" strokeWidth="0.5" />
-          <line x1="0" y1="-12" x2="0" y2="12" stroke="#222" strokeWidth="0.6" />
-          <line x1="-12" y1="0" x2="12" y2="0" stroke="#222" strokeWidth="0.6" />
-          <polygon points="0,-12 -2.5,-3 0,0" fill="#222" />
-          <polygon points="0,-12 2.5,-3 0,0" fill="#777" />
-          <polygon points="0,12 -2.5,3 0,0" fill="#777" />
-          <polygon points="0,12 2.5,3 0,0" fill="#222" />
-          <polygon points="12,0 3,-2.5 0,0" fill="#222" />
-          <polygon points="12,0 3,2.5 0,0" fill="#777" />
-          <polygon points="-12,0 -3,-2.5 0,0" fill="#777" />
-          <polygon points="-12,0 -3,2.5 0,0" fill="#222" />
-          <text x="-1.8" y="-13.5" fontSize="4.5" fontWeight="bold" fill="#000">N</text>
-          <text x="-1.5" y="17" fontSize="4.5" fontWeight="bold" fill="#000">S</text>
-          <text x="14" y="1.5" fontSize="4.5" fontWeight="bold" fill="#000">E</text>
-          <text x="-19" y="1.5" fontSize="4.5" fontWeight="bold" fill="#000">W</text>
-        </g>
-
-        {/* Distance Scale (Bottom Left) */}
-        <g transform="translate(25, 252)">
-          <text x="0" y="-4" fontSize="4" fill="#333">0</text>
-          <text x="15" y="-4" fontSize="4" fill="#333">50</text>
-          <text x="30" y="-4" fontSize="4" fill="#333">100</text>
-          <text x="60" y="-4" fontSize="4" fill="#333">200</text>
-          <text x="90" y="-4" fontSize="4" fill="#333">300</text>
-          <text x="120" y="-4" fontSize="4" fill="#333">400</text>
-          <text x="130" y="2.5" fontSize="3.8" fill="#333" fontWeight="bold">Kilometers</text>
-          
-          <rect x="0" y="0" width="15" height="2.5" fill="#000" stroke="#000" strokeWidth="0.4" />
-          <rect x="15" y="0" width="15" height="2.5" fill="#fff" stroke="#000" strokeWidth="0.4" />
-          <rect x="30" y="0" width="30" height="2.5" fill="#000" stroke="#000" strokeWidth="0.4" />
-          <rect x="60" y="0" width="30" height="2.5" fill="#fff" stroke="#000" strokeWidth="0.4" />
-          <rect x="90" y="0" width="30" height="2.5" fill="#000" stroke="#000" strokeWidth="0.4" />
-        </g>
-
-        {/* Legend Box (Bottom Right) */}
-        <g transform="translate(225, 172)">
-          <rect x="-4" y="-4" width="94" height="74" fill="#fffff8" stroke="#555555" strokeWidth="0.6" rx="1.5" />
-          <text x="0" y="3" fontSize="5" fontWeight="900" fill="#000">Percentage of the population</text>
-          
-          <rect x="0" y="10" width="10" height="5" fill="#fef08a" stroke="#444" strokeWidth="0.3" />
-          <text x="14" y="14" fontSize="4.2" fontWeight="bold" fill="#222">1 - 20</text>
-          
-          <rect x="0" y="20" width="10" height="5" fill="#fbbf24" stroke="#444" strokeWidth="0.3" />
-          <text x="14" y="24" fontSize="4.2" fontWeight="bold" fill="#222">21 - 40</text>
-          
-          <rect x="0" y="30" width="10" height="5" fill="#f59e0b" stroke="#444" strokeWidth="0.3" />
-          <text x="14" y="34" fontSize="4.2" fontWeight="bold" fill="#222">41 - 60</text>
-          
-          <rect x="0" y="40" width="10" height="5" fill="#b45309" stroke="#444" strokeWidth="0.3" />
-          <text x="14" y="44" fontSize="4.2" fontWeight="bold" fill="#222">61 - 80</text>
-          
-          <rect x="0" y="50" width="10" height="5" fill="#7f1d1d" stroke="#444" strokeWidth="0.3" />
-          <text x="14" y="54" fontSize="4.2" fontWeight="bold" fill="#222">81 - 100</text>
-          
-          <rect x="52" y="10" width="10" height="5" fill="#ffffff" stroke="#000000" strokeWidth="1.2" />
-          <text x="66" y="14" fontSize="4.2" fontWeight="bold" fill="#222">N/A</text>
-        </g>
-
-        {/* NBS Source Citation Footer */}
-        <text x="160" y="265" fontSize="4.2" fontWeight="bold" fill="#444" textAnchor="middle" className="font-sans">
-          Source: NBS 2018/19 Nigerian Living Standards Survey & NCFRMI Zonal Registries
-        </text>
-      </svg>
+      </div>
     </div>
   );
 };
