@@ -8,10 +8,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Card } from "@/components/ui/card";
-import { Camera, Fingerprint, CheckCircle2, Loader2, RotateCcw, ShieldCheck, UserPlus, Download, Globe, Home, Activity } from "lucide-react";
+import { Camera, Fingerprint, CheckCircle2, Loader2, RotateCcw, ShieldCheck, UserPlus, Download, Globe, Home, Activity, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import logo from "@/assets/ncfrmi-logo.png";
+import { useAuth } from "@/hooks/useAuth";
 
 const NG_STATES = ["Abia","Adamawa","Akwa Ibom","Anambra","Bauchi","Bayelsa","Benue","Borno","Cross River","Delta","Ebonyi","Edo","Ekiti","Enugu","FCT","Gombe","Imo","Jigawa","Kaduna","Kano","Katsina","Kebbi","Kogi","Kwara","Lagos","Nasarawa","Niger","Ogun","Ondo","Osun","Oyo","Plateau","Rivers","Sokoto","Taraba","Yobe","Zamfara"];
 
@@ -104,6 +105,69 @@ const AvatarSVG = () => (
 );
 
 export default function FieldCapture() {
+  const { role, signOut } = useAuth();
+  
+  // Login Page states
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [loginEmail, setLoginEmail] = useState("officer@ncfrmi.gov.ng");
+  const [loginPassword, setLoginPassword] = useState("officer123");
+  const [showPassword, setShowPassword] = useState(false);
+  const [loginLoading, setLoginLoading] = useState(false);
+  const [biometricLoginActive, setBiometricLoginActive] = useState(false);
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoginLoading(true);
+    
+    // Check if it matches simulated login credentials
+    if (loginEmail === "officer@ncfrmi.gov.ng" && loginPassword === "officer123") {
+      const mockUser = { email: "officer@ncfrmi.gov.ng", role: "officer" };
+      localStorage.setItem("ncfrmi_simulated_user", JSON.stringify(mockUser));
+      
+      const savedRoles = JSON.parse(localStorage.getItem("ncfrmi_user_roles") || "{}");
+      savedRoles["officer@ncfrmi.gov.ng"] = "officer";
+      localStorage.setItem("ncfrmi_user_roles", JSON.stringify(savedRoles));
+      
+      toast.success("Welcome back! Simulated Officer authenticated.");
+      setIsLoggedIn(true);
+      setLoginLoading(false);
+      return;
+    }
+    
+    // Otherwise try Supabase login
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: loginEmail,
+        password: loginPassword,
+      });
+      if (error) throw error;
+      
+      toast.success("Successfully logged in!");
+      setIsLoggedIn(true);
+    } catch (err: any) {
+      toast.error(err.message || "Invalid credentials. Try officer@ncfrmi.gov.ng / officer123");
+    } finally {
+      setLoginLoading(false);
+    }
+  };
+
+  const handleBiometricLogin = () => {
+    setBiometricLoginActive(true);
+    toast.info("Initializing Zonal TouchID verification node...");
+    setTimeout(() => {
+      const mockUser = { email: "officer@ncfrmi.gov.ng", role: "officer" };
+      localStorage.setItem("ncfrmi_simulated_user", JSON.stringify(mockUser));
+      
+      const savedRoles = JSON.parse(localStorage.getItem("ncfrmi_user_roles") || "{}");
+      savedRoles["officer@ncfrmi.gov.ng"] = "officer";
+      localStorage.setItem("ncfrmi_user_roles", JSON.stringify(savedRoles));
+      
+      setBiometricLoginActive(false);
+      toast.success("Fingerprint biometric match verified! Access granted.");
+      setIsLoggedIn(true);
+    }, 1800);
+  };
+
   const [step, setStep] = useState(0);
   const [data, setData] = useState<Form>(empty);
   const [face, setFace] = useState<string | null>(null);
@@ -298,7 +362,102 @@ NEEDS ASSESSMENT:
         description="Secure on-site enrolment of Migrants, Returnees, Refugees and IDPs with biometric verification."
       />
       <section className="container-page py-10">
-        {showIntro ? (
+        {!isLoggedIn ? (
+          <div className="mx-auto max-w-md animate-fade-up">
+            <Card className="p-6 sm:p-8 shadow-elegant border border-primary/20 bg-card relative overflow-hidden">
+              <div className="absolute inset-0 bg-[radial-gradient(hsl(var(--primary))_1px,transparent_1px)] [background-size:16px_16px] opacity-[0.03] pointer-events-none" />
+              
+              <div className="flex flex-col items-center text-center mb-6">
+                <div className="h-16 w-16 rounded-full border border-primary/20 flex items-center justify-center bg-card shadow-inner p-1 mb-3">
+                  <img src={logo} alt="NCFRMI seal" className="h-full w-full object-contain" />
+                </div>
+                <h3 className="font-display font-extrabold text-foreground text-base uppercase tracking-tight">
+                  Field Officer Node Authentication
+                </h3>
+                <p className="text-xs text-muted-foreground mt-1">
+                  National Commission for Refugees, Migrants & IDPs
+                </p>
+              </div>
+
+              <form onSubmit={handleLogin} className="space-y-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-muted-foreground">Officer Email Address</label>
+                  <Input
+                    type="email"
+                    required
+                    value={loginEmail}
+                    onChange={(e) => setLoginEmail(e.target.value)}
+                    placeholder="officer@ncfrmi.gov.ng"
+                    className="text-xs font-medium"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-muted-foreground">Secure Node Password</label>
+                  <div className="relative">
+                    <Input
+                      type={showPassword ? "text" : "password"}
+                      required
+                      value={loginPassword}
+                      onChange={(e) => setLoginPassword(e.target.value)}
+                      placeholder="••••••••••••"
+                      className="text-xs font-medium pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-2.5 text-muted-foreground hover:text-foreground"
+                    >
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="text-[10px] text-muted-foreground flex justify-between items-center py-1">
+                  <span>* Default Credentials:</span>
+                  <span className="font-mono bg-muted px-1.5 py-0.5 rounded text-foreground font-semibold">
+                    officer@ncfrmi.gov.ng / officer123
+                  </span>
+                </div>
+
+                <Button type="submit" disabled={loginLoading} className="w-full hover-lift font-bold uppercase tracking-wider text-xs">
+                  {loginLoading ? (
+                    <span className="flex items-center gap-1.5"><Loader2 className="h-3.5 w-3.5 animate-spin" /> Verifying...</span>
+                  ) : "Establish Secure Session"}
+                </Button>
+              </form>
+
+              <div className="relative flex py-4 items-center">
+                <div className="flex-grow border-t border-border"></div>
+                <span className="flex-shrink mx-3 text-[10px] text-muted-foreground font-bold uppercase tracking-widest">or biometrics</span>
+                <div className="flex-grow border-t border-border"></div>
+              </div>
+
+              {/* Biometric Touch ID Quick Login */}
+              <div className="text-center">
+                <button
+                  type="button"
+                  onClick={handleBiometricLogin}
+                  disabled={biometricLoginActive}
+                  className={`mx-auto h-16 w-16 rounded-full border border-primary/20 bg-muted/50 flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95 ${
+                    biometricLoginActive ? "border-emerald-500 animate-pulse bg-emerald-50" : "hover:border-primary hover:bg-primary/5"
+                  }`}
+                >
+                  <Fingerprint className={`h-8 w-8 text-primary ${biometricLoginActive ? "text-emerald-500 animate-pulse" : ""}`} />
+                </button>
+                <div className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mt-2">
+                  {biometricLoginActive ? "Scanning Fingerprint..." : "Touch ID Quick Bypass"}
+                </div>
+              </div>
+
+              <div className="mt-6 border-t pt-4 text-center">
+                <p className="text-[10px] text-muted-foreground leading-normal">
+                  Authorized personnel access only. Actions logged under Nigerian cybersecurity regulations and encryption standards.
+                </p>
+              </div>
+            </Card>
+          </div>
+        ) : showIntro ? (
           <div className="mx-auto max-w-4xl animate-fade-up">
             <Card className="p-6 sm:p-8 shadow-card bg-card text-card-foreground">
               <div className="grid gap-8 md:grid-cols-2 items-center">

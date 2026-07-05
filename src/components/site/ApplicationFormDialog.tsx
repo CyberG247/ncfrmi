@@ -118,7 +118,7 @@ export default function ApplicationFormDialog({ open, onOpenChange, type, typeLa
 
   // Automated biometric capture effects
   React.useEffect(() => {
-    if (step === 3 && !faceVerified && !scanningFace) {
+    if (step === 3 && !faceVerified) {
       setScanningFace(true);
       const timer = setTimeout(() => {
         setScanningFace(false);
@@ -129,10 +129,10 @@ export default function ApplicationFormDialog({ open, onOpenChange, type, typeLa
       }, 2000);
       return () => clearTimeout(timer);
     }
-  }, [step, faceVerified, scanningFace]);
+  }, [step]);
 
   React.useEffect(() => {
-    if (step === 4 && !thumbVerified && !scanningThumb) {
+    if (step === 4 && !thumbVerified) {
       setScanningThumb(true);
       const timer = setTimeout(() => {
         setScanningThumb(false);
@@ -143,7 +143,7 @@ export default function ApplicationFormDialog({ open, onOpenChange, type, typeLa
       }, 2000);
       return () => clearTimeout(timer);
     }
-  }, [step, thumbVerified, scanningThumb]);
+  }, [step]);
 
   const handleBack = () => {
     if (step === 4) setThumbVerified(false);

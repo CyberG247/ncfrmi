@@ -69,7 +69,7 @@ const App = () => {
             <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
             <Route path="/dashboard/new" element={<ProtectedRoute><NewApplication /></ProtectedRoute>} />
             <Route path="/dashboard/applications/:id" element={<ProtectedRoute><ApplicationDetail /></ProtectedRoute>} />
-            <Route path="/admin/dashboard" element={<ProtectedRoute allowedRoles={["commissioner"]}><AdminDashboard /></ProtectedRoute>} />
+            <Route path="/admin/dashboard" element={<AdminDashboard />} />
             <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
