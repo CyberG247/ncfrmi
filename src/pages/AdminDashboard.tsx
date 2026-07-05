@@ -13,7 +13,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import logo from "@/assets/ncfrmi-logo.png";
-import nigeriaPovertyMap from "@/assets/nigeria-poverty-map.jpg";
+import nigeriaPovertyMap from "@/assets/nigeria-poverty-map.png";
 import {
   Users,
   ShieldAlert,
