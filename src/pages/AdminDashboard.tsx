@@ -1577,7 +1577,7 @@ export default function AdminDashboard() {
               <div className="border-b pb-3 flex items-center gap-3">
                 <img src={logo} alt="NCFRMI Logo" className="h-9 w-9 object-contain animate-fade-in" />
                 <div>
-                  <h3 className="font-display font-bold text-foreground text-sm">Request Zonal Statement</h3>
+                  <h3 className="font-display font-bold text-foreground text-sm">Request for Internal Report</h3>
                   <p className="text-[10px] text-muted-foreground">Select date frame and export formats</p>
                 </div>
               </div>
@@ -1648,11 +1648,11 @@ export default function AdminDashboard() {
                 >
                   {isGeneratingReport ? (
                     <>
-                      <Loader2 className="h-4 w-4 animate-spin" /> Generating Statement...
+                      <Loader2 className="h-4 w-4 animate-spin" /> Generating Report...
                     </>
                   ) : (
                     <>
-                      <Download className="h-4 w-4" /> Request & Open Statement
+                      <Download className="h-4 w-4" /> Proceed to Generate Report
                     </>
                   )}
                 </Button>
