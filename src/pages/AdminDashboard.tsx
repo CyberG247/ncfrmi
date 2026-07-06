@@ -348,6 +348,18 @@ export default function AdminDashboard() {
   const { user, role, signOut } = useAuth();
   const [registrants, setRegistrants] = useState<Registrant[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // OPay-style Report Statement request states
+  const [reportStartDate, setReportStartDate] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 30); // Default to last 30 days
+    return d.toISOString().slice(0, 10);
+  });
+  const [reportEndDate, setReportEndDate] = useState(() => {
+    return new Date().toISOString().slice(0, 10);
+  });
+  const [reportFormat, setReportFormat] = useState<"pdf" | "csv">("pdf");
+  const [isGeneratingReport, setIsGeneratingReport] = useState(false);
 
   // Login gate states
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -608,138 +620,201 @@ export default function AdminDashboard() {
     .sort((a, b) => b[1] - a[1])
     .slice(0, 5);
 
-  // CSV Exporter
-  const exportCSV = () => {
-    if (filtered.length === 0) {
-      toast.warning("No records to export.");
+  // Unified Statement Generator (OPay-style Date Filtered)
+  const generateReport = async () => {
+    setIsGeneratingReport(true);
+    
+    // Filter registrants based on date range
+    const start = new Date(reportStartDate);
+    const end = new Date(reportEndDate);
+    end.setHours(23, 59, 59, 999);
+    
+    const rangeFiltered = registrants.filter((r) => {
+      const date = new Date(r.created_at);
+      return date >= start && date <= end;
+    });
+
+    if (rangeFiltered.length === 0) {
+      toast.warning("No registration records found for the selected time frame.");
+      setIsGeneratingReport(false);
       return;
     }
-    const headers = ["Reference", "Category", "Full Name", "Gender", "DOB", "Nationality", "State", "LGA", "Dependants", "Circumstances", "Created At"];
-    const rows = filtered.map((r) => [
-      r.reference,
-      r.category.toUpperCase(),
-      r.full_name,
-      r.gender,
-      r.dob,
-      r.nationality,
-      r.state_origin,
-      r.lga,
-      r.dependants,
-      `"${r.circumstances.replace(/"/g, '""')}"`,
-      new Date(r.created_at).toLocaleDateString()
-    ]);
 
-    const csvContent = [headers.join(","), ...rows.map((row) => row.join(","))].join("\n");
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.setAttribute("download", `NCFRMI_Admin_Report_${new Date().toISOString().slice(0,10)}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    toast.success("CSV report downloaded successfully");
-  };
-
-  // Landscape PDF Report Exporter
-  const exportPDF = async () => {
-    if (filtered.length === 0) {
-      toast.warning("No records to export.");
-      return;
-    }
     try {
-      const { jsPDF } = await import("jspdf");
-      const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
-      
-      // Official Crest Header Mock
-      doc.setFillColor(11, 102, 60); // Green banner
-      doc.rect(0, 0, 297, 12, "F");
-      
-      doc.setFont("Helvetica", "bold");
-      doc.setFontSize(10);
-      doc.setTextColor(255, 255, 255);
-      doc.text("FEDERAL REPUBLIC OF NIGERIA · OFFICIAL ADMINISTRATIVE INTEL", 12, 8);
-      
-      // Document Title
-      doc.setTextColor(15, 23, 42);
-      doc.setFontSize(22);
-      doc.text("NCFRMI REGISTRATION AUDIT REPORT", 12, 24);
-      
-      // Metadata Details
-      doc.setFont("Helvetica", "normal");
-      doc.setFontSize(9);
-      doc.setTextColor(100, 116, 139);
-      doc.text(`Generated: ${new Date().toLocaleString()}`, 12, 30);
-      doc.text(`Officer Session: ${user?.email || "Admin Commissioner Session"}`, 12, 35);
-      
-      // Summary Metrics Row
-      doc.setFillColor(241, 245, 249);
-      doc.rect(12, 40, 273, 16, "F");
-      doc.setFont("Helvetica", "bold");
-      doc.setFontSize(10);
-      doc.setTextColor(51, 65, 85);
-      doc.text(`TOTAL CAPTURED: ${totalCount}`, 20, 50);
-      doc.text(`REFUGEES: ${refugeeCount}`, 75, 50);
-      doc.text(`IDPS: ${idpCount}`, 130, 50);
-      doc.text(`MIGRANTS: ${migrantCount}`, 185, 50);
-      doc.text(`RETURNEES: ${returneeCount}`, 240, 50);
-      
-      // Table Header
-      let y = 64;
-      doc.setFillColor(30, 41, 59);
-      doc.rect(12, y, 273, 8, "F");
-      
-      doc.setFontSize(8);
-      doc.setTextColor(255, 255, 255);
-      doc.text("REFERENCE", 15, y + 5);
-      doc.text("FULL NAME", 55, y + 5);
-      doc.text("CATEGORY", 105, y + 5);
-      doc.text("NATIONALITY", 135, y + 5);
-      doc.text("STATE OF ORIGIN", 175, y + 5);
-      doc.text("LGA", 215, y + 5);
-      doc.text("DATE ENROLLED", 250, y + 5);
-      
-      // Table Rows
-      doc.setFont("Helvetica", "normal");
-      doc.setTextColor(15, 23, 42);
-      
-      filtered.slice(0, 10).forEach((r, idx) => {
-        y += 8;
-        if (idx % 2 === 0) {
-          doc.setFillColor(248, 250, 252);
-          doc.rect(12, y, 273, 8, "F");
+      if (reportFormat === "csv") {
+        // Generate CSV
+        const headers = ["Reference", "Category", "Full Name", "Gender", "DOB", "Nationality", "State", "LGA", "Dependants", "Circumstances", "Created At"];
+        const rows = rangeFiltered.map((r) => [
+          r.reference,
+          r.category.toUpperCase(),
+          r.full_name,
+          r.gender,
+          r.dob,
+          r.nationality,
+          r.state_origin,
+          r.lga,
+          r.dependants,
+          `"${r.circumstances.replace(/"/g, '""')}"`,
+          new Date(r.created_at).toLocaleDateString()
+        ]);
+
+        const csvContent = [headers.join(","), ...rows.map((row) => row.join(","))].join("\n");
+        const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        
+        // Open/download directly
+        const link = document.createElement("a");
+        link.href = url;
+        link.setAttribute("download", `NCFRMI_Statement_${reportStartDate}_to_${reportEndDate}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        toast.success("CSV Statement downloaded successfully");
+      } else {
+        // Generate PDF
+        const { jsPDF } = await import("jspdf");
+        const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+        
+        // Official Crest Header Mock
+        doc.setFillColor(11, 102, 60); // Green banner
+        doc.rect(0, 0, 297, 12, "F");
+        
+        doc.setFont("Helvetica", "bold");
+        doc.setFontSize(10);
+        doc.setTextColor(255, 255, 255);
+        doc.text("FEDERAL REPUBLIC OF NIGERIA · OFFICIAL ADMINISTRATIVE SYSTEM", 12, 8);
+        
+        // Load and add the NCFRMI logo
+        try {
+          const loadImage = (src: string): Promise<HTMLImageElement> => {
+            return new Promise((resolve, reject) => {
+              const img = new Image();
+              img.src = src;
+              img.onload = () => resolve(img);
+              img.onerror = (e) => reject(e);
+            });
+          };
+          const logoImg = await loadImage(logo);
+          doc.addImage(logoImg, "PNG", 12, 16, 12, 12);
+        } catch (logoErr) {
+          console.warn("Failed to load logo image for PDF", logoErr);
         }
-        doc.text(r.reference, 15, y + 5);
-        doc.text(r.full_name.slice(0, 22), 55, y + 5);
-        doc.text(r.category.toUpperCase(), 105, y + 5);
-        doc.text(r.nationality, 135, y + 5);
-        doc.text(r.state_origin, 175, y + 5);
-        doc.text(r.lga, 215, y + 5);
-        doc.text(new Date(r.created_at).toLocaleDateString(), 250, y + 5);
-      });
-      
-      if (filtered.length > 10) {
-        y += 10;
-        doc.setFont("Helvetica", "oblique");
+        
+        // Agency Name and Title next to the logo
+        doc.setTextColor(11, 102, 60); // Official Green
+        doc.setFont("Helvetica", "bold");
+        doc.setFontSize(11);
+        doc.text("NATIONAL COMMISSION FOR REFUGEES, MIGRANTS AND INTERNALLY DISPLACED PERSONS", 28, 21);
+        
         doc.setTextColor(100, 116, 139);
-        doc.text(`* Showing first 10 of ${filtered.length} active records in print preview layout. Full records are preserved in the CSV data dump.`, 12, y);
+        doc.setFont("Helvetica", "normal");
+        doc.setFontSize(7.5);
+        doc.text("NCFRMI ZONAL REGISTRY Complex · Abuja Head Office Gateway", 28, 25);
+        
+        doc.setTextColor(15, 23, 42);
+        doc.setFont("Helvetica", "bold");
+        doc.setFontSize(16);
+        doc.text("OFFICIAL REGISTRATION STATEMENT", 12, 38);
+        
+        // Metadata Details
+        doc.setFont("Helvetica", "normal");
+        doc.setFontSize(8.5);
+        doc.setTextColor(100, 116, 139);
+        doc.text(`Statement Period: ${new Date(reportStartDate).toLocaleDateString()} - ${new Date(reportEndDate).toLocaleDateString()}`, 12, 44);
+        doc.text(`Request Session: ${user?.email || "commissioner@ncfrmi.gov.ng"} (Admin)`, 12, 48);
+        doc.text(`Generated: ${new Date().toLocaleString()}`, 200, 44);
+        
+        // Summary Metrics Row
+        doc.setFillColor(241, 245, 249);
+        doc.rect(12, 52, 273, 14, "F");
+        
+        // Calculate categories
+        let rCount = 0;
+        let iCount = 0;
+        let mCount = 0;
+        let retCount = 0;
+        
+        rangeFiltered.forEach(r => {
+          if (r.category === "refugee") rCount++;
+          else if (r.category === "idp") iCount++;
+          else if (r.category === "migrant") mCount++;
+          else if (r.category === "returnee") retCount++;
+        });
+        
+        doc.setFont("Helvetica", "bold");
+        doc.setFontSize(9);
+        doc.setTextColor(51, 65, 85);
+        doc.text(`TOTAL ENROLLED: ${rangeFiltered.length}`, 18, 61);
+        doc.text(`REFUGEES: ${rCount}`, 75, 61);
+        doc.text(`IDPS: ${iCount}`, 130, 61);
+        doc.text(`MIGRANTS: ${mCount}`, 185, 61);
+        doc.text(`RETURNEES: ${retCount}`, 240, 61);
+        
+        // Table Header
+        let y = 72;
+        doc.setFillColor(30, 41, 59);
+        doc.rect(12, y, 273, 8, "F");
+        
+        doc.setFontSize(8);
+        doc.setTextColor(255, 255, 255);
+        doc.text("REFERENCE", 15, y + 5);
+        doc.text("FULL NAME", 55, y + 5);
+        doc.text("CATEGORY", 105, y + 5);
+        doc.text("NATIONALITY", 135, y + 5);
+        doc.text("STATE OF ORIGIN", 175, y + 5);
+        doc.text("LGA", 215, y + 5);
+        doc.text("DATE ENROLLED", 250, y + 5);
+        
+        // Table Rows
+        doc.setFont("Helvetica", "normal");
+        doc.setTextColor(15, 23, 42);
+        
+        // Render up to 12 items for visual fit
+        rangeFiltered.slice(0, 12).forEach((r, idx) => {
+          y += 8;
+          if (idx % 2 === 0) {
+            doc.setFillColor(248, 250, 252);
+            doc.rect(12, y, 273, 8, "F");
+          }
+          doc.text(r.reference, 15, y + 5);
+          doc.text(r.full_name.slice(0, 22), 55, y + 5);
+          doc.text(r.category.toUpperCase(), 105, y + 5);
+          doc.text(r.nationality, 135, y + 5);
+          doc.text(r.state_origin, 175, y + 5);
+          doc.text(r.lga, 215, y + 5);
+          doc.text(new Date(r.created_at).toLocaleDateString(), 250, y + 5);
+        });
+        
+        if (rangeFiltered.length > 12) {
+          y += 10;
+          doc.setFont("Helvetica", "oblique");
+          doc.setTextColor(100, 116, 139);
+          doc.text(`* Showing first 12 of ${rangeFiltered.length} records. Full statement database is downloadable as CSV.`, 12, y);
+        }
+        
+        // Commissioner Signature Block
+        doc.setDrawColor(148, 163, 184);
+        doc.line(200, 175, 270, 175);
+        doc.setFont("Helvetica", "bold");
+        doc.setFontSize(8);
+        doc.setTextColor(51, 65, 85);
+        doc.text("HON. COMMISSIONER SIGNATURE", 208, 180);
+        doc.setFont("Helvetica", "normal");
+        doc.text("NCFRMI Zonal HQ Secretariats", 209, 184);
+        
+        // Open PDF directly in new window
+        const blob = doc.output("blob");
+        const blobUrl = URL.createObjectURL(blob);
+        window.open(blobUrl, "_blank");
+        
+        toast.success("PDF Statement generated and opened successfully");
       }
-      
-      // Commissioner Signature Block
-      doc.setDrawColor(148, 163, 184);
-      doc.line(200, 175, 270, 175);
-      doc.setFont("Helvetica", "bold");
-      doc.setFontSize(8);
-      doc.setTextColor(51, 65, 85);
-      doc.text("HON. COMMISSIONER SIGNATURE", 208, 180);
-      doc.setFont("Helvetica", "normal");
-      doc.text("NCFRMI Federal Secretariat, Abuja", 209, 184);
-      
-      doc.save(`NCFRMI_Administrative_Report_${new Date().toISOString().slice(0,10)}.pdf`);
-      toast.success("Landscape PDF report generated successfully");
-    } catch (e) {
-      console.error(e);
-      toast.error("Failed to generate PDF report");
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err.message || "Failed to generate report statement");
+    } finally {
+      setIsGeneratingReport(false);
     }
   };
 
@@ -1496,19 +1571,86 @@ export default function AdminDashboard() {
         {/* VIEW 8: AUDITS & REPORTS */}
         {activeTab === "report" && (
           <div className="grid gap-6 md:grid-cols-3 animate-fade-in">
-            {/* Download Buttons */}
+            {/* OPay-style statement request panel */}
             <Card className="p-6 shadow-card border-border bg-card space-y-4">
               <div className="border-b pb-2">
-                <h3 className="font-display font-bold text-foreground text-sm">Download Center</h3>
-                <p className="text-[10px] text-muted-foreground">Export registration database lists</p>
+                <h3 className="font-display font-bold text-foreground text-sm">Request Zonal Statement</h3>
+                <p className="text-[10px] text-muted-foreground">Select date frame and export formats</p>
               </div>
 
-              <div className="flex flex-col gap-2">
-                <Button variant="secondary" className="justify-start gap-2 bg-primary/15 text-primary hover:bg-primary/20 hover-lift font-bold text-xs" onClick={exportCSV}>
-                  <Download className="h-4 w-4" /> Export CSV Data Dump
-                </Button>
-                <Button variant="outline" className="justify-start gap-2 text-foreground/80 hover:bg-muted hover-lift font-bold text-xs" onClick={exportPDF}>
-                  <FileText className="h-4 w-4" /> Export PDF Summary Audit
+              <div className="space-y-3.5">
+                {/* Date Selectors */}
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider block mb-1">
+                      Start Date
+                    </label>
+                    <Input
+                      type="date"
+                      value={reportStartDate}
+                      onChange={(e) => setReportStartDate(e.target.value)}
+                      className="text-xs py-1 h-8 rounded border border-border"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider block mb-1">
+                      End Date
+                    </label>
+                    <Input
+                      type="date"
+                      value={reportEndDate}
+                      onChange={(e) => setReportEndDate(e.target.value)}
+                      className="text-xs py-1 h-8 rounded border border-border"
+                    />
+                  </div>
+                </div>
+
+                {/* Format selection */}
+                <div>
+                  <label className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider block mb-1.5">
+                    File Format
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setReportFormat("pdf")}
+                      className={`py-1.5 text-xs font-bold uppercase rounded border transition-all ${
+                        reportFormat === "pdf"
+                          ? "bg-primary/10 text-primary border-primary"
+                          : "text-muted-foreground border-border hover:bg-muted"
+                      }`}
+                    >
+                      Official PDF
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setReportFormat("csv")}
+                      className={`py-1.5 text-xs font-bold uppercase rounded border transition-all ${
+                        reportFormat === "csv"
+                          ? "bg-primary/10 text-primary border-primary"
+                          : "text-muted-foreground border-border hover:bg-muted"
+                      }`}
+                    >
+                      Excel CSV
+                    </button>
+                  </div>
+                </div>
+
+                {/* Generate Button */}
+                <Button
+                  onClick={generateReport}
+                  disabled={isGeneratingReport}
+                  className="w-full bg-emerald-800 text-white hover:bg-emerald-700 text-xs font-bold uppercase py-2 h-9 rounded shadow-md mt-2 flex items-center justify-center gap-2"
+                >
+                  {isGeneratingReport ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" /> Generating Statement...
+                    </>
+                  ) : (
+                    <>
+                      <Download className="h-4 w-4" /> Request & Open Statement
+                    </>
+                  )}
                 </Button>
               </div>
             </Card>
