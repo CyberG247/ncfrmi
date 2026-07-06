@@ -676,9 +676,11 @@ export default function AdminDashboard() {
         const { jsPDF } = await import("jspdf");
         const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
         
-        // Official Crest Header Mock
-        doc.setFillColor(11, 102, 60); // Green banner
+        // Official Crest Header Mock with Logo Colors (Green and Gold)
+        doc.setFillColor(11, 102, 60); // Official Forest Green banner
         doc.rect(0, 0, 297, 12, "F");
+        doc.setFillColor(197, 160, 89); // Logo Accent Gold stripe
+        doc.rect(0, 12, 297, 1.2, "F");
         
         doc.setFont("Helvetica", "bold");
         doc.setFontSize(10);
@@ -701,7 +703,7 @@ export default function AdminDashboard() {
           console.warn("Failed to load logo image for PDF", logoErr);
         }
         
-        // Agency Name and Title next to the logo
+        // Agency Name and Title next to the logo (Primary Green)
         doc.setTextColor(11, 102, 60); // Official Green
         doc.setFont("Helvetica", "bold");
         doc.setFontSize(11);
@@ -711,6 +713,11 @@ export default function AdminDashboard() {
         doc.setFont("Helvetica", "normal");
         doc.setFontSize(7.5);
         doc.text("NCFRMI ZONAL REGISTRY Complex · Abuja Head Office Gateway", 28, 25);
+        
+        // Horizontal Gold divider line under header branding
+        doc.setDrawColor(197, 160, 89); // Gold
+        doc.setLineWidth(0.4);
+        doc.line(12, 31, 285, 31);
         
         doc.setTextColor(15, 23, 42);
         doc.setFont("Helvetica", "bold");
@@ -725,9 +732,12 @@ export default function AdminDashboard() {
         doc.text(`Request Session: ${user?.email || "commissioner@ncfrmi.gov.ng"} (Admin)`, 12, 48);
         doc.text(`Generated: ${new Date().toLocaleString()}`, 200, 44);
         
-        // Summary Metrics Row
-        doc.setFillColor(241, 245, 249);
+        // Summary Metrics Row with Green/Gold styling
+        doc.setFillColor(240, 248, 244); // Soft forest-green tint background
         doc.rect(12, 52, 273, 14, "F");
+        doc.setDrawColor(197, 160, 89); // Gold border left accent
+        doc.setLineWidth(0.8);
+        doc.line(12, 52, 12, 66);
         
         // Calculate categories
         let rCount = 0;
@@ -744,17 +754,19 @@ export default function AdminDashboard() {
         
         doc.setFont("Helvetica", "bold");
         doc.setFontSize(9);
-        doc.setTextColor(51, 65, 85);
+        doc.setTextColor(11, 102, 60); // Green texts
         doc.text(`TOTAL ENROLLED: ${rangeFiltered.length}`, 18, 61);
         doc.text(`REFUGEES: ${rCount}`, 75, 61);
         doc.text(`IDPS: ${iCount}`, 130, 61);
         doc.text(`MIGRANTS: ${mCount}`, 185, 61);
         doc.text(`RETURNEES: ${retCount}`, 240, 61);
         
-        // Table Header
+        // Table Header with Forest Green fill and Gold border
         let y = 72;
-        doc.setFillColor(30, 41, 59);
+        doc.setFillColor(11, 102, 60); // Official Forest Green Table Header
         doc.rect(12, y, 273, 8, "F");
+        doc.setFillColor(197, 160, 89); // Gold border accent
+        doc.rect(12, y + 8, 273, 0.6, "F");
         
         doc.setFontSize(8);
         doc.setTextColor(255, 255, 255);
@@ -1573,9 +1585,12 @@ export default function AdminDashboard() {
           <div className="grid gap-6 md:grid-cols-3 animate-fade-in">
             {/* OPay-style statement request panel */}
             <Card className="p-6 shadow-card border-border bg-card space-y-4">
-              <div className="border-b pb-2">
-                <h3 className="font-display font-bold text-foreground text-sm">Request Zonal Statement</h3>
-                <p className="text-[10px] text-muted-foreground">Select date frame and export formats</p>
+              <div className="border-b pb-3 flex items-center gap-3">
+                <img src={logo} alt="NCFRMI Logo" className="h-9 w-9 object-contain animate-fade-in" />
+                <div>
+                  <h3 className="font-display font-bold text-foreground text-sm">Request Zonal Statement</h3>
+                  <p className="text-[10px] text-muted-foreground">Select date frame and export formats</p>
+                </div>
               </div>
 
               <div className="space-y-3.5">
