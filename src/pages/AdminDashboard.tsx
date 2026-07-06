@@ -676,18 +676,7 @@ export default function AdminDashboard() {
         const { jsPDF } = await import("jspdf");
         const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
         
-        // Official Crest Header Mock with Logo Colors (Green and Gold)
-        doc.setFillColor(11, 102, 60); // Official Forest Green banner
-        doc.rect(0, 0, 297, 12, "F");
-        doc.setFillColor(197, 160, 89); // Logo Accent Gold stripe
-        doc.rect(0, 12, 297, 1.2, "F");
-        
-        doc.setFont("Helvetica", "bold");
-        doc.setFontSize(10);
-        doc.setTextColor(255, 255, 255);
-        doc.text("FEDERAL REPUBLIC OF NIGERIA · OFFICIAL ADMINISTRATIVE SYSTEM", 12, 8);
-        
-        // Load and add the NCFRMI logo
+        // Load and add the NCFRMI logo at the top
         try {
           const loadImage = (src: string): Promise<HTMLImageElement> => {
             return new Promise((resolve, reject) => {
@@ -698,7 +687,7 @@ export default function AdminDashboard() {
             });
           };
           const logoImg = await loadImage(logo);
-          doc.addImage(logoImg, "PNG", 12, 16, 12, 12);
+          doc.addImage(logoImg, "PNG", 12, 10, 12, 12);
         } catch (logoErr) {
           console.warn("Failed to load logo image for PDF", logoErr);
         }
@@ -707,37 +696,37 @@ export default function AdminDashboard() {
         doc.setTextColor(11, 102, 60); // Official Green
         doc.setFont("Helvetica", "bold");
         doc.setFontSize(11);
-        doc.text("NATIONAL COMMISSION FOR REFUGEES, MIGRANTS AND INTERNALLY DISPLACED PERSONS", 28, 21);
+        doc.text("NATIONAL COMMISSION FOR REFUGEES, MIGRANTS AND INTERNALLY DISPLACED PERSONS", 28, 15);
         
         doc.setTextColor(100, 116, 139);
         doc.setFont("Helvetica", "normal");
         doc.setFontSize(7.5);
-        doc.text("NCFRMI ZONAL REGISTRY Complex · Abuja Head Office Gateway", 28, 25);
+        doc.text("NCFRMI Headquaters · FCT Abuja", 28, 19);
         
         // Horizontal Gold divider line under header branding
         doc.setDrawColor(197, 160, 89); // Gold
         doc.setLineWidth(0.4);
-        doc.line(12, 31, 285, 31);
+        doc.line(12, 25, 285, 25);
         
         doc.setTextColor(15, 23, 42);
         doc.setFont("Helvetica", "bold");
         doc.setFontSize(16);
-        doc.text("OFFICIAL REGISTRATION STATEMENT", 12, 38);
+        doc.text("OFFICIAL REPORT", 12, 32);
         
         // Metadata Details
         doc.setFont("Helvetica", "normal");
         doc.setFontSize(8.5);
         doc.setTextColor(100, 116, 139);
-        doc.text(`Statement Period: ${new Date(reportStartDate).toLocaleDateString()} - ${new Date(reportEndDate).toLocaleDateString()}`, 12, 44);
-        doc.text(`Request Session: ${user?.email || "commissioner@ncfrmi.gov.ng"} (Admin)`, 12, 48);
-        doc.text(`Generated: ${new Date().toLocaleString()}`, 200, 44);
+        doc.text(`Statement Period: ${new Date(reportStartDate).toLocaleDateString()} - ${new Date(reportEndDate).toLocaleDateString()}`, 12, 38);
+        doc.text(`Request Session: ${user?.email || "commissioner@ncfrmi.gov.ng"} (Admin)`, 12, 42);
+        doc.text(`Generated: ${new Date().toLocaleString()}`, 200, 38);
         
         // Summary Metrics Row with Green/Gold styling
         doc.setFillColor(240, 248, 244); // Soft forest-green tint background
-        doc.rect(12, 52, 273, 14, "F");
+        doc.rect(12, 46, 273, 14, "F");
         doc.setDrawColor(197, 160, 89); // Gold border left accent
         doc.setLineWidth(0.8);
-        doc.line(12, 52, 12, 66);
+        doc.line(12, 46, 12, 60);
         
         // Calculate categories
         let rCount = 0;
@@ -755,14 +744,14 @@ export default function AdminDashboard() {
         doc.setFont("Helvetica", "bold");
         doc.setFontSize(9);
         doc.setTextColor(11, 102, 60); // Green texts
-        doc.text(`TOTAL ENROLLED: ${rangeFiltered.length}`, 18, 61);
-        doc.text(`REFUGEES: ${rCount}`, 75, 61);
-        doc.text(`IDPS: ${iCount}`, 130, 61);
-        doc.text(`MIGRANTS: ${mCount}`, 185, 61);
-        doc.text(`RETURNEES: ${retCount}`, 240, 61);
+        doc.text(`TOTAL ENROLLED: ${rangeFiltered.length}`, 18, 55);
+        doc.text(`REFUGEES: ${rCount}`, 75, 55);
+        doc.text(`IDPS: ${iCount}`, 130, 55);
+        doc.text(`MIGRANTS: ${mCount}`, 185, 55);
+        doc.text(`RETURNEES: ${retCount}`, 240, 55);
         
         // Table Header with Forest Green fill and Gold border
-        let y = 72;
+        let y = 66;
         doc.setFillColor(11, 102, 60); // Official Forest Green Table Header
         doc.rect(12, y, 273, 8, "F");
         doc.setFillColor(197, 160, 89); // Gold border accent
@@ -811,16 +800,16 @@ export default function AdminDashboard() {
         doc.setFont("Helvetica", "bold");
         doc.setFontSize(8);
         doc.setTextColor(51, 65, 85);
-        doc.text("HON. COMMISSIONER SIGNATURE", 208, 180);
+        doc.text("HON. FEDERAL COMMISSIONER'S SIGNATURE", 208, 180);
         doc.setFont("Helvetica", "normal");
-        doc.text("NCFRMI Zonal HQ Secretariats", 209, 184);
+        doc.text("NCFRMI Headquaters, FCT Abuja.", 209, 184);
         
         // Open PDF directly in new window
         const blob = doc.output("blob");
         const blobUrl = URL.createObjectURL(blob);
         window.open(blobUrl, "_blank");
         
-        toast.success("PDF Statement generated and opened successfully");
+        toast.success("PDF Report generated and opened successfully");
       }
     } catch (err: any) {
       console.error(err);
@@ -942,7 +931,7 @@ export default function AdminDashboard() {
                 NATIONAL COMMISSION FOR REFUGEES, MIGRANTS & IDPs
               </h1>
               <p className="text-[10px] sm:text-xs text-muted-foreground font-semibold uppercase tracking-wider mt-0.5">
-                System Development Division · Zonal Administrative Control Center
+                  Internal System Control Center
               </p>
             </div>
           </div>
