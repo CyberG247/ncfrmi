@@ -107,45 +107,78 @@ const CircularProgress = ({ value, total, color }: { value: number; total: numbe
 };
 
 // Custom Sparkline/Area Chart representing Graphical Rep
-const CustomAreaChart = ({ data, color }: { data: number[]; color: string }) => {
+const CustomBarChart = ({ data, color }: { data: number[]; color: string }) => {
   const max = Math.max(...data, 1);
   const width = 240;
   const height = 80;
   const padding = 5;
-  const points = data.map((val, idx) => {
-    const x = padding + (idx / (data.length - 1)) * (width - 2 * padding);
-    const y = height - padding - (val / max) * (height - 2 * padding);
-    return `${x},${y}`;
-  }).join(" ");
+  const barWidth = 24;
+  const gap = 12;
 
-  const fillPoints = `${padding},${height - padding} ${points} ${width - padding},${height - padding}`;
+  // Fluctuations state to simulate "live data ups and downs"
+  const [pulseScale, setPulseScale] = useState<number[]>([1, 1, 1, 1, 1, 1]);
+
+  useEffect(() => {
+    // Start fluctuating slightly after mount for a catchy micro-animation
+    const timer = setTimeout(() => {
+      setPulseScale(data.map(() => 0.85 + Math.random() * 0.25));
+    }, 100);
+
+    const interval = setInterval(() => {
+      setPulseScale(data.map(() => 0.8 + Math.random() * 0.35));
+    }, 3000);
+
+    return () => {
+      clearTimeout(timer);
+      clearInterval(interval);
+    };
+  }, [data]);
 
   return (
     <div className="w-full h-24 mt-4 relative">
       <svg className="w-full h-full" viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none">
-        <line x1="0" y1={height / 2} x2={width} y2={height / 2} stroke="currentColor" className="text-muted/30" strokeWidth="0.5" strokeDasharray="3,3" />
-        <polyline
-          fill={`url(#gradient-${color.replace("#", "")})`}
-          points={fillPoints}
-          className="opacity-15"
-        />
-        <polyline
-          fill="none"
-          stroke={color}
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          points={points}
-          className="transition-all duration-1000"
-        />
-        <defs>
-          <linearGradient id={`gradient-${color.replace("#", "")}`} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={color} stopOpacity="1" />
-            <stop offset="100%" stopColor={color} stopOpacity="0" />
-          </linearGradient>
-        </defs>
+        {/* Background Grid Lines */}
+        <line x1="0" y1={height / 2} x2={width} y2={height / 2} stroke="currentColor" className="text-muted/10" strokeWidth="0.5" strokeDasharray="3,3" />
+        <line x1="0" y1={height - padding} x2={width} y2={height - padding} stroke="currentColor" className="text-muted/20" strokeWidth="0.5" />
+
+        {data.map((val, idx) => {
+          const scale = pulseScale[idx] || 1;
+          const rawHeight = (val / max) * (height - 2 * padding - 10);
+          const barHeight = Math.max(rawHeight * scale, 4); // ensure min height
+          
+          // Center the bars horizontally
+          const totalWidth = data.length * barWidth + (data.length - 1) * gap;
+          const startX = (width - totalWidth) / 2;
+          const x = startX + idx * (barWidth + gap);
+          const y = height - padding - barHeight;
+
+          return (
+            <g key={idx} className="group">
+              {/* Main Bar */}
+              <rect
+                x={x}
+                y={y}
+                width={barWidth}
+                height={barHeight}
+                rx="3"
+                fill={color}
+                className="opacity-80 transition-all duration-[1800ms] ease-in-out cursor-pointer group-hover:opacity-100 group-hover:brightness-110"
+              />
+              {/* Glossy top highlights for premium look */}
+              <rect
+                x={x}
+                y={y}
+                width={barWidth}
+                height="2.5"
+                rx="1"
+                fill="#ffffff"
+                className="opacity-45 transition-all duration-[1800ms] ease-in-out pointer-events-none"
+              />
+            </g>
+          );
+        })}
       </svg>
-      <div className="flex justify-between text-[8px] text-muted-foreground mt-1 px-1 font-semibold uppercase tracking-wider">
+      <div className="flex justify-between text-[8px] text-muted-foreground mt-1 px-4 font-semibold uppercase tracking-wider">
         <span>Jan</span>
         <span>Feb</span>
         <span>Mar</span>
@@ -840,7 +873,7 @@ export default function AdminDashboard() {
         <div className="bg-card border border-border rounded-lg p-1.5 flex flex-wrap gap-1 shadow-card relative overflow-hidden">
           <div className="absolute inset-0 bg-[radial-gradient(hsl(var(--primary))_1px,transparent_1px)] [background-size:16px_16px] opacity-[0.01] pointer-events-none" />
           {[
-            { id: "summary", label: "exc. Summary", icon: Database },
+            { id: "summary", label: "Exc. Summary", icon: Database },
             { id: "query", label: "Query Console", icon: Search },
             { id: "state", label: "Regional States", icon: MapPin },
             { id: "poc", label: "POC (Intake)", icon: Users },
@@ -860,10 +893,10 @@ export default function AdminDashboard() {
                     setCategoryFilter("all");
                   }
                 }}
-                className={`flex items-center gap-2 px-3 py-2 text-xs font-bold uppercase rounded-md transition-all active:scale-95 ${
+                className={`flex items-center gap-2 px-3.5 py-2.5 text-xs font-bold uppercase rounded-md border transition-all duration-300 active:scale-95 ${
                   isActive
-                    ? "bg-primary text-white shadow-sm"
-                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                    ? "bg-gradient-to-r from-emerald-800 to-emerald-700 text-white border-emerald-650 shadow-elegant scale-[1.02] shadow-emerald-950/20"
+                    : "text-muted-foreground hover:bg-emerald-500/[0.04] hover:text-emerald-800 hover:border-emerald-500/10 border-transparent dark:hover:bg-emerald-500/[0.08] dark:hover:text-emerald-400"
                 }`}
               >
                 <tab.icon className="h-3.5 w-3.5" />
@@ -895,8 +928,8 @@ export default function AdminDashboard() {
                     <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest block mb-1">
                       Graphical Rep (Intake Density)
                     </span>
-                    {/* Graphical Rep Area Chart */}
-                    <CustomAreaChart data={getTrendsForCategory("refugee")} color="#6366f1" />
+                    {/* Graphical Rep Bar Chart */}
+                    <CustomBarChart data={getTrendsForCategory("refugee")} color="#6366f1" />
                   </div>
                   <p className="text-[11px] text-muted-foreground leading-relaxed pt-2">
                     Asylum filings show a steady upward trend. Northern sector intakes represent 62% of monthly registrations.
@@ -916,7 +949,7 @@ export default function AdminDashboard() {
                     <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest block mb-1">
                       Graphical Rep (Intake Density)
                     </span>
-                    <CustomAreaChart data={getTrendsForCategory("idp")} color="#f59e0b" />
+                    <CustomBarChart data={getTrendsForCategory("idp")} color="#f59e0b" />
                   </div>
                   <p className="text-[11px] text-muted-foreground leading-relaxed pt-2">
                     Displacements due to climate events remain critical. Zonal shelter allocation reports 85% occupancy.
@@ -936,7 +969,7 @@ export default function AdminDashboard() {
                     <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest block mb-1">
                       Graphical Rep (Intake Density)
                     </span>
-                    <CustomAreaChart data={getTrendsForCategory("migrant")} color="#10b981" />
+                    <CustomBarChart data={getTrendsForCategory("migrant")} color="#10b981" />
                   </div>
                   <p className="text-[11px] text-muted-foreground leading-relaxed pt-2">
                     Repatriation transit programs are active. Regularized border syncs are successfully completed.
