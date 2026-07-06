@@ -253,28 +253,28 @@ const MAP_NODES = [
 const NigeriaMapSVG = ({ activeNode, onHoverNode }: { activeNode: string; onHoverNode: (id: string) => void }) => {
   return (
     <div className="relative w-full max-w-[520px] mx-auto overflow-hidden rounded-xl border border-border shadow-elegant bg-white p-3 select-none">
-      <div className="relative w-full">
-        {/* The Exact Geographical Map Image from NBS/Inspiration */}
+      <div className="relative w-full overflow-hidden rounded-lg" style={{ paddingBottom: "68%" }}>
+        {/* The Exact Geographical Map Image from NBS/Inspiration (Scaled and shifted up to crop border and title) */}
         <img
           src={nigeriaPovertyMap}
           alt="Nigeria Poverty Headcount and Registry Density Map"
-          className="w-full h-auto object-contain pointer-events-none rounded-lg"
+          className="absolute w-[114%] h-[122%] max-w-none -top-[12%] -left-[7%] object-cover pointer-events-none rounded-lg"
         />
 
         {/* Dynamic, Slow-Pulsing Zonal Hotspot Dots */}
         {MAP_NODES.map((node) => {
           const isActive = activeNode === node.id;
           
-          // Map to precise geographical coordinates on the NBS map image
+          // Map to precise geographical coordinates on the cropped NBS map image
           let leftPercent = "50%";
           let topPercent = "50%";
           
-          if (node.id === "abuja") { leftPercent = "45.5%"; topPercent = "51%"; }
-          else if (node.id === "borno") { leftPercent = "81%"; topPercent = "28%"; }
-          else if (node.id === "lagos") { leftPercent = "17%"; topPercent = "77.5%"; }
-          else if (node.id === "benue") { leftPercent = "55.5%"; topPercent = "64.5%"; }
-          else if (node.id === "edo") { leftPercent = "33%"; topPercent = "72%"; }
-          else if (node.id === "cross_river") { leftPercent = "50%"; topPercent = "77.5%"; }
+          if (node.id === "abuja") { leftPercent = "43.5%"; topPercent = "48%"; }
+          else if (node.id === "borno") { leftPercent = "86.5%"; topPercent = "20%"; }
+          else if (node.id === "lagos") { leftPercent = "9.5%"; topPercent = "78%"; }
+          else if (node.id === "benue") { leftPercent = "54.5%"; topPercent = "63.5%"; }
+          else if (node.id === "edo") { leftPercent = "28.5%"; topPercent = "72%"; }
+          else if (node.id === "cross_river") { leftPercent = "48%"; topPercent = "78.5%"; }
           
           return (
             <div
