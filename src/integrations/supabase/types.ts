@@ -244,6 +244,7 @@ export type Database = {
           reference: string
           state_origin: string
           thumb_captured: boolean
+          photo_base64: string | null
           updated_at: string
         }
         Insert: {
@@ -264,6 +265,7 @@ export type Database = {
           reference: string
           state_origin: string
           thumb_captured?: boolean
+          photo_base64?: string | null
           updated_at?: string
         }
         Update: {
@@ -284,6 +286,7 @@ export type Database = {
           reference?: string
           state_origin?: string
           thumb_captured?: boolean
+          photo_base64?: string | null
           updated_at?: string
         }
         Relationships: []

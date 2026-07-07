@@ -37,6 +37,14 @@ class _LoginScreenState extends State<LoginScreen> {
             email: email,
             password: password,
           );
+          // Set role as admin in database for the commissioner bypass account
+          final user = Supabase.instance.client.auth.currentUser;
+          if (user != null) {
+            await Supabase.instance.client.from('user_roles').insert({
+              'user_id': user.id,
+              'role': 'admin',
+            });
+          }
         } catch (err) {
           debugPrint('Bypass sign up failed: $err');
         }
@@ -50,10 +58,36 @@ class _LoginScreenState extends State<LoginScreen> {
     }
 
     try {
-      await Supabase.instance.client.auth.signInWithPassword(
+      final response = await Supabase.instance.client.auth.signInWithPassword(
         email: email,
         password: password,
       );
+      
+      final user = response.user;
+      if (user != null) {
+        // Query user role in Supabase database
+        final rolesResponse = await Supabase.instance.client
+            .from('user_roles')
+            .select('role')
+            .eq('user_id', user.id)
+            .maybeSingle();
+
+        final role = rolesResponse?['role']?.toString().toLowerCase();
+
+        // Enforce administrative privileges
+        if (role != 'admin') {
+          await Supabase.instance.client.auth.signOut();
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Access Denied. Only administrator accounts are authorized to access the Command Center.'),
+                backgroundColor: AppTheme.destructive,
+              ),
+            );
+          }
+          return;
+        }
+      }
       
       if (mounted) {
         Navigator.of(context).pushReplacement(
@@ -269,26 +303,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               textInputAction: TextInputAction.done,
                               onSubmitted: (_) => _signIn(),
                             ),
-                            const SizedBox(height: 12),
-                            // Forgot Password Link (Right Aligned)
-                            Align(
-                              alignment: Alignment.centerRight,
-                              child: TextButton(
-                                onPressed: () {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text('Contact system administrator to reset credentials.')),
-                                  );
-                                },
-                                child: const Text(
-                                  'Forgot password?',
-                                  style: TextStyle(
-                                    color: AppTheme.mutedForeground,
-                                    fontSize: 13,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 16),
+                            const SizedBox(height: 24),
                             // Login Button
                             ElevatedButton(
                               onPressed: _isLoading ? null : _signIn,
@@ -309,31 +324,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   : const Text('Login', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
                             ),
                             const Spacer(flex: 3),
-                            // Bottom Signup Prompt
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                const Text(
-                                  'Don\'t have an account? ',
-                                  style: TextStyle(color: AppTheme.mutedForeground, fontSize: 13),
-                                ),
-                                GestureDetector(
-                                  onTap: () {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(content: Text('Self-registration is disabled for administrator roles.')),
-                                    );
-                                  },
-                                  child: const Text(
-                                    'Signup',
-                                    style: TextStyle(
-                                      color: AppTheme.primary,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 13,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
+                            // Bottom Signup Prompt removed as requested
                           ],
                         ),
                       ),

@@ -6,6 +6,9 @@ import 'login_screen.dart';
 import 'modules/analytics_module.dart';
 import 'modules/user_management_module.dart';
 import 'modules/content_management_module.dart';
+import 'modules/geopolitical_map_module.dart';
+import 'modules/zonal_management_module.dart';
+import 'modules/reports_module.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -19,6 +22,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   final List<Widget> _modules = const [
     AnalyticsModule(),
+    GeopoliticalMapModule(),
+    ZonalManagementModule(),
+    ReportsModule(),
     UserManagementModule(),
     ContentManagementModule(),
   ];
@@ -51,9 +57,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 Expanded(
                   child: Column(
                     children: [
-                      _buildNavItem(0, 'Analytics', LucideIcons.barChart3300),
-                      _buildNavItem(1, 'User Management', LucideIcons.users300),
-                      _buildNavItem(2, 'Content Management', LucideIcons.newspaper300),
+                      _buildNavItem(0, 'Overview Dashboard', LucideIcons.layoutDashboard300),
+                      _buildNavItem(1, 'Geopolitical Map', LucideIcons.map300),
+                      _buildNavItem(2, 'Zonal Registry', LucideIcons.mapPin300),
+                      _buildNavItem(3, 'Audits & Reports', LucideIcons.fileText300),
+                      _buildNavItem(4, 'User Management', LucideIcons.users300),
+                      _buildNavItem(5, 'Content Management', LucideIcons.newspaper300),
                     ],
                   ),
                 ),
@@ -125,22 +134,29 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ),
                       
                       // Search field
-                      Container(
+                      SizedBox(
                         width: 320,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          color: AppTheme.muted,
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: const TextField(
+                        height: 44,
+                        child: TextField(
                           decoration: InputDecoration(
                             hintText: 'Search operations...',
-                            hintStyle: TextStyle(fontSize: 13, color: AppTheme.mutedForeground),
-                            prefixIcon: Icon(LucideIcons.search300, size: 18, color: AppTheme.mutedForeground),
-                            border: InputBorder.none,
-                            enabledBorder: InputBorder.none,
-                            focusedBorder: InputBorder.none,
-                            contentPadding: EdgeInsets.symmetric(vertical: 10),
+                            hintStyle: const TextStyle(fontSize: 13, color: AppTheme.mutedForeground),
+                            prefixIcon: const Icon(LucideIcons.search300, size: 18, color: AppTheme.mutedForeground),
+                            filled: true,
+                            fillColor: AppTheme.muted.withValues(alpha: 0.6),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(20),
+                              borderSide: BorderSide.none,
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(20),
+                              borderSide: BorderSide.none,
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(20),
+                              borderSide: const BorderSide(color: AppTheme.primary, width: 1.5),
+                            ),
                           ),
                         ),
                       ),
@@ -210,16 +226,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
             width: 48,
             height: 48,
             decoration: BoxDecoration(
-              color: isSelected ? AppTheme.primary : Colors.transparent,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(
-                color: isSelected ? AppTheme.primary : Colors.transparent,
-                width: 1.5,
-              ),
+              color: isSelected ? AppTheme.primary.withValues(alpha: 0.12) : Colors.transparent,
+              shape: BoxShape.circle,
             ),
             child: Icon(
               icon,
-              color: isSelected ? Colors.white : AppTheme.mutedForeground,
+              color: isSelected ? AppTheme.primary : AppTheme.mutedForeground,
               size: 20,
             ),
           ),
