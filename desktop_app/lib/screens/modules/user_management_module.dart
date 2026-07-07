@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:csv/csv.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:intl/intl.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../theme.dart';
 
 class UserManagementModule extends StatefulWidget {
@@ -96,14 +97,14 @@ class _UserManagementModuleState extends State<UserManagementModule> {
                 children: [
                   ElevatedButton.icon(
                     onPressed: _exportData,
-                    icon: const Icon(Icons.download),
+                    icon: const Icon(LucideIcons.download300),
                     label: const Text('Export CSV'),
                     style: ElevatedButton.styleFrom(backgroundColor: AppTheme.secondary),
                   ),
                   const SizedBox(width: 16),
                   ElevatedButton.icon(
                     onPressed: _fetchUsers,
-                    icon: const Icon(Icons.refresh),
+                    icon: const Icon(LucideIcons.refreshCw300),
                     label: const Text('Refresh'),
                   ),
                 ],
@@ -129,7 +130,7 @@ class _UserManagementModuleState extends State<UserManagementModule> {
                         title: Text(p['full_name'] ?? 'Unknown User', style: const TextStyle(fontWeight: FontWeight.bold)),
                         subtitle: Text('ID: ${p['id']} • Phone: ${p['phone'] ?? 'N/A'}'),
                         trailing: IconButton(
-                          icon: const Icon(Icons.more_vert),
+                          icon: const Icon(LucideIcons.moreVertical300),
                           onPressed: () {},
                         ),
                       );

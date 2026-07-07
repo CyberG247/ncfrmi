@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:csv/csv.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:intl/intl.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../theme.dart';
 
 class ContentManagementModule extends StatefulWidget {
@@ -154,14 +155,14 @@ class _ContentManagementModuleState extends State<ContentManagementModule> {
                 children: [
                   ElevatedButton.icon(
                     onPressed: _exportData,
-                    icon: const Icon(Icons.download),
+                    icon: const Icon(LucideIcons.download300),
                     label: const Text('Export Logs'),
                     style: ElevatedButton.styleFrom(backgroundColor: AppTheme.secondary),
                   ),
                   const SizedBox(width: 16),
                   ElevatedButton.icon(
                     onPressed: _showAddNewsDialog,
-                    icon: const Icon(Icons.add),
+                    icon: const Icon(LucideIcons.plus300),
                     label: const Text('Create Post'),
                   ),
                 ],
@@ -188,7 +189,7 @@ class _ContentManagementModuleState extends State<ContentManagementModule> {
                         title: Text(news['title'] ?? '', style: const TextStyle(fontWeight: FontWeight.bold)),
                         subtitle: Text(news['excerpt'] ?? ''),
                         trailing: IconButton(
-                          icon: const Icon(Icons.delete, color: AppTheme.destructive),
+                          icon: const Icon(LucideIcons.trash2300, color: AppTheme.destructive),
                           onPressed: () => _deleteNews(news['id']),
                         ),
                       );
