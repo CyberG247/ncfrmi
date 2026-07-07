@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../theme.dart';
 import 'home_screen.dart';
 import 'capture_screen.dart';
 import 'records_screen.dart';
 import 'profile_screen.dart';
+import 'search_screen.dart';
+import 'analytics_screen.dart';
 
 class MainNavigation extends StatefulWidget {
   const MainNavigation({super.key});
@@ -14,52 +17,97 @@ class MainNavigation extends StatefulWidget {
 
 class _MainNavigationState extends State<MainNavigation> {
   int _currentIndex = 0;
+  String? _selectedCategory;
 
-  final List<Widget> _screens = const [
-    HomeScreen(),
-    CaptureScreen(),
-    RecordsScreen(),
-    ProfileScreen(),
-  ];
+  void _handleCategorySelected(String category) {
+    setState(() {
+      _selectedCategory = category;
+      _currentIndex = 5; // Capture tab index in screens list (hidden from bar)
+    });
+  }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _screens,
-      ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _currentIndex,
-        onDestinationSelected: (index) {
+  void _clearSelectedCategory() {
+    _selectedCategory = null;
+  }
+
+  Widget _buildNavItem(int index, IconData icon) {
+    final isSelected = _currentIndex == index;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () {
           setState(() {
             _currentIndex = index;
           });
         },
-        backgroundColor: AppTheme.background,
-        indicatorColor: AppTheme.primary.withValues(alpha: 0.15),
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.analytics_outlined),
-            selectedIcon: Icon(Icons.analytics),
-            label: 'Home',
+        behavior: HitTestBehavior.opaque,
+        child: Center(
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: isSelected
+                  ? AppTheme.primary.withValues(alpha: 0.12)
+                  : Colors.transparent,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              icon,
+              color: isSelected ? AppTheme.primary : AppTheme.mutedForeground,
+              size: 24,
+            ),
           ),
-          NavigationDestination(
-            icon: Icon(Icons.add_box_outlined),
-            selectedIcon: Icon(Icons.add_box),
-            label: 'Capture',
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final screens = [
+      HomeScreen(onCategorySelected: _handleCategorySelected),
+      const SearchScreen(),
+      const AnalyticsScreen(),
+      const RecordsScreen(),
+      const ProfileScreen(),
+      CaptureScreen(
+        initialCategory: _selectedCategory,
+        onCategoryHandled: _clearSelectedCategory,
+      ),
+    ];
+
+    return Scaffold(
+      body: IndexedStack(
+        index: _currentIndex,
+        children: screens,
+      ),
+      bottomNavigationBar: Container(
+        height: 76,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 10,
+              offset: const Offset(0, -2),
+            ),
+          ],
+          border: const Border(
+            top: BorderSide(color: AppTheme.border, width: 1),
           ),
-          NavigationDestination(
-            icon: Icon(Icons.storage_outlined),
-            selectedIcon: Icon(Icons.storage),
-            label: 'Records',
+        ),
+        child: SafeArea(
+          top: false,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _buildNavItem(0, LucideIcons.home300),
+              _buildNavItem(1, LucideIcons.search300),
+              _buildNavItem(2, LucideIcons.pieChart300),
+              _buildNavItem(3, LucideIcons.clock300),
+              _buildNavItem(4, LucideIcons.user300),
+            ],
           ),
-          NavigationDestination(
-            icon: Icon(Icons.person_outline),
-            selectedIcon: Icon(Icons.person),
-            label: 'Profile',
-          ),
-        ],
+        ),
       ),
     );
   }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'dart:math';
 import '../theme.dart';
 import '../models/registrant.dart';
@@ -8,7 +9,9 @@ import '../models/intervention.dart';
 import '../services/offline_service.dart';
 
 class CaptureScreen extends StatefulWidget {
-  const CaptureScreen({super.key});
+  final String? initialCategory;
+  final VoidCallback? onCategoryHandled;
+  const CaptureScreen({super.key, this.initialCategory, this.onCategoryHandled});
 
   @override
   State<CaptureScreen> createState() => _CaptureScreenState();
@@ -91,6 +94,26 @@ class _CaptureScreenState extends State<CaptureScreen> with SingleTickerProvider
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    _handleInitialCategory();
+  }
+
+  void _handleInitialCategory() {
+    if (widget.initialCategory != null) {
+      _category = widget.initialCategory!;
+      _generateReference(_category);
+      _wizardStep = 1;
+      widget.onCategoryHandled?.call();
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant CaptureScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.initialCategory != null && widget.initialCategory != oldWidget.initialCategory) {
+      setState(() {
+        _handleInitialCategory();
+      });
+    }
   }
 
   @override
@@ -319,7 +342,7 @@ NEEDS ASSESSMENT:
             title: 'Refugees',
             division: 'Protection Division',
             desc: 'Enrol asylum seekers and certified refugees. Capture origin files and migration circumstances.',
-            icon: Icons.language,
+            icon: LucideIcons.globe300,
             color: AppTheme.primary,
           ),
           const SizedBox(height: 16),
@@ -328,7 +351,7 @@ NEEDS ASSESSMENT:
             title: 'IDPs',
             division: 'Camp Enrolment',
             desc: 'Register Internally Displaced Persons. Track shelter coordinates, camp assignments, and dependants.',
-            icon: Icons.home,
+            icon: LucideIcons.home300,
             color: AppTheme.accent,
           ),
           const SizedBox(height: 16),
@@ -337,7 +360,7 @@ NEEDS ASSESSMENT:
             title: 'Migrants',
             division: 'Transit and Exit',
             desc: 'Enrol regularized migrants or returnee enrolees. Track border transit and reintegration records.',
-            icon: Icons.flight_takeoff,
+            icon: LucideIcons.plane300,
             color: Colors.amber[800]!,
           ),
           const SizedBox(height: 16),
@@ -346,7 +369,7 @@ NEEDS ASSESSMENT:
             title: 'Returnees',
             division: 'Repatriation & Reintegration',
             desc: 'Register citizens repatriated from transit borders. Track returnee details and distribution assets.',
-            icon: Icons.assignment_return,
+            icon: LucideIcons.undo300,
             color: AppTheme.secondary,
           ),
         ],
@@ -402,7 +425,7 @@ NEEDS ASSESSMENT:
                       ],
                     ),
                   ),
-                  const Icon(Icons.arrow_forward_ios, size: 16, color: AppTheme.mutedForeground),
+                  const Icon(LucideIcons.chevronRight300, size: 16, color: AppTheme.mutedForeground),
                 ],
               ),
               const SizedBox(height: 16),
@@ -469,7 +492,7 @@ NEEDS ASSESSMENT:
             decoration: const InputDecoration(
               labelText: 'Date of Birth *',
               hintText: 'Tap to select date',
-              suffixIcon: Icon(Icons.calendar_today),
+              suffixIcon: Icon(LucideIcons.calendar300),
             ),
             validator: (val) => val!.isEmpty ? 'Date of birth is required' : null,
             onTap: () async {
@@ -696,11 +719,11 @@ NEEDS ASSESSMENT:
                   alignment: Alignment.center,
                   children: [
                     if (_livenessVerified)
-                      const Icon(Icons.check_circle, size: 80, color: AppTheme.primary)
+                      const Icon(LucideIcons.checkCircle300, size: 80, color: AppTheme.primary)
                     else if (_livenessVerifying)
-                      const Icon(Icons.face, size: 100, color: AppTheme.primaryGlow)
+                      const Icon(LucideIcons.smile300, size: 100, color: AppTheme.primaryGlow)
                     else
-                      const Icon(Icons.face_retouching_natural, size: 100, color: AppTheme.mutedForeground),
+                      const Icon(LucideIcons.scanFace300, size: 100, color: AppTheme.mutedForeground),
                     
                     if (_livenessVerifying)
                       Positioned(
@@ -732,7 +755,7 @@ NEEDS ASSESSMENT:
           if (!_livenessVerified)
             ElevatedButton.icon(
               onPressed: _livenessVerifying ? null : _runLivenessCheck,
-              icon: const Icon(Icons.videocam),
+              icon: const Icon(LucideIcons.video300),
               label: Text(_livenessVerifying ? 'Running Enrolment...' : 'Start Liveness Check'),
             )
           else
@@ -782,11 +805,11 @@ NEEDS ASSESSMENT:
                   alignment: Alignment.center,
                   children: [
                     if (_thumbCaptured)
-                      const Icon(Icons.fingerprint, size: 100, color: AppTheme.primary)
+                      const Icon(LucideIcons.fingerprint300, size: 100, color: AppTheme.primary)
                     else if (_thumbScanning)
-                      const Icon(Icons.fingerprint, size: 100, color: AppTheme.primaryGlow)
+                      const Icon(LucideIcons.fingerprint300, size: 100, color: AppTheme.primaryGlow)
                     else
-                      const Icon(Icons.fingerprint_outlined, size: 100, color: AppTheme.mutedForeground),
+                      const Icon(LucideIcons.fingerprint300, size: 100, color: AppTheme.mutedForeground),
                     
                     if (_thumbScanning)
                       Positioned(
@@ -820,7 +843,7 @@ NEEDS ASSESSMENT:
                 Expanded(
                   child: ElevatedButton.icon(
                     onPressed: _thumbScanning ? null : () => _runThumbprintScan('Left'),
-                    icon: const Icon(Icons.fingerprint),
+                    icon: const Icon(LucideIcons.fingerprint300),
                     label: const Text('Scan Left Thumb'),
                   ),
                 ),
@@ -828,7 +851,7 @@ NEEDS ASSESSMENT:
                 Expanded(
                   child: ElevatedButton.icon(
                     onPressed: _thumbScanning ? null : () => _runThumbprintScan('Right'),
-                    icon: const Icon(Icons.fingerprint),
+                    icon: const Icon(LucideIcons.fingerprint300),
                     label: const Text('Scan Right Thumb'),
                     style: ElevatedButton.styleFrom(backgroundColor: AppTheme.secondary),
                   ),
@@ -893,7 +916,7 @@ NEEDS ASSESSMENT:
         const SizedBox(height: 32),
         ElevatedButton.icon(
           onPressed: _submitRegistrant,
-          icon: const Icon(Icons.cloud_upload_outlined),
+          icon: const Icon(LucideIcons.cloudUpload300),
           label: const Text('Finalize and Save Offline'),
         ),
       ],
@@ -973,7 +996,7 @@ NEEDS ASSESSMENT:
           const SizedBox(height: 32),
           ElevatedButton.icon(
             onPressed: _submitIntervention,
-            icon: const Icon(Icons.save_outlined),
+            icon: const Icon(LucideIcons.save300),
             label: const Text('Log Support Offline'),
           ),
         ],

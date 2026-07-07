@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../theme.dart';
 import '../models/registrant.dart';
 import '../models/intervention.dart';
@@ -91,7 +92,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
             )
           else
             IconButton(
-              icon: const Icon(Icons.sync),
+              icon: const Icon(LucideIcons.refreshCw300),
               tooltip: 'Sync Now',
               onPressed: (_registrants.isEmpty && _interventions.isEmpty) ? null : _syncNow,
             ),
@@ -110,7 +111,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
                       ..._registrants.map((r) => Card(
                             margin: const EdgeInsets.only(bottom: 8),
                             child: ListTile(
-                              leading: const CircleAvatar(backgroundColor: AppTheme.primary, child: Icon(Icons.person, color: Colors.white, size: 20)),
+                              leading: const CircleAvatar(backgroundColor: AppTheme.primary, child: Icon(LucideIcons.user300, color: Colors.white, size: 20)),
                               title: Text(r.fullName),
                               subtitle: Text('${r.category.toUpperCase()} • ${r.reference}'),
                             ),
@@ -123,7 +124,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
                       ..._interventions.map((i) => Card(
                             margin: const EdgeInsets.only(bottom: 8),
                             child: ListTile(
-                              leading: const CircleAvatar(backgroundColor: AppTheme.secondary, child: Icon(Icons.handshake, color: Colors.white, size: 20)),
+                              leading: const CircleAvatar(backgroundColor: AppTheme.secondary, child: Icon(LucideIcons.handshake300, color: Colors.white, size: 20)),
                               title: Text(i.category),
                               subtitle: Text('${i.camp} • Beneficiaries: ${i.count}'),
                             ),
@@ -136,7 +137,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
               onPressed: _syncNow,
               backgroundColor: AppTheme.primary,
               foregroundColor: Colors.white,
-              icon: const Icon(Icons.cloud_upload),
+              icon: const Icon(LucideIcons.cloudUpload300),
               label: const Text('Sync All'),
             )
           : null,

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../theme.dart';
 import 'login_screen.dart';
 
@@ -70,7 +71,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         title: const Text('Agent Profile'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.logout),
+            icon: const Icon(LucideIcons.logOut300),
             tooltip: 'Sign Out',
             onPressed: () async {
               await _supabase.auth.signOut();
@@ -92,7 +93,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   child: CircleAvatar(
                     radius: 50,
                     backgroundColor: AppTheme.primary,
-                    child: Icon(Icons.person, size: 50, color: Colors.white),
+                    child: Icon(LucideIcons.user300, size: 50, color: Colors.white),
                   ),
                 ),
                 const SizedBox(height: 24),
@@ -106,25 +107,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         const SizedBox(height: 16),
                         TextField(
                           controller: TextEditingController(text: email),
-                          decoration: const InputDecoration(labelText: 'Email Address (Read-only)', prefixIcon: Icon(Icons.email)),
+                          decoration: const InputDecoration(labelText: 'Email Address (Read-only)', prefixIcon: Icon(LucideIcons.mail300)),
                           readOnly: true,
                           enabled: false,
                         ),
                         const SizedBox(height: 16),
                         TextField(
                           controller: _displayNameController,
-                          decoration: const InputDecoration(labelText: 'Display Name', prefixIcon: Icon(Icons.badge)),
+                          decoration: const InputDecoration(labelText: 'Display Name', prefixIcon: Icon(LucideIcons.user300)),
                         ),
                         const SizedBox(height: 16),
                         TextField(
                           controller: _passwordController,
-                          decoration: const InputDecoration(labelText: 'New Password', prefixIcon: Icon(Icons.lock)),
+                          decoration: const InputDecoration(labelText: 'New Password', prefixIcon: Icon(LucideIcons.lock300)),
                           obscureText: true,
                         ),
                         const SizedBox(height: 24),
                         ElevatedButton.icon(
                           onPressed: _updateProfile,
-                          icon: const Icon(Icons.save),
+                          icon: const Icon(LucideIcons.save300),
                           label: const Text('Save Changes'),
                         ),
                       ],
