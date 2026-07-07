@@ -34,6 +34,27 @@ class OfflineService extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> updateRegistrant(Registrant registrant) async {
+    final list = await getOfflineRegistrants();
+    final idx = list.indexWhere((r) => r.id == registrant.id);
+    if (idx != -1) {
+      list[idx] = registrant;
+    } else {
+      list.add(registrant);
+    }
+    final file = await _getFile(_registrantsFile);
+    await file.writeAsString(jsonEncode(list.map((e) => e.toJson()).toList()));
+    notifyListeners();
+  }
+
+  Future<void> deleteRegistrant(String id) async {
+    final list = await getOfflineRegistrants();
+    list.removeWhere((r) => r.id == id);
+    final file = await _getFile(_registrantsFile);
+    await file.writeAsString(jsonEncode(list.map((e) => e.toJson()).toList()));
+    notifyListeners();
+  }
+
   Future<void> clearOfflineRegistrants() async {
     final file = await _getFile(_registrantsFile);
     if (await file.exists()) {

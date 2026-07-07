@@ -237,50 +237,9 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       const SizedBox(height: 16),
                       
-                      // Forgot Password Link
-                      TextButton(
-                        onPressed: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Password reset link has been sent to your email')),
-                          );
-                        },
-                        child: const Text(
-                          'Forgot Password?',
-                          style: TextStyle(
-                            color: AppTheme.primary,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ),
-                      
                       const Spacer(flex: 3),
                       
-                      // Bottom Register Prompt
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Text(
-                            'Don\'t have any account? ',
-                            style: TextStyle(color: AppTheme.mutedForeground, fontSize: 13),
-                          ),
-                          GestureDetector(
-                            onTap: () {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Registration portal is closed for external access')),
-                              );
-                            },
-                            child: const Text(
-                              'Register',
-                              style: TextStyle(
-                                color: AppTheme.primary,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 13,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
+                      // Bottom Register Prompt removed as requested
                       const SizedBox(height: 8),
                     ],
                   ),

@@ -14,6 +14,7 @@ class Registrant {
   final String circumstances;
   final bool faceCaptured;
   final bool thumbCaptured;
+  final String? photoBase64;
   final String? capturedBy;
   final String createdAt;
 
@@ -33,6 +34,7 @@ class Registrant {
     required this.circumstances,
     required this.faceCaptured,
     required this.thumbCaptured,
+    this.photoBase64,
     this.capturedBy,
     required this.createdAt,
   });
@@ -53,6 +55,7 @@ class Registrant {
     'circumstances': circumstances,
     'face_captured': faceCaptured,
     'thumb_captured': thumbCaptured,
+    'photo_base64': photoBase64,
     'captured_by': capturedBy,
     'created_at': createdAt,
   };
@@ -73,6 +76,7 @@ class Registrant {
     circumstances: json['circumstances'],
     faceCaptured: json['face_captured'],
     thumbCaptured: json['thumb_captured'],
+    photoBase64: json['photo_base64'],
     capturedBy: json['captured_by'],
     createdAt: json['created_at'],
   );

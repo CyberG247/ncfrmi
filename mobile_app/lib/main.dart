@@ -20,7 +20,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'NCFRMI Mobile',
+      title: 'NCFRMI AGENT',
       theme: AppTheme.lightTheme,
       home: const LoginScreen(),
       debugShowCheckedModeBanner: false,

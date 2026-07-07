@@ -1,6 +1,8 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:image_picker/image_picker.dart';
 import '../theme.dart';
 import 'login_screen.dart';
 
@@ -17,6 +19,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final _passwordController = TextEditingController();
   bool _isLoading = false;
 
+  final _picker = ImagePicker();
+  String? _localAvatarPath;
+
   @override
   void initState() {
     super.initState();
@@ -27,7 +32,85 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final user = _supabase.auth.currentUser;
     if (user != null) {
       _displayNameController.text = user.userMetadata?['display_name'] ?? '';
+      final path = user.userMetadata?['avatar_url']?.toString();
+      if (path != null && !path.startsWith('http') && File(path).existsSync()) {
+        setState(() {
+          _localAvatarPath = path;
+        });
+      }
     }
+  }
+
+  Future<void> _pickImage(ImageSource source) async {
+    try {
+      final XFile? image = await _picker.pickImage(
+        source: source,
+        maxWidth: 512,
+        maxHeight: 512,
+        imageQuality: 80,
+      );
+      if (image != null) {
+        setState(() {
+          _localAvatarPath = image.path;
+        });
+        
+        await _supabase.auth.updateUser(UserAttributes(
+          data: {'avatar_url': image.path},
+        ));
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Profile picture updated successfully!')),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to access camera/gallery: $e'), backgroundColor: AppTheme.destructive),
+        );
+      }
+    }
+  }
+
+  void _showPhotoOptions() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.only(topLeft: Radius.circular(20), topRight: Radius.circular(20)),
+      ),
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Padding(
+              padding: EdgeInsets.all(16.0),
+              child: Text(
+                'Update Profile Photo',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+            ),
+            ListTile(
+              leading: const Icon(LucideIcons.camera300, color: AppTheme.primary),
+              title: const Text('Take Photo using Camera'),
+              onTap: () {
+                Navigator.pop(context);
+                _pickImage(ImageSource.camera);
+              },
+            ),
+            ListTile(
+              leading: const Icon(LucideIcons.image300, color: AppTheme.primary),
+              title: const Text('Choose from Photo Gallery'),
+              onTap: () {
+                Navigator.pop(context);
+                _pickImage(ImageSource.gallery);
+              },
+            ),
+            const SizedBox(height: 12),
+          ],
+        ),
+      ),
+    );
   }
 
   Future<void> _updateProfile() async {
@@ -89,11 +172,37 @@ class _ProfileScreenState extends State<ProfileScreen> {
           : ListView(
               padding: const EdgeInsets.all(16),
               children: [
-                const Center(
-                  child: CircleAvatar(
-                    radius: 50,
-                    backgroundColor: AppTheme.primary,
-                    child: Icon(LucideIcons.user300, size: 50, color: Colors.white),
+                Center(
+                  child: Stack(
+                    children: [
+                      CircleAvatar(
+                        radius: 50,
+                        backgroundColor: AppTheme.primary,
+                        backgroundImage: _localAvatarPath != null
+                            ? FileImage(File(_localAvatarPath!))
+                            : (user?.userMetadata?['avatar_url'] != null &&
+                                    (user!.userMetadata!['avatar_url'] as String).startsWith('http')
+                                ? NetworkImage(user.userMetadata!['avatar_url'])
+                                : null),
+                        child: (_localAvatarPath == null && user?.userMetadata?['avatar_url'] == null)
+                            ? const Icon(LucideIcons.user300, size: 50, color: Colors.white)
+                            : null,
+                      ),
+                      Positioned(
+                        bottom: 0,
+                        right: 0,
+                        child: Container(
+                          decoration: const BoxDecoration(
+                            color: AppTheme.primary,
+                            shape: BoxShape.circle,
+                          ),
+                          child: IconButton(
+                            icon: const Icon(LucideIcons.camera300, color: Colors.white, size: 18),
+                            onPressed: _showPhotoOptions,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 const SizedBox(height: 24),

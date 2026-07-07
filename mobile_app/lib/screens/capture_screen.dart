@@ -3,15 +3,20 @@ import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'dart:math';
+import 'dart:async';
+import 'dart:io';
+import 'dart:convert';
+import 'package:camera/camera.dart';
 import '../theme.dart';
 import '../models/registrant.dart';
 import '../models/intervention.dart';
 import '../services/offline_service.dart';
-
+import '../data/ng_states_lgas.dart';
 class CaptureScreen extends StatefulWidget {
   final String? initialCategory;
   final VoidCallback? onCategoryHandled;
-  const CaptureScreen({super.key, this.initialCategory, this.onCategoryHandled});
+  final Registrant? editRegistrant;
+  const CaptureScreen({super.key, this.initialCategory, this.onCategoryHandled, this.editRegistrant});
 
   @override
   State<CaptureScreen> createState() => _CaptureScreenState();
@@ -27,42 +32,25 @@ class _CaptureScreenState extends State<CaptureScreen> with SingleTickerProvider
 
   // Data fields
   String _category = 'idp'; // refugee, idp, migrant, returnee
-  String _fullName = '';
   String _reference = '';
-  String _address = '';
   String _stateOrigin = '';
   String _lga = '';
   String? _selectedState;
   String? _selectedLga;
 
-  final List<String> _states = const [
-    'Abuja FCT', 'Adamawa', 'Borno', 'Kano', 'Lagos', 'Yobe',
-    'Abia', 'Akwa Ibom', 'Anambra', 'Bauchi', 'Bayelsa', 'Benue', 
-    'Cross River', 'Delta', 'Ebonyi', 'Edo', 'Ekiti', 'Enugu', 
-    'Gombe', 'Imo', 'Jigawa', 'Kaduna', 'Katsina', 'Kebbi', 'Kogi', 
-    'Kwara', 'Nasarawa', 'Niger', 'Ogun', 'Ondo', 'Osun', 'Oyo', 
-    'Plateau', 'Rivers', 'Sokoto', 'Taraba', 'Zamfara'
-  ];
-
-  final Map<String, List<String>> _statesAndLgas = const {
-    'Abuja FCT': ['Abuja Municipal', 'Bwari', 'Gwagwalada', 'Kuje', 'Kwali', 'Abaji'],
-    'Adamawa': ['Yola North', 'Yola South', 'Mubi North', 'Mubi South', 'Girei', 'Numan', 'Michika', 'Madagali'],
-    'Borno': ['Maiduguri', 'Jere', 'Gwoza', 'Bama', 'Monguno', 'Chibok', 'Konduga', 'Kaga', 'Damboa', 'Dikwa'],
-    'Kano': ['Kano Municipal', 'Fagge', 'Dala', 'Gwale', 'Nassarawa', 'Tarauni', 'Ungogo', 'Kumbotso'],
-    'Lagos': ['Ikeja', 'Lagos Island', 'Eti-Osa', 'Alimosho', 'Surulere', 'Apapa', 'Yaba', 'Badagry', 'Epe'],
-    'Yobe': ['Damaturu', 'Bade', 'Fika', 'Fune', 'Geidam', 'Gujba', 'Jakusko', 'Potiskum'],
-  };
-
   List<String> _getLgasForState(String state) {
-    return _statesAndLgas[state] ?? ['Local Area 1', 'Local Area 2', 'Local Area 3'];
+    return NgData.statesAndLgas[state] ?? ['Local Area 1', 'Local Area 2', 'Local Area 3'];
   }
 
-  String _phone = '';
+  final _fullNameController = TextEditingController();
+  final _addressController = TextEditingController();
+  final _phoneController = TextEditingController();
+  final _dependantsController = TextEditingController(text: '0');
+  
   String _dob = '';
   final _dobController = TextEditingController();
   String _gender = 'Male';
   String _nationality = 'Nigeria';
-  int _dependants = 0;
   
   // Custom Web-Matched fields (merged into circumstances in Supabase)
   String _educationLevel = 'none'; // none, primary, secondary, tertiary, vocational
@@ -81,7 +69,14 @@ class _CaptureScreenState extends State<CaptureScreen> with SingleTickerProvider
   bool _thumbCaptured = false;
   bool _thumbScanning = false;
   double _thumbProgress = 0.0;
-  String _scannedThumb = ''; // 'Left' or 'Right'
+  String _scannedThumb = '';
+  
+  String? _faceImagePath;
+  String? _faceImageBase64;
+  Timer? _thumbTimer;
+  CameraController? _cameraController;
+  List<CameraDescription>? _cameras; // 'Left' or 'Right'
+  bool _isSaving = false;
 
   // Intervention Form fields
   final _intFormKey = GlobalKey<FormState>();
@@ -95,10 +90,109 @@ class _CaptureScreenState extends State<CaptureScreen> with SingleTickerProvider
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     _handleInitialCategory();
+    _initCamera();
+  }
+
+  Future<void> _initCamera() async {
+    try {
+      _cameras = await availableCameras();
+      if (_cameras != null && _cameras!.isNotEmpty) {
+        final frontCamera = _cameras!.firstWhere(
+          (cam) => cam.lensDirection == CameraLensDirection.front,
+          orElse: () => _cameras!.first,
+        );
+        _cameraController = CameraController(
+          frontCamera, 
+          ResolutionPreset.medium, 
+          enableAudio: false,
+        );
+        await _cameraController!.initialize();
+        if (mounted) setState(() {});
+      }
+    } catch (e) {
+      debugPrint('Camera init error: $e');
+    }
   }
 
   void _handleInitialCategory() {
-    if (widget.initialCategory != null) {
+    if (widget.editRegistrant != null) {
+      final r = widget.editRegistrant!;
+      _category = r.category;
+      _fullNameController.text = r.fullName;
+      _reference = r.reference;
+      _addressController.text = r.address;
+      _phoneController.text = r.phone;
+      _dob = r.dob;
+      _gender = r.gender;
+      _nationality = r.nationality;
+      _selectedState = NgData.states.contains(r.stateOrigin) ? r.stateOrigin : null;
+      _stateOrigin = r.stateOrigin;
+      _selectedLga = _getLgasForState(r.stateOrigin).contains(r.lga) ? r.lga : null;
+      _lga = r.lga;
+      _dependantsController.text = r.dependants.toString();
+      
+      final circs = r.circumstances;
+      if (circs.contains('CAUSE OF DISPLACEMENT:')) {
+        final startIndex = circs.indexOf('CAUSE OF DISPLACEMENT:') + 'CAUSE OF DISPLACEMENT:\n'.length;
+        final endIndex = circs.indexOf('\n\nEDUCATION BACKGROUND:');
+        if (endIndex != -1 && endIndex > startIndex) {
+          _reason = circs.substring(startIndex, endIndex).trim();
+        } else {
+          _reason = r.circumstances;
+        }
+      } else {
+        _reason = r.circumstances;
+      }
+
+      if (circs.contains('- Level: ')) {
+        final startIndex = circs.indexOf('- Level: ') + '- Level: '.length;
+        final endIndex = circs.indexOf('\n- Skills/Specialization:');
+        if (endIndex != -1 && endIndex > startIndex) {
+          _educationLevel = circs.substring(startIndex, endIndex).trim();
+        }
+      }
+      
+      if (circs.contains('- Skills/Specialization: ')) {
+        final startIndex = circs.indexOf('- Skills/Specialization: ') + '- Skills/Specialization: '.length;
+        final endIndex = circs.indexOf('\n\nNEEDS ASSESSMENT:');
+        if (endIndex != -1 && endIndex > startIndex) {
+          _skills = circs.substring(startIndex, endIndex).trim();
+          if (_skills == "None") _skills = "";
+        }
+      }
+      
+      if (circs.contains('- Immediate Needs: ')) {
+        final startIndex = circs.indexOf('- Immediate Needs: ') + '- Immediate Needs: '.length;
+        final endIndex = circs.indexOf('\n- Details:');
+        if (endIndex != -1 && endIndex > startIndex) {
+          final needsStr = circs.substring(startIndex, endIndex).trim();
+          if (needsStr != "None" && needsStr.isNotEmpty) {
+            _selectedNeeds.clear();
+            _selectedNeeds.addAll(needsStr.split(', ').map((s) => s.trim()));
+          }
+        }
+      }
+      
+      if (circs.contains('- Details: ')) {
+        final startIndex = circs.indexOf('- Details: ') + '- Details: '.length;
+        _needsDetails = circs.substring(startIndex).trim();
+      }
+
+      _faceCaptured = r.faceCaptured;
+      _thumbCaptured = r.thumbCaptured;
+      
+      _dobController.text = _dob;
+      
+      if (NgData.states.contains(_stateOrigin)) {
+        _selectedState = _stateOrigin;
+        final lgas = _getLgasForState(_stateOrigin);
+        if (lgas.contains(_lga)) {
+          _selectedLga = _lga;
+        }
+      }
+      
+      _wizardStep = 1;
+    } else if (widget.initialCategory != null) {
       _category = widget.initialCategory!;
       _generateReference(_category);
       _wizardStep = 1;
@@ -118,6 +212,7 @@ class _CaptureScreenState extends State<CaptureScreen> with SingleTickerProvider
 
   @override
   void dispose() {
+    _cameraController?.dispose();
     _dobController.dispose();
     _tabController.dispose();
     super.dispose();
@@ -135,9 +230,10 @@ class _CaptureScreenState extends State<CaptureScreen> with SingleTickerProvider
   void _resetWizard() {
     setState(() {
       _wizardStep = 0;
-      _fullName = '';
-      _address = '';
-      _phone = '';
+      _fullNameController.clear();
+      _addressController.clear();
+      _phoneController.clear();
+      _dependantsController.text = '0';
       _dob = '';
       _dobController.clear();
       _gender = 'Male';
@@ -146,12 +242,13 @@ class _CaptureScreenState extends State<CaptureScreen> with SingleTickerProvider
       _lga = '';
       _selectedState = null;
       _selectedLga = null;
-      _dependants = 0;
       _educationLevel = 'none';
       _skills = '';
       _reason = '';
       _needsDetails = '';
       _selectedNeeds.clear();
+      _faceImagePath = null;
+      _faceImageBase64 = null;
       _faceCaptured = false;
       _livenessVerifying = false;
       _livenessVerified = false;
@@ -164,10 +261,18 @@ class _CaptureScreenState extends State<CaptureScreen> with SingleTickerProvider
   }
 
   void _runLivenessCheck() async {
+    if (_cameraController == null || !_cameraController!.value.isInitialized) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Camera not initialized. Please ensure permissions are granted and restart.')),
+      );
+      return;
+    }
+
     setState(() {
       _livenessVerifying = true;
       _livenessProgress = 0.0;
     });
+
     for (int i = 1; i <= 20; i++) {
       await Future.delayed(const Duration(milliseconds: 100));
       if (!mounted) return;
@@ -175,33 +280,63 @@ class _CaptureScreenState extends State<CaptureScreen> with SingleTickerProvider
         _livenessProgress = i / 20.0;
       });
     }
-    setState(() {
-      _livenessVerifying = false;
-      _livenessVerified = true;
-      _faceCaptured = true;
-    });
+
+    try {
+      final XFile photo = await _cameraController!.takePicture();
+      final bytes = await File(photo.path).readAsBytes();
+      final base64String = base64Encode(bytes);
+      
+      if (!mounted) return;
+      setState(() {
+        _livenessVerifying = false;
+        _livenessVerified = true;
+        _faceCaptured = true;
+        _faceImagePath = photo.path;
+        _faceImageBase64 = "data:image/jpeg;base64,$base64String";
+      });
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _livenessVerifying = false;
+        });
+      }
+    }
   }
 
-  void _runThumbprintScan(String hand) async {
+  void _startThumbTimer(String hand) {
+    if (_thumbCaptured) return;
     setState(() {
       _thumbScanning = true;
       _thumbProgress = 0.0;
       _scannedThumb = hand;
     });
-    for (int i = 1; i <= 20; i++) {
-      await Future.delayed(const Duration(milliseconds: 100));
+    
+    _thumbTimer = Timer.periodic(const Duration(milliseconds: 100), (timer) {
       if (!mounted) return;
       setState(() {
-        _thumbProgress = i / 20.0;
+        _thumbProgress += 0.05;
+        if (_thumbProgress >= 1.0) {
+          _thumbProgress = 1.0;
+          _thumbScanning = false;
+          _thumbCaptured = true;
+          timer.cancel();
+        }
       });
-    }
+    });
+  }
+
+  void _stopThumbTimer() {
+    if (_thumbCaptured) return;
+    _thumbTimer?.cancel();
     setState(() {
       _thumbScanning = false;
-      _thumbCaptured = true;
+      _thumbProgress = 0.0;
     });
   }
 
   void _submitRegistrant() async {
+    if (_isSaving) return;
+    setState(() => _isSaving = true);
     final user = Supabase.instance.client.auth.currentUser;
     
     // Merge the custom form fields into circumstances to match the Supabase schema and web app
@@ -219,32 +354,44 @@ NEEDS ASSESSMENT:
 ''';
 
     final registrant = Registrant(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      id: widget.editRegistrant != null ? widget.editRegistrant!.id : DateTime.now().millisecondsSinceEpoch.toString(),
       reference: _reference,
       category: _category,
-      fullName: _fullName,
-      address: _address,
-      phone: _phone,
+      fullName: _fullNameController.text.trim(),
+      address: _addressController.text.trim(),
+      phone: _phoneController.text.trim(),
       dob: _dob,
       gender: _gender,
       nationality: _nationality,
       stateOrigin: _stateOrigin,
       lga: _lga,
-      dependants: _dependants,
+      dependants: int.tryParse(_dependantsController.text.trim()) ?? 0,
       circumstances: circumstancesMerged,
       faceCaptured: _faceCaptured,
       thumbCaptured: _thumbCaptured,
-      capturedBy: user?.id,
-      createdAt: DateTime.now().toIso8601String(),
+      photoBase64: _faceImageBase64,
+      capturedBy: widget.editRegistrant != null ? widget.editRegistrant!.capturedBy : user?.id,
+      createdAt: widget.editRegistrant != null ? widget.editRegistrant!.createdAt : DateTime.now().toIso8601String(),
     );
 
-    await offlineService.saveRegistrant(registrant);
-    
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Registrant record successfully saved offline!'))
-      );
-      _resetWizard();
+    if (widget.editRegistrant != null) {
+      await offlineService.updateRegistrant(registrant);
+      if (mounted) {
+        setState(() => _isSaving = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Registrant record successfully updated offline!'))
+        );
+        Navigator.pop(context, true);
+      }
+    } else {
+      await offlineService.saveRegistrant(registrant);
+      if (mounted) {
+        setState(() => _isSaving = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Registrant record successfully saved offline!'))
+        );
+        _resetWizard();
+      }
     }
   }
 
@@ -463,12 +610,13 @@ NEEDS ASSESSMENT:
           ),
           const SizedBox(height: 16),
           TextFormField(
+            controller: _fullNameController,
             decoration: const InputDecoration(labelText: 'Full Legal Name *'),
             validator: (val) => val!.isEmpty ? 'Full legal name is required' : null,
-            onSaved: (val) => _fullName = val!,
           ),
           const SizedBox(height: 16),
           TextFormField(
+            controller: _phoneController,
             decoration: const InputDecoration(
               labelText: 'Phone Number *',
               hintText: 'e.g. 08012345678',
@@ -483,7 +631,6 @@ NEEDS ASSESSMENT:
               if (val.length != 11) return 'Phone number must be exactly 11 digits';
               return null;
             },
-            onSaved: (val) => _phone = val!,
           ),
           const SizedBox(height: 16),
           TextFormField(
@@ -510,7 +657,6 @@ NEEDS ASSESSMENT:
                 });
               }
             },
-            onSaved: (val) => _dob = val!,
           ),
           const SizedBox(height: 16),
           DropdownButtonFormField<String>(
@@ -534,7 +680,7 @@ NEEDS ASSESSMENT:
           DropdownButtonFormField<String>(
             initialValue: _selectedState,
             decoration: const InputDecoration(labelText: 'State of Origin *'),
-            items: _states.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
+            items: NgData.states.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
             onChanged: (val) {
               setState(() {
                 _selectedState = val;
@@ -562,23 +708,21 @@ NEEDS ASSESSMENT:
           ),
           const SizedBox(height: 16),
           TextFormField(
+            controller: _addressController,
             decoration: const InputDecoration(labelText: 'Current Address / Shelter *'),
             maxLines: 2,
             validator: (val) => val!.isEmpty ? 'Address / shelter is required' : null,
-            onSaved: (val) => _address = val!,
           ),
           const SizedBox(height: 16),
           TextFormField(
+            controller: _dependantsController,
             decoration: const InputDecoration(labelText: 'Number of Accompanying Dependants'),
             keyboardType: TextInputType.number,
-            initialValue: '0',
-            onSaved: (val) => _dependants = int.tryParse(val ?? '0') ?? 0,
           ),
           const SizedBox(height: 24),
           ElevatedButton(
             onPressed: () {
               if (_regFormKey1.currentState!.validate()) {
-                _regFormKey1.currentState!.save();
                 setState(() => _wizardStep = 2);
               }
             },
@@ -621,6 +765,7 @@ NEEDS ASSESSMENT:
           ),
           const SizedBox(height: 16),
           TextFormField(
+            initialValue: _skills,
             decoration: const InputDecoration(labelText: 'Specialized Skills / Trade / Talents'),
             onSaved: (val) => _skills = val ?? '',
           ),
@@ -649,12 +794,14 @@ NEEDS ASSESSMENT:
           ),
           const SizedBox(height: 16),
           TextFormField(
+            initialValue: _needsDetails,
             decoration: const InputDecoration(labelText: 'Specific Needs Details'),
             maxLines: 2,
             onSaved: (val) => _needsDetails = val ?? '',
           ),
           const SizedBox(height: 16),
           TextFormField(
+            initialValue: _reason,
             decoration: const InputDecoration(
               labelText: 'Circumstances & Causes of Displacement *',
               hintText: 'Detail the events that caused displacement (minimum 20 characters)...',
@@ -718,12 +865,35 @@ NEEDS ASSESSMENT:
                 child: Stack(
                   alignment: Alignment.center,
                   children: [
-                    if (_livenessVerified)
-                      const Icon(LucideIcons.checkCircle300, size: 80, color: AppTheme.primary)
-                    else if (_livenessVerifying)
-                      const Icon(LucideIcons.smile300, size: 100, color: AppTheme.primaryGlow)
+                    if (_faceImagePath != null)
+                      ClipOval(child: Image.file(File(_faceImagePath!), width: 260, height: 260, fit: BoxFit.cover))
+                    else if (_cameraController != null && _cameraController!.value.isInitialized)
+                      ClipOval(
+                        child: SizedBox(
+                          width: 260,
+                          height: 260,
+                          child: FittedBox(
+                            fit: BoxFit.cover,
+                            child: SizedBox(
+                              width: _cameraController!.value.previewSize?.height ?? 1,
+                              height: _cameraController!.value.previewSize?.width ?? 1,
+                              child: CameraPreview(_cameraController!),
+                            ),
+                          ),
+                        ),
+                      )
                     else
                       const Icon(LucideIcons.scanFace300, size: 100, color: AppTheme.mutedForeground),
+                    
+                    if (_livenessVerified && _faceImagePath != null)
+                      Positioned(
+                        right: 20,
+                        bottom: 20,
+                        child: Container(
+                          decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.white),
+                          child: const Icon(LucideIcons.checkCircle300, size: 40, color: AppTheme.primary),
+                        ),
+                      ),
                     
                     if (_livenessVerifying)
                       Positioned(
@@ -841,19 +1011,48 @@ NEEDS ASSESSMENT:
             Row(
               children: [
                 Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: _thumbScanning ? null : () => _runThumbprintScan('Left'),
-                    icon: const Icon(LucideIcons.fingerprint300),
-                    label: const Text('Scan Left Thumb'),
+                  child: GestureDetector(
+                    onTapDown: (_) => _startThumbTimer('Left'),
+                    onTapUp: (_) => _stopThumbTimer(),
+                    onTapCancel: () => _stopThumbTimer(),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      decoration: BoxDecoration(
+                        color: _thumbScanning && _scannedThumb == 'Left' ? AppTheme.primaryGlow : AppTheme.primary,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(LucideIcons.fingerprint300, color: Colors.white),
+                          SizedBox(width: 8),
+                          Text('Hold Left', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: _thumbScanning ? null : () => _runThumbprintScan('Right'),
-                    icon: const Icon(LucideIcons.fingerprint300),
-                    label: const Text('Scan Right Thumb'),
-                    style: ElevatedButton.styleFrom(backgroundColor: AppTheme.secondary),
+                  child: GestureDetector(
+                    onTapDown: (_) => _startThumbTimer('Right'),
+                    onTapUp: (_) => _stopThumbTimer(),
+                    onTapCancel: () => _stopThumbTimer(),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      decoration: BoxDecoration(
+                        color: _thumbScanning && _scannedThumb == 'Right' ? AppTheme.primaryGlow : AppTheme.secondary,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(LucideIcons.fingerprint300, color: Colors.white),
+                          SizedBox(width: 8),
+                          Text('Hold Right', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -892,15 +1091,15 @@ NEEDS ASSESSMENT:
               children: [
                 _buildReviewRow('Reference', _reference),
                 _buildReviewRow('Category', _category.toUpperCase()),
-                _buildReviewRow('Full Legal Name', _fullName),
-                _buildReviewRow('Phone Number', _phone),
-                _buildReviewRow('Date of Birth', _dob),
+                _buildReviewRow('Full Name', _fullNameController.text),
+                _buildReviewRow('Phone Number', _phoneController.text),
+                _buildReviewRow('Date of Birth', _dobController.text),
                 _buildReviewRow('Gender', _gender),
                 _buildReviewRow('Nationality', _nationality),
                 _buildReviewRow('State of Origin', _stateOrigin),
                 _buildReviewRow('LGA', _lga),
-                _buildReviewRow('Accompanying Dependants', _dependants.toString()),
-                _buildReviewRow('Address', _address),
+                _buildReviewRow('Address', _addressController.text),
+                _buildReviewRow('Dependants', _dependantsController.text),
                 _buildReviewRow('Education Level', _educationLevel.toUpperCase()),
                 _buildReviewRow('Specialized Skills', _skills.isEmpty ? 'None' : _skills),
                 _buildReviewRow('Immediate Needs', _selectedNeeds.isEmpty ? 'None' : _selectedNeeds.join(', ')),
@@ -915,9 +1114,11 @@ NEEDS ASSESSMENT:
         ),
         const SizedBox(height: 32),
         ElevatedButton.icon(
-          onPressed: _submitRegistrant,
-          icon: const Icon(LucideIcons.cloudUpload300),
-          label: const Text('Finalize and Save Offline'),
+          onPressed: _isSaving ? null : _submitRegistrant,
+          icon: _isSaving
+              ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+              : const Icon(LucideIcons.cloudUpload300),
+          label: Text(_isSaving ? 'Saving...' : 'Finalize and Save Offline'),
         ),
       ],
     );
