@@ -41,7 +41,8 @@ export default function Index() {
 
   const playBeep = () => {
     try {
-      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+      const ctx = new AudioContextClass();
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.connect(gain);
@@ -85,7 +86,7 @@ export default function Index() {
             key={i}
             src={src}
             alt=""
-            className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-[1400ms] ${
+            className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-1400 ${
               i === slide ? "opacity-100 animate-ken-burns" : "opacity-0"
             }`}
             style={{ transform: `translate3d(0, ${scrollY * 0.18}px, 0)` }}

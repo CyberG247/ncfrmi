@@ -162,7 +162,7 @@ const CustomBarChart = ({ data, color }: { data: number[]; color: string }) => {
                 height={barHeight}
                 rx="3"
                 fill={color}
-                className="opacity-80 transition-all duration-[1800ms] ease-in-out cursor-pointer group-hover:opacity-100 group-hover:brightness-110"
+                className="opacity-80 transition-all duration-1800 ease-in-out cursor-pointer group-hover:opacity-100 group-hover:brightness-110"
               />
               {/* Glossy top highlights for premium look */}
               <rect
@@ -172,7 +172,7 @@ const CustomBarChart = ({ data, color }: { data: number[]; color: string }) => {
                 height="2.5"
                 rx="1"
                 fill="#ffffff"
-                className="opacity-45 transition-all duration-[1800ms] ease-in-out pointer-events-none"
+                className="opacity-45 transition-all duration-1800 ease-in-out pointer-events-none"
               />
             </g>
           );
@@ -398,8 +398,9 @@ export default function AdminDashboard() {
       
       toast.success("Successfully logged in!");
       setIsLoggedIn(true);
-    } catch (err: any) {
-      toast.error(err.message || "Invalid credentials. Try commissioner@ncfrmi.gov.ng / commissioner123");
+    } catch (err) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      toast.error(errMsg || "Invalid credentials. Try commissioner@ncfrmi.gov.ng / commissioner123");
     } finally {
       setLoginLoading(false);
     }
@@ -503,13 +504,13 @@ export default function AdminDashboard() {
     }
 
     // Merge with local storage fallback data
-    let merged = [...remoteData];
+    const merged = [...remoteData];
     try {
-      const local = JSON.parse(localStorage.getItem("ncfrmi_local_registrants") || "[]");
-      const localMapped = local.map((r: any) => ({ ...r, is_local: true }));
+      const local = JSON.parse(localStorage.getItem("ncfrmi_local_registrants") || "[]") as Registrant[];
+      const localMapped = local.map((r) => ({ ...r, is_local: true }));
       // Deduplicate by reference
       const remoteRefs = new Set(remoteData.map((r) => r.reference));
-      localMapped.forEach((r: Registrant) => {
+      localMapped.forEach((r) => {
         if (!remoteRefs.has(r.reference)) {
           merged.push(r);
         }
@@ -532,8 +533,8 @@ export default function AdminDashboard() {
     if (!window.confirm("Are you sure you want to permanently delete this registration record?")) return;
     try {
       if (isLocal) {
-        const local = JSON.parse(localStorage.getItem("ncfrmi_local_registrants") || "[]");
-        const updated = local.filter((r: any) => r.id !== id);
+        const local = JSON.parse(localStorage.getItem("ncfrmi_local_registrants") || "[]") as Registrant[];
+        const updated = local.filter((r) => r.id !== id);
         localStorage.setItem("ncfrmi_local_registrants", JSON.stringify(updated));
         toast.success("Local record deleted");
       } else {
@@ -542,8 +543,9 @@ export default function AdminDashboard() {
         toast.success("Remote database record deleted");
       }
       setRegistrants((prev) => prev.filter((r) => r.id !== id));
-    } catch (e: any) {
-      toast.error(e?.message || "Failed to delete record");
+    } catch (e) {
+      const errMsg = e instanceof Error ? e.message : String(e);
+      toast.error(errMsg || "Failed to delete record");
     }
   };
 
@@ -557,8 +559,8 @@ export default function AdminDashboard() {
     if (!editingItem) return;
     try {
       if (editingItem.is_local) {
-        const local = JSON.parse(localStorage.getItem("ncfrmi_local_registrants") || "[]");
-        const updated = local.map((r: any) =>
+        const local = JSON.parse(localStorage.getItem("ncfrmi_local_registrants") || "[]") as Registrant[];
+        const updated = local.map((r) =>
           r.id === editingItem.id ? { ...r, full_name: editName, circumstances: editCircumstances } : r
         );
         localStorage.setItem("ncfrmi_local_registrants", JSON.stringify(updated));
@@ -577,8 +579,9 @@ export default function AdminDashboard() {
         )
       );
       setEditingItem(null);
-    } catch (e: any) {
-      toast.error(e?.message || "Failed to update record");
+    } catch (e) {
+      const errMsg = e instanceof Error ? e.message : String(e);
+      toast.error(errMsg || "Failed to update record");
     }
   };
 
@@ -811,9 +814,10 @@ export default function AdminDashboard() {
         
         toast.success("PDF Report generated and opened successfully");
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error(err);
-      toast.error(err.message || "Failed to generate report statement");
+      const errMsg = err instanceof Error ? err.message : String(err);
+      toast.error(errMsg || "Failed to generate report statement");
     } finally {
       setIsGeneratingReport(false);
     }

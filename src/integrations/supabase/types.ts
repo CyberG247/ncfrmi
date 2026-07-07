@@ -100,6 +100,69 @@ export type Database = {
         }
         Relationships: []
       }
+      interventions: {
+        Row: {
+          camp: string
+          captured_by: string | null
+          category: string
+          count: number
+          created_at: string
+          details: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          camp: string
+          captured_by?: string | null
+          category: string
+          count?: number
+          created_at?: string
+          details: string
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          camp?: string
+          captured_by?: string | null
+          category?: string
+          count?: number
+          created_at?: string
+          details?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      news: {
+        Row: {
+          created_at: string
+          date: string
+          excerpt: string
+          id: string
+          tag: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          date?: string
+          excerpt: string
+          id?: string
+          tag: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          excerpt?: string
+          id?: string
+          tag?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           application_id: string | null

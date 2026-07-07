@@ -1,0 +1,74 @@
+import 'dart:convert';
+import 'dart:io';
+import 'package:flutter/foundation.dart';
+import 'package:path_provider/path_provider.dart';
+import '../models/registrant.dart';
+import '../models/intervention.dart';
+
+class OfflineService extends ChangeNotifier {
+  static const String _registrantsFile = 'offline_registrants.json';
+  static const String _interventionsFile = 'offline_interventions.json';
+
+  Future<File> _getFile(String fileName) async {
+    final dir = await getApplicationDocumentsDirectory();
+    return File('${dir.path}/$fileName');
+  }
+
+  Future<List<Registrant>> getOfflineRegistrants() async {
+    try {
+      final file = await _getFile(_registrantsFile);
+      if (!await file.exists()) return [];
+      final String contents = await file.readAsString();
+      final List<dynamic> jsonList = jsonDecode(contents);
+      return jsonList.map((e) => Registrant.fromJson(e)).toList();
+    } catch (e) {
+      return [];
+    }
+  }
+
+  Future<void> saveRegistrant(Registrant registrant) async {
+    final list = await getOfflineRegistrants();
+    list.add(registrant);
+    final file = await _getFile(_registrantsFile);
+    await file.writeAsString(jsonEncode(list.map((e) => e.toJson()).toList()));
+    notifyListeners();
+  }
+
+  Future<void> clearOfflineRegistrants() async {
+    final file = await _getFile(_registrantsFile);
+    if (await file.exists()) {
+      await file.writeAsString('[]');
+    }
+    notifyListeners();
+  }
+
+  Future<List<Intervention>> getOfflineInterventions() async {
+    try {
+      final file = await _getFile(_interventionsFile);
+      if (!await file.exists()) return [];
+      final String contents = await file.readAsString();
+      final List<dynamic> jsonList = jsonDecode(contents);
+      return jsonList.map((e) => Intervention.fromJson(e)).toList();
+    } catch (e) {
+      return [];
+    }
+  }
+
+  Future<void> saveIntervention(Intervention intervention) async {
+    final list = await getOfflineInterventions();
+    list.add(intervention);
+    final file = await _getFile(_interventionsFile);
+    await file.writeAsString(jsonEncode(list.map((e) => e.toJson()).toList()));
+    notifyListeners();
+  }
+
+  Future<void> clearOfflineInterventions() async {
+    final file = await _getFile(_interventionsFile);
+    if (await file.exists()) {
+      await file.writeAsString('[]');
+    }
+    notifyListeners();
+  }
+}
+
+final offlineService = OfflineService();
