@@ -5,9 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, Camera, Fingerprint, MapPin, Phone, Users } from "lucide-react";
+import { ArrowLeft, Camera, Fingerprint, MapPin, Phone, Users, Printer, FileText } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import logo from "@/assets/ncfrmi-logo.png";
+import { downloadRegistrantPDF, printRegistrantProfile } from "@/lib/pdfGenerator";
 
 const CATEGORY_LABEL: Record<string, string> = {
   idp: "Internally Displaced Person",
@@ -63,9 +65,21 @@ export default function RegistrantDetail() {
   return (
     <Layout>
       <section className="container-page py-10">
-        <Button asChild variant="ghost" size="sm" className="mb-4">
-          <Link to="/registrants"><ArrowLeft className="mr-2 h-4 w-4" /> All registrants</Link>
-        </Button>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+          <Button asChild variant="ghost" size="sm">
+            <Link to="/registrants"><ArrowLeft className="mr-2 h-4 w-4" /> All registrants</Link>
+          </Button>
+          {r && (
+            <div className="flex gap-2">
+              <Button onClick={() => printRegistrantProfile(r, logo)} variant="outline" size="sm" className="h-9 hover-lift">
+                <Printer className="mr-2 h-4 w-4 text-emerald-700" /> Print Profile
+              </Button>
+              <Button onClick={() => downloadRegistrantPDF(r, logo)} className="bg-emerald-600 hover:bg-emerald-700 text-white h-9 hover-lift" size="sm">
+                <FileText className="mr-2 h-4 w-4" /> Download PDF Profile
+              </Button>
+            </div>
+          )}
+        </div>
 
         {loading ? (
           <Card className="p-6"><Skeleton className="h-40 w-full" /></Card>

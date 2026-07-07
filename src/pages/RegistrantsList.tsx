@@ -12,6 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowRight, Search, UserPlus, Users, Download, FileText } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import logo from "@/assets/ncfrmi-logo.png";
 
 type Registrant = {
   id: string;
@@ -170,88 +171,149 @@ export default function RegistrantsList() {
       return;
     }
 
-    import("jspdf").then(({ jsPDF }) => {
+    import("jspdf").then(async ({ jsPDF }) => {
       const doc = new jsPDF({
         orientation: "landscape",
         unit: "mm",
         format: "a4",
       });
 
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(18);
-      doc.text("NCFRMI REGISTRANTS DIRECTORY REPORT", 14, 18);
+      // Load logo
+      try {
+        const loadImage = (src: string): Promise<HTMLImageElement> => {
+          return new Promise((resolve, reject) => {
+            const img = new Image();
+            img.src = src;
+            img.onload = () => resolve(img);
+            img.onerror = (e) => reject(e);
+          });
+        };
+        const logoImg = await loadImage(logo);
+        doc.addImage(logoImg, "PNG", 12, 10, 12, 12);
+      } catch (logoErr) {
+        console.warn("Failed to load logo image for PDF", logoErr);
+      }
+
+      // Agency Branding
+      doc.setTextColor(11, 102, 60); // Official Green
+      doc.setFont("Helvetica", "bold");
+      doc.setFontSize(11);
+      doc.text("NATIONAL COMMISSION FOR REFUGEES, MIGRANTS AND INTERNALLY DISPLACED PERSONS", 28, 15);
       
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(10);
-      doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 25);
-      doc.text(`Total Records: ${filtered.length}`, 14, 30);
+      doc.setTextColor(100, 116, 139);
+      doc.setFont("Helvetica", "normal");
+      doc.setFontSize(7.5);
+      doc.text("NCFRMI Headquarters · FCT Abuja", 28, 19);
+      
+      // Horizontal Gold divider line under header branding
+      doc.setDrawColor(197, 160, 89); // Gold
+      doc.setLineWidth(0.4);
+      doc.line(12, 25, 285, 25);
+
+      // Report Title & Metadata
+      doc.setTextColor(15, 23, 42);
+      doc.setFont("Helvetica", "bold");
+      doc.setFontSize(14);
+      doc.text("REGISTRANTS DIRECTORY REPORT", 12, 32);
+
+      doc.setFont("Helvetica", "normal");
+      doc.setFontSize(8.5);
+      doc.setTextColor(100, 116, 139);
+      doc.text(`Generated: ${new Date().toLocaleString()}`, 12, 37);
+      doc.text(`Total Records: ${filtered.length}`, 12, 41);
 
       const cols = [
-        { name: "Reference", x: 14, w: 45 },
-        { name: "Full Name", x: 59, w: 60 },
-        { name: "Category", x: 119, w: 25 },
-        { name: "State / LGA", x: 144, w: 50 },
-        { name: "Phone", x: 194, w: 35 },
-        { name: "Deps", x: 229, w: 15 },
-        { name: "Enrolled", x: 244, w: 38 },
+        { name: "Reference", x: 12, w: 45 },
+        { name: "Full Name", x: 57, w: 60 },
+        { name: "Category", x: 117, w: 25 },
+        { name: "State / LGA", x: 142, w: 50 },
+        { name: "Phone", x: 192, w: 35 },
+        { name: "Deps", x: 227, w: 15 },
+        { name: "Enrolled", x: 242, w: 38 },
       ];
 
-      doc.setFillColor(11, 27, 43);
-      doc.rect(14, 35, 268, 8, "F");
+      // Forest green table header
+      let y = 46;
+      doc.setFillColor(11, 102, 60);
+      doc.rect(12, y, 273, 8, "F");
+      // Gold table border line
+      doc.setFillColor(197, 160, 89);
+      doc.rect(12, y + 8, 273, 0.6, "F");
 
       doc.setTextColor(255, 255, 255);
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(9);
+      doc.setFont("Helvetica", "bold");
+      doc.setFontSize(8);
       cols.forEach((col) => {
-        doc.text(col.name, col.x + 2, 40);
+        doc.text(col.name, col.x + 2, y + 5);
       });
 
-      let y = 43;
-      doc.setTextColor(0, 0, 0);
-      doc.setFont("helvetica", "normal");
+      y += 8.6;
+      doc.setTextColor(15, 23, 42);
+      doc.setFont("Helvetica", "normal");
 
       filtered.forEach((r, index) => {
-        if (y > 185) {
+        if (y > 180) {
           doc.addPage();
-          doc.setFillColor(11, 27, 43);
-          doc.rect(14, 15, 268, 8, "F");
+          
+          // Re-draw header on new page
+          doc.setFillColor(11, 102, 60);
+          doc.rect(12, 15, 273, 8, "F");
+          doc.setFillColor(197, 160, 89);
+          doc.rect(12, 23, 273, 0.6, "F");
+          
           doc.setTextColor(255, 255, 255);
-          doc.setFont("helvetica", "bold");
+          doc.setFont("Helvetica", "bold");
           cols.forEach((col) => {
             doc.text(col.name, col.x + 2, 20);
           });
-          y = 23;
-          doc.setTextColor(0, 0, 0);
-          doc.setFont("helvetica", "normal");
+          y = 23.6;
+          doc.setTextColor(15, 23, 42);
+          doc.setFont("Helvetica", "normal");
         }
 
         if (index % 2 === 1) {
-          doc.setFillColor(245, 247, 250);
-          doc.rect(14, y, 268, 7, "F");
+          doc.setFillColor(248, 250, 252);
+          doc.rect(12, y, 273, 7, "F");
         }
 
-        doc.setDrawColor(220, 225, 230);
-        doc.line(14, y + 7, 282, y + 7);
+        doc.setDrawColor(226, 232, 240);
+        doc.line(12, y + 7, 285, y + 7);
 
-        doc.text(r.reference, cols[0].x + 2, y + 5);
+        doc.text(r.reference, cols[0].x + 2, y + 4.5);
         
         let displayName = r.full_name;
-        if (displayName.length > 28) displayName = displayName.slice(0, 25) + "...";
-        doc.text(displayName, cols[1].x + 2, y + 5);
+        if (displayName.length > 26) displayName = displayName.slice(0, 24) + "...";
+        doc.text(displayName, cols[1].x + 2, y + 4.5);
         
-        doc.text(r.category.toUpperCase(), cols[2].x + 2, y + 5);
+        doc.text(r.category.toUpperCase(), cols[2].x + 2, y + 4.5);
         
         const origin = `${r.state_origin} / ${r.lga}`;
         let displayOrigin = origin;
         if (displayOrigin.length > 24) displayOrigin = displayOrigin.slice(0, 22) + "...";
-        doc.text(displayOrigin, cols[3].x + 2, y + 5);
+        doc.text(displayOrigin, cols[3].x + 2, y + 4.5);
         
-        doc.text(r.phone, cols[4].x + 2, y + 5);
-        doc.text(String(r.dependants), cols[5].x + 2, y + 5);
-        doc.text(new Date(r.created_at).toLocaleDateString(), cols[6].x + 2, y + 5);
+        doc.text(r.phone, cols[4].x + 2, y + 4.5);
+        doc.text(String(r.dependants), cols[5].x + 2, y + 4.5);
+        doc.text(new Date(r.created_at).toLocaleDateString(), cols[6].x + 2, y + 4.5);
 
         y += 7;
       });
+
+      // Signature Block on the last page
+      if (y > 170) {
+        doc.addPage();
+        y = 20;
+      }
+      
+      const sigY = 175;
+      doc.setDrawColor(148, 163, 184);
+      doc.line(200, sigY, 270, sigY);
+      doc.setFont("Helvetica", "bold");
+      doc.setFontSize(8);
+      doc.setTextColor(51, 65, 85);
+      doc.text("HON. FEDERAL COMMISSIONER'S SIGNATURE", 208, sigY + 5);
+      doc.setFont("Helvetica", "normal");
+      doc.text("NCFRMI Headquarters, FCT Abuja.", 209, sigY + 9);
 
       doc.save(`ncfrmi_registrants_report_${new Date().toISOString().slice(0, 10)}.pdf`);
       toast.success("PDF report generated successfully");

@@ -38,8 +38,22 @@ import {
   Loader2,
   Fingerprint,
   Eye,
-  EyeOff
+  EyeOff,
+  Printer
 } from "lucide-react";
+import { downloadRegistrantPDF, printRegistrantProfile, parseCircumstances } from "@/lib/pdfGenerator";
+import {
+  ResponsiveContainer,
+  BarChart as RechartsBarChart,
+  Bar as RechartsBar,
+  XAxis as RechartsXAxis,
+  YAxis as RechartsYAxis,
+  CartesianGrid as RechartsCartesianGrid,
+  Tooltip as RechartsTooltip,
+  Legend as RechartsLegend,
+  LineChart as RechartsLineChart,
+  Line as RechartsLine
+} from "recharts";
 
 type Registrant = {
   id: string;
@@ -283,6 +297,35 @@ const MAP_NODES = [
   }
 ];
 
+const asylumDemographicData = [
+  { age: "00-04 yrs", Female: 6000, Male: 6000 },
+  { age: "05-11 yrs", Female: 15000, Male: 15000 },
+  { age: "12-17 yrs", Female: 10000, Male: 9000 },
+  { age: "18-59 yrs", Female: 38000, Male: 22000 },
+  { age: "60+ yrs", Female: 4000, Male: 2000 }
+];
+
+const asylumCountriesData = [
+  { country: "Cameroon", Enrollees: 119737 },
+  { country: "Niger", Enrollees: 13466 },
+  { country: "Syria", Enrollees: 1883 },
+  { country: "Sudan", Enrollees: 1365 },
+  { country: "C.A.R.", Enrollees: 1041 },
+  { country: "Others", Enrollees: 1881 }
+].sort((a, b) => b.Enrollees - a.Enrollees);
+
+const asylumArrivalsTrendData = [
+  { year: "2017", Total: 16000, Cameroonian: 15500, Others: 500 },
+  { year: "2018", Total: 13000, Cameroonian: 12500, Others: 500 },
+  { year: "2019", Total: 14000, Cameroonian: 13500, Others: 500 },
+  { year: "2020", Total: 9000, Cameroonian: 7000, Others: 2000 },
+  { year: "2021", Total: 13000, Cameroonian: 10000, Others: 3000 },
+  { year: "2022", Total: 24000, Cameroonian: 21000, Others: 3000 },
+  { year: "2023", Total: 17000, Cameroonian: 15000, Others: 2000 },
+  { year: "2024", Total: 6000, Cameroonian: 4000, Others: 2000 },
+  { year: "2026", Total: 306, Cameroonian: 200, Others: 106 }
+];
+
 const NigeriaMapSVG = ({ activeNode, onHoverNode }: { activeNode: string; onHoverNode: (id: string) => void }) => {
   return (
     <div className="relative w-full max-w-[520px] mx-auto overflow-hidden rounded-xl border border-border shadow-elegant bg-white p-3 select-none">
@@ -360,6 +403,8 @@ export default function AdminDashboard() {
   });
   const [reportFormat, setReportFormat] = useState<"pdf" | "csv">("pdf");
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
+  const [previewRegistrant, setPreviewRegistrant] = useState<Registrant | null>(null);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
   // Login gate states
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -1197,6 +1242,199 @@ export default function AdminDashboard() {
               </div>
             </Card>
 
+            {/* National Refugee & Asylum Statistical Profile Section */}
+            <Card className="p-6 shadow-card border-border bg-card">
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b pb-4 mb-6 gap-4">
+                <div>
+                  <h3 className="font-display font-extrabold text-emerald-800 text-sm uppercase tracking-wide">
+                    National Asylum & Refugee Statistical Profile
+                  </h3>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">
+                    Official demographic distributions, countries of origin, and geopolitical asylum movement flows.
+                  </p>
+                </div>
+                <div className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded px-2.5 py-1">
+                  Data Cycle: Q2 2026 Summary
+                </div>
+              </div>
+
+              {/* Total Summary Row */}
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-3.5 mb-6">
+                <div className="bg-emerald-50/30 border border-emerald-100 rounded-lg p-3 text-center">
+                  <div className="text-[9px] font-bold text-emerald-800 uppercase tracking-wider">Total Protected</div>
+                  <div className="text-lg font-extrabold text-emerald-955 font-display mt-0.5">139,373</div>
+                  <div className="text-[8px] text-muted-foreground mt-0.5">Refugees & Asylum Seekers</div>
+                </div>
+                <div className="bg-slate-50/50 border border-slate-100 rounded-lg p-3 text-center">
+                  <div className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">Refugees</div>
+                  <div className="text-lg font-extrabold text-foreground font-display mt-0.5">124,078</div>
+                  <div className="text-[8px] text-muted-foreground mt-0.5">91% of total</div>
+                </div>
+                <div className="bg-slate-50/50 border border-slate-100 rounded-lg p-3 text-center">
+                  <div className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">Asylum Seekers</div>
+                  <div className="text-lg font-extrabold text-foreground font-display mt-0.5">2,230</div>
+                  <div className="text-[8px] text-muted-foreground mt-0.5">Verified cases</div>
+                </div>
+                <div className="bg-slate-50/50 border border-slate-100 rounded-lg p-3 text-center">
+                  <div className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">Awaiting Reg.</div>
+                  <div className="text-lg font-extrabold text-foreground font-display mt-0.5">13,065</div>
+                  <div className="text-[8px] text-muted-foreground mt-0.5">Processing queue</div>
+                </div>
+                <div className="bg-amber-50/30 border border-amber-100 rounded-lg p-3 text-center col-span-2 md:col-span-1">
+                  <div className="text-[9px] font-bold text-amber-800 uppercase tracking-wider">Settlement Pop.</div>
+                  <div className="text-lg font-extrabold text-amber-955 font-display mt-0.5">20,502</div>
+                  <div className="text-[8px] text-amber-900 mt-0.5">Active Settlements</div>
+                </div>
+              </div>
+
+              {/* Main demographic & origin grids (Four Quadrant Grid) */}
+              <div className="grid gap-6 md:grid-cols-2 mb-6">
+                
+                {/* 1. Geographical Distribution Map */}
+                <div className="space-y-4 border p-4 rounded-xl bg-card">
+                  <h4 className="font-bold text-xs text-emerald-800 border-b pb-1.5 uppercase tracking-wider">
+                    Geographical Distribution
+                  </h4>
+                  <div className="flex flex-col items-center justify-center p-2 bg-slate-50/30 rounded-lg">
+                    {/* SVG map of zones */}
+                    <svg viewBox="0 0 320 230" className="w-full h-auto max-w-[320px] select-none">
+                      {/* North West (NW) */}
+                      <path d="M 30,20 L 140,20 L 150,80 L 100,100 L 40,80 Z" fill="#86efac" stroke="#ffffff" strokeWidth="1.5" className="cursor-pointer hover:opacity-85 transition-opacity" />
+                      <text x="85" y="52" fill="#14532d" className="text-[10px] font-extrabold pointer-events-none">NW</text>
+                      <text x="85" y="64" fill="#14532d" className="text-[8px] font-semibold pointer-events-none">2.5K</text>
+
+                      {/* North East (NE) */}
+                      <path d="M 140,20 L 290,20 L 290,100 L 200,120 L 150,80 Z" fill="#14532d" stroke="#ffffff" strokeWidth="1.5" className="cursor-pointer hover:opacity-85 transition-opacity" />
+                      <text x="210" y="58" fill="#ffffff" className="text-[10px] font-extrabold pointer-events-none">NE</text>
+                      <text x="210" y="70" fill="#ffffff" className="text-[8px] font-semibold pointer-events-none">48K</text>
+
+                      {/* North Central (NC) --> brackets: 5K-20K */}
+                      <path d="M 100,100 L 150,80 L 200,120 L 230,120 L 220,165 L 120,165 Z" fill="#4ade80" stroke="#ffffff" strokeWidth="1.5" className="cursor-pointer hover:opacity-85 transition-opacity" />
+                      <text x="155" y="125" fill="#14532d" className="text-[10px] font-extrabold pointer-events-none">NC</text>
+                      <text x="155" y="137" fill="#14532d" className="text-[8px] font-semibold pointer-events-none">12K</text>
+
+                      {/* South West (SW) --> brackets: 500-5K */}
+                      <path d="M 40,80 L 100,100 L 120,165 L 90,200 L 30,180 Z" fill="#86efac" stroke="#ffffff" strokeWidth="1.5" className="cursor-pointer hover:opacity-85 transition-opacity" />
+                      <text x="65" y="138" fill="#14532d" className="text-[10px] font-extrabold pointer-events-none">SW</text>
+                      <text x="65" y="150" fill="#14532d" className="text-[8px] font-semibold pointer-events-none">1.5K</text>
+
+                      {/* South East (SE) --> brackets: 5-500 */}
+                      <path d="M 120,165 L 180,165 L 180,200 L 130,200 Z" fill="#dcfce7" stroke="#ffffff" strokeWidth="1.5" className="cursor-pointer hover:opacity-85 transition-opacity" />
+                      <text x="145" y="182" fill="#14532d" className="text-[10px] font-extrabold pointer-events-none">SE</text>
+                      <text x="145" y="192" fill="#14532d" className="text-[8px] font-semibold pointer-events-none">0.5K</text>
+
+                      {/* South South (SS) --> brackets: 40K+ */}
+                      <path d="M 90,200 L 130,200 L 180,200 L 180,165 L 220,165 L 230,120 L 275,135 L 275,200 L 90,200 Z" fill="#14532d" stroke="#ffffff" strokeWidth="1.5" className="cursor-pointer hover:opacity-85 transition-opacity" />
+                      <text x="225" y="172" fill="#ffffff" className="text-[10px] font-extrabold pointer-events-none">SS</text>
+                      <text x="225" y="184" fill="#ffffff" className="text-[8px] font-semibold pointer-events-none">55K</text>
+                    </svg>
+
+                    {/* Heatmap Legend */}
+                    <div className="flex flex-wrap justify-center gap-2 mt-2 text-[8px] font-extrabold text-slate-500 uppercase tracking-wider">
+                      <span className="flex items-center gap-1"><span className="h-2 w-2 rounded" style={{ backgroundColor: "#f0fdf4" }} /> &lt;5</span>
+                      <span className="flex items-center gap-1"><span className="h-2 w-2 rounded" style={{ backgroundColor: "#dcfce7" }} /> 5-500</span>
+                      <span className="flex items-center gap-1"><span className="h-2 w-2 rounded" style={{ backgroundColor: "#86efac" }} /> 500-5K</span>
+                      <span className="flex items-center gap-1"><span className="h-2 w-2 rounded" style={{ backgroundColor: "#4ade80" }} /> 5K-20K</span>
+                      <span className="flex items-center gap-1"><span className="h-2 w-2 rounded" style={{ backgroundColor: "#16a34a" }} /> 20K-40K</span>
+                      <span className="flex items-center gap-1"><span className="h-2 w-2 rounded" style={{ backgroundColor: "#14532d" }} /> 40K+</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 2. Demographic Profile grouped bar chart */}
+                <div className="space-y-4 border p-4 rounded-xl bg-card flex flex-col justify-between">
+                  <div className="flex justify-between items-start border-b pb-1.5">
+                    <h4 className="font-bold text-xs text-emerald-800 uppercase tracking-wider">
+                      Demographic Profile
+                    </h4>
+                    <span className="text-[9px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">
+                      50% Children | 5% Elderly
+                    </span>
+                  </div>
+
+                  <div className="h-52 w-full mt-2 text-[9px] font-semibold">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <RechartsBarChart data={asylumDemographicData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                        <RechartsCartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                        <RechartsXAxis dataKey="age" tickLine={false} axisLine={false} tick={{ fill: '#64748b', fontSize: 8 }} />
+                        <RechartsYAxis tickLine={false} axisLine={false} tickFormatter={(v) => `${v / 1000}K`} tick={{ fill: '#64748b', fontSize: 8 }} />
+                        <RechartsTooltip formatter={(v) => [`${Number(v).toLocaleString()} enrollees`]} contentStyle={{ fontSize: 10 }} />
+                        <RechartsLegend verticalAlign="top" height={28} iconType="circle" iconSize={6} wrapperStyle={{ fontSize: 9, fontWeight: "bold" }} />
+                        <RechartsBar dataKey="Female" fill="#0b663c" radius={[3, 3, 0, 0]} name="Female (57%)" />
+                        <RechartsBar dataKey="Male" fill="#c5a059" radius={[3, 3, 0, 0]} name="Male (43%)" />
+                      </RechartsBarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+
+                {/* 3. Countries of Origin Horizontal Bar Chart */}
+                <div className="space-y-4 border p-4 rounded-xl bg-card flex flex-col justify-between">
+                  <h4 className="font-bold text-xs text-emerald-800 border-b pb-1.5 uppercase tracking-wider">
+                    Countries of Origin
+                  </h4>
+
+                  <div className="h-52 w-full mt-2 text-[9px] font-semibold">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <RechartsBarChart data={asylumCountriesData} layout="vertical" margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+                        <RechartsCartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e2e8f0" />
+                        <RechartsXAxis type="number" tickLine={false} axisLine={false} tickFormatter={(v) => v >= 1000 ? `${v / 1000}K` : v} tick={{ fill: '#64748b', fontSize: 8 }} />
+                        <RechartsYAxis type="category" dataKey="country" tickLine={false} axisLine={false} tick={{ fill: '#64748b', fontSize: 8, fontWeight: "bold" }} width={65} />
+                        <RechartsTooltip formatter={(v) => [`${Number(v).toLocaleString()} enrollees`]} contentStyle={{ fontSize: 10 }} />
+                        <RechartsBar dataKey="Enrollees" fill="#0b663c" radius={[0, 3, 3, 0]} barSize={10} name="Total Enrolled" />
+                      </RechartsBarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+
+                {/* 4. Trend of New Arrivals Line Chart */}
+                <div className="space-y-4 border p-4 rounded-xl bg-card flex flex-col justify-between">
+                  <h4 className="font-bold text-xs text-emerald-800 border-b pb-1.5 uppercase tracking-wider">
+                    Trend of New Arrivals
+                  </h4>
+
+                  <div className="h-52 w-full mt-2 text-[9px] font-semibold">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <RechartsLineChart data={asylumArrivalsTrendData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                        <RechartsCartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                        <RechartsXAxis dataKey="year" tickLine={false} axisLine={false} tick={{ fill: '#64748b', fontSize: 8 }} />
+                        <RechartsYAxis tickLine={false} axisLine={false} tickFormatter={(v) => `${v / 1000}K`} tick={{ fill: '#64748b', fontSize: 8 }} />
+                        <RechartsTooltip formatter={(v) => [`${Number(v).toLocaleString()} arrivals`]} contentStyle={{ fontSize: 10 }} />
+                        <RechartsLegend verticalAlign="top" height={28} iconType="circle" iconSize={6} wrapperStyle={{ fontSize: 9, fontWeight: "bold" }} />
+                        <RechartsLine type="monotone" dataKey="Total" stroke="#0b663c" strokeWidth={2} dot={{ r: 3, strokeWidth: 1 }} activeDot={{ r: 5 }} name="Total Arrivals" />
+                        <RechartsLine type="monotone" dataKey="Cameroonian" stroke="#c5a059" strokeWidth={1.5} dot={{ r: 2 }} name="Cameroonians" />
+                        <RechartsLine type="monotone" dataKey="Others" stroke="#64748b" strokeWidth={1} strokeDasharray="3 3" dot={{ r: 1.5 }} name="Others" />
+                      </RechartsLineChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+
+              </div>
+
+              {/* Movement flows info block at the bottom */}
+              <div className="border-t pt-4">
+                <h4 className="font-bold text-xs text-emerald-800 pb-1.5 uppercase tracking-wider">
+                  Regional Movement Flows & Asylum Corridors
+                </h4>
+                <div className="grid gap-4 md:grid-cols-3 mt-2 text-[10px]">
+                  <div className="flex items-center gap-2 bg-slate-50 border p-2.5 rounded-lg justify-between">
+                    <span className="font-bold text-slate-700">Extreme North Area</span>
+                    <span className="text-emerald-700 font-bold">➜</span>
+                    <span className="font-bold text-emerald-900 bg-emerald-50/70 px-2 py-0.5 rounded border border-emerald-100">Adamawa State (44,683)</span>
+                  </div>
+                  <div className="flex items-center gap-2 bg-slate-50 border p-2.5 rounded-lg justify-between">
+                    <span className="font-bold text-slate-700">North West Area</span>
+                    <span className="text-emerald-700 font-bold">➜</span>
+                    <span className="font-bold text-emerald-900 bg-emerald-50/70 px-2 py-0.5 rounded border border-emerald-100">Taraba State (15,556) / Benue (8,820)</span>
+                  </div>
+                  <div className="flex items-center gap-2 bg-slate-50 border p-2.5 rounded-lg justify-between">
+                    <span className="font-bold text-slate-700">South West Area</span>
+                    <span className="text-emerald-700 font-bold">➜</span>
+                    <span className="font-bold text-emerald-900 bg-emerald-50/70 px-2 py-0.5 rounded border border-emerald-100">Cross River State (46,840) / Akwa Ibom (1,917)</span>
+                  </div>
+                </div>
+              </div>
+            </Card>
+
           </div>
         )}
 
@@ -1284,10 +1522,13 @@ export default function AdminDashboard() {
                             {new Date(item.created_at).toLocaleDateString()}
                           </td>
                           <td className="p-3.5 text-right space-x-1.5 whitespace-nowrap">
-                            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => handleEditClick(item)}>
+                            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => { setPreviewRegistrant(item); setIsPreviewOpen(true); }} title="Preview Profile">
+                              <Eye className="h-3.5 w-3.5 text-emerald-650" />
+                            </Button>
+                            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => handleEditClick(item)} title="Edit Profile">
                               <Edit className="h-3.5 w-3.5 text-primary" />
                             </Button>
-                            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => handleDelete(item.id, item.is_local)}>
+                            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => handleDelete(item.id, item.is_local)} title="Delete Profile">
                               <Trash2 className="h-3.5 w-3.5 text-destructive" />
                             </Button>
                           </td>
@@ -1717,6 +1958,221 @@ export default function AdminDashboard() {
             <Button variant="outline" onClick={() => setEditingItem(null)}>Cancel</Button>
             <Button onClick={handleSaveEdit}>Save Modifications</Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Preview Dialog Modal */}
+      <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          {previewRegistrant && (
+            <>
+              <DialogHeader className="border-b pb-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <img src={logo} alt="NCFRMI Logo" className="h-10 w-10 object-contain" />
+                  <div>
+                    <DialogTitle className="text-base font-extrabold text-emerald-800 uppercase tracking-wide">
+                      National Commission for Refugees, Migrants and Internally Displaced Persons
+                    </DialogTitle>
+                    <DialogDescription className="text-[10px] text-muted-foreground font-semibold">
+                      Official Enrollee Record · NCFRMI Headquarters, FCT Abuja
+                    </DialogDescription>
+                  </div>
+                </div>
+                <div className="flex gap-2 self-end md:self-auto">
+                  <Button onClick={() => printRegistrantProfile(previewRegistrant, logo)} variant="outline" size="sm" className="h-8 hover-lift">
+                    <Printer className="mr-1.5 h-3.5 w-3.5 text-emerald-700" /> Print
+                  </Button>
+                  <Button onClick={() => downloadRegistrantPDF(previewRegistrant, logo)} className="bg-emerald-600 hover:bg-emerald-700 text-white h-8 hover-lift" size="sm">
+                    <Download className="mr-1.5 h-3.5 w-3.5" /> Download PDF
+                  </Button>
+                </div>
+              </DialogHeader>
+
+              {/* Grid content */}
+              <div className="grid gap-6 md:grid-cols-[2fr_1fr] py-4 text-xs">
+                {/* Left side: Bio Data and Educational/Needs Assessment */}
+                <div className="space-y-6">
+                  {/* Bio Data Card */}
+                  <Card className="p-4 border-slate-200 shadow-sm bg-card/50">
+                    <h4 className="font-bold text-xs text-emerald-800 border-b pb-1.5 mb-3 uppercase tracking-wider">
+                      Personal Bio-Data
+                    </h4>
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+                      <div>
+                        <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">Full Legal Name</span>
+                        <p className="font-semibold text-foreground text-sm mt-0.5">{previewRegistrant.full_name}</p>
+                      </div>
+                      <div>
+                        <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">Reference ID</span>
+                        <p className="font-mono text-foreground font-semibold mt-0.5">{previewRegistrant.reference}</p>
+                      </div>
+                      <div>
+                        <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">Category</span>
+                        <div className="mt-0.5">
+                          <Badge variant="outline" className="capitalize text-[10px] py-0 px-2 font-semibold">
+                            {previewRegistrant.category === "idp" ? "IDP" :
+                             previewRegistrant.category === "refugee" ? "Refugee" :
+                             previewRegistrant.category === "migrant" ? "Migrant" : "Returnee"}
+                          </Badge>
+                        </div>
+                      </div>
+                      <div>
+                        <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">Gender</span>
+                        <p className="capitalize mt-0.5 font-medium">{previewRegistrant.gender || "—"}</p>
+                      </div>
+                      <div>
+                        <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">Date of Birth</span>
+                        <p className="mt-0.5 font-medium">{previewRegistrant.dob ? new Date(previewRegistrant.dob).toLocaleDateString() : "—"}</p>
+                      </div>
+                      <div>
+                        <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">Nationality</span>
+                        <p className="mt-0.5 font-medium">{previewRegistrant.nationality || "Nigeria"}</p>
+                      </div>
+                      <div>
+                        <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">State of Origin</span>
+                        <p className="mt-0.5 font-medium">{previewRegistrant.state_origin || "—"}</p>
+                      </div>
+                      <div>
+                        <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">LGA of Origin</span>
+                        <p className="mt-0.5 font-medium">{previewRegistrant.lga || "—"}</p>
+                      </div>
+                      <div>
+                        <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">Household Dependants</span>
+                        <p className="mt-0.5 font-semibold text-foreground">{previewRegistrant.dependants || 0} declared</p>
+                      </div>
+                      <div>
+                        <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">Contact Phone</span>
+                        <p className="mt-0.5 font-medium">{previewRegistrant.phone || "—"}</p>
+                      </div>
+                      <div className="col-span-2">
+                        <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">Residential Address</span>
+                        <p className="mt-0.5 font-medium leading-relaxed bg-muted/20 p-2 rounded">{previewRegistrant.address || "—"}</p>
+                      </div>
+                    </div>
+                  </Card>
+
+                  {/* Educational and Needs Card */}
+                  {(() => {
+                    const parsed = parseCircumstances(previewRegistrant.circumstances || "");
+                    return (
+                      <Card className="p-4 border-slate-200 shadow-sm bg-card/50">
+                        <h4 className="font-bold text-xs text-emerald-800 border-b pb-1.5 mb-3 uppercase tracking-wider">
+                          Educational Background & Needs Assessment
+                        </h4>
+                        <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+                          <div>
+                            <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">Education Level Completed</span>
+                            <p className="capitalize mt-0.5 font-semibold text-foreground">{parsed.education_level || "No Formal Education"}</p>
+                          </div>
+                          <div>
+                            <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">Skills / Specialization</span>
+                            <p className="capitalize mt-0.5 font-semibold text-foreground">{parsed.skills || "None"}</p>
+                          </div>
+                          <div className="col-span-2">
+                            <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">Displacement Circumstances / Reason</span>
+                            <p className="mt-0.5 font-medium leading-relaxed bg-muted/20 p-2 rounded">{parsed.reason || previewRegistrant.circumstances || "—"}</p>
+                          </div>
+                          <div className="col-span-2">
+                            <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">Immediate Material Needs</span>
+                            <p className="capitalize mt-0.5 font-semibold text-emerald-850">{parsed.primary_needs.join(", ") || "None"}</p>
+                          </div>
+                          <div className="col-span-2">
+                            <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">Needs Assessment Details</span>
+                            <p className="mt-0.5 font-medium leading-relaxed bg-muted/20 p-2 rounded">{parsed.needs_details || "—"}</p>
+                          </div>
+                        </div>
+                      </Card>
+                    );
+                  })()}
+                </div>
+
+                {/* Right side: Biometrics & Verification */}
+                <div className="space-y-4">
+                  {/* Photo & Thumbprints */}
+                  {(() => {
+                    let biometrics: any = null;
+                    try {
+                      const stored = JSON.parse(localStorage.getItem("ncfrmi_captured_biometrics") || "{}");
+                      if (stored[previewRegistrant.reference]) {
+                        biometrics = stored[previewRegistrant.reference];
+                      }
+                    } catch (e) {
+                      console.error(e);
+                    }
+
+                    return (
+                      <Card className="p-4 border-slate-200 shadow-sm bg-card/50 flex flex-col items-center text-center">
+                        <h4 className="font-bold text-xs text-emerald-800 border-b pb-1.5 mb-4 uppercase tracking-wider w-full">
+                          Enrollee Biometrics
+                        </h4>
+                        
+                        {/* Facial photo box */}
+                        <div className="flex flex-col items-center gap-1.5 mb-4">
+                          <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">Facial Photograph</span>
+                          <div className="relative overflow-hidden rounded-lg border bg-background shadow-inner w-32 h-32 flex items-center justify-center">
+                            {biometrics?.face ? (
+                              <img src={biometrics.face} alt="Face photo" className="w-full h-full object-cover" />
+                            ) : previewRegistrant.face_captured ? (
+                              <div className="text-[10px] text-emerald-600 font-semibold p-2 flex flex-col items-center gap-1">
+                                <span className="text-xl">📷</span>
+                                Cloud Image Secured
+                              </div>
+                            ) : (
+                              <span className="text-[10px] text-muted-foreground">Not Captured</span>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="w-full h-[1px] bg-slate-200 my-2" />
+
+                        {/* Thumbprint scan box */}
+                        <div className="flex flex-col items-center gap-1.5 mt-2">
+                          <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">Thumbprint Scan</span>
+                          <div className="relative overflow-hidden rounded-lg border bg-slate-950 shadow-inner w-24 h-20 flex items-center justify-center">
+                            {biometrics?.thumb ? (
+                              <img src={biometrics.thumb} alt="Thumb print" className="w-full h-full object-contain p-1 invert" />
+                            ) : previewRegistrant.thumb_captured ? (
+                              <div className="text-[9px] text-emerald-400 font-semibold p-1 flex flex-col items-center gap-0.5">
+                                <span className="text-lg">👍</span>
+                                Verified Scan
+                              </div>
+                            ) : (
+                              <span className="text-[10px] text-slate-500">Not Captured</span>
+                            )}
+                          </div>
+                        </div>
+                      </Card>
+                    );
+                  })()}
+
+                  {/* Verification Status */}
+                  <Card className="p-4 border-emerald-250 bg-emerald-50/20 shadow-sm">
+                    <h4 className="font-bold text-[10px] text-emerald-800 uppercase tracking-wider mb-2">
+                      Verification Status
+                    </h4>
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center text-[10px] bg-white p-2 rounded border">
+                        <span className="font-medium text-slate-600">Facial Liveness</span>
+                        <Badge className={previewRegistrant.face_captured ? "bg-emerald-100 text-emerald-900 border-emerald-200" : "bg-slate-100 text-slate-900"}>
+                          {previewRegistrant.face_captured ? "SUCCESS" : "PENDING"}
+                        </Badge>
+                      </div>
+                      <div className="flex justify-between items-center text-[10px] bg-white p-2 rounded border">
+                        <span className="font-medium text-slate-600">Fingerprint Match</span>
+                        <Badge className={previewRegistrant.thumb_captured ? "bg-emerald-100 text-emerald-900 border-emerald-200" : "bg-slate-100 text-slate-900"}>
+                          {previewRegistrant.thumb_captured ? "VERIFIED" : "PENDING"}
+                        </Badge>
+                      </div>
+                    </div>
+                  </Card>
+                </div>
+              </div>
+              <div className="border-t pt-3 flex justify-between items-center text-[10px] text-muted-foreground">
+                <span>Verification Authority: National Commission for Refugees, Migrants and Internally Displaced Persons</span>
+                <span>System Status: Cloud Synced & Authorized</span>
+              </div>
+            </>
+          )}
         </DialogContent>
       </Dialog>
     </Layout>
