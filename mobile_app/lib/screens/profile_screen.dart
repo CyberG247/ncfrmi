@@ -5,6 +5,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:image_picker/image_picker.dart';
 import '../theme.dart';
 import 'login_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -28,16 +29,31 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _loadProfile();
   }
 
-  void _loadProfile() {
-    final user = _supabase.auth.currentUser;
-    if (user != null) {
-      _displayNameController.text = user.userMetadata?['display_name'] ?? '';
-      final path = user.userMetadata?['avatar_url']?.toString();
-      if (path != null && !path.startsWith('http') && File(path).existsSync()) {
-        setState(() {
-          _localAvatarPath = path;
-        });
+  void _loadProfile() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final mockName = prefs.getString('mock_display_name');
+      final mockAvatar = prefs.getString('mock_avatar_url');
+
+      final user = _supabase.auth.currentUser;
+      if (user != null) {
+        _displayNameController.text = mockName ?? user.userMetadata?['display_name'] ?? '';
+        final path = mockAvatar ?? user.userMetadata?['avatar_url']?.toString();
+        if (path != null && !path.startsWith('http') && File(path).existsSync()) {
+          setState(() {
+            _localAvatarPath = path;
+          });
+        }
+      } else {
+        _displayNameController.text = mockName ?? 'Test Officer';
+        if (mockAvatar != null && File(mockAvatar).existsSync()) {
+          setState(() {
+            _localAvatarPath = mockAvatar;
+          });
+        }
       }
+    } catch (e) {
+      debugPrint('Error loading profile: $e');
     }
   }
 
@@ -54,9 +70,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
           _localAvatarPath = image.path;
         });
         
-        await _supabase.auth.updateUser(UserAttributes(
-          data: {'avatar_url': image.path},
-        ));
+        final user = _supabase.auth.currentUser;
+        if (user != null) {
+          await _supabase.auth.updateUser(UserAttributes(
+            data: {'avatar_url': image.path},
+          ));
+        } else {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('mock_avatar_url', image.path);
+        }
         
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -67,7 +89,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to access camera/gallery: $e'), backgroundColor: AppTheme.destructive),
+          SnackBar(content: Text('Failed to update profile picture: $e'), backgroundColor: AppTheme.destructive),
         );
       }
     }
@@ -125,10 +147,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
       }
       
       if (updates.isNotEmpty) {
-        await _supabase.auth.updateUser(UserAttributes(
-          data: updates['data'],
-          password: updates['password'],
-        ));
+        final user = _supabase.auth.currentUser;
+        if (user != null) {
+          await _supabase.auth.updateUser(UserAttributes(
+            data: updates['data'],
+            password: updates['password'],
+          ));
+        } else {
+          final prefs = await SharedPreferences.getInstance();
+          if (_displayNameController.text.isNotEmpty) {
+            await prefs.setString('mock_display_name', _displayNameController.text);
+          }
+        }
         
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Profile updated successfully!')));
@@ -147,7 +177,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final user = _supabase.auth.currentUser;
-    final email = user?.email ?? 'Unknown User';
+    final email = user?.email ?? 'officer@ncfrmi.gov.ng';
 
     return Scaffold(
       appBar: AppBar(
@@ -158,6 +188,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
             tooltip: 'Sign Out',
             onPressed: () async {
               await _supabase.auth.signOut();
+              try {
+                final prefs = await SharedPreferences.getInstance();
+                await prefs.remove('last_logged_in_email');
+              } catch (e) {
+                debugPrint('Failed to clear email from SharedPreferences: $e');
+              }
               if (context.mounted) {
                 Navigator.of(context).pushReplacement(
                   MaterialPageRoute(builder: (_) => const LoginScreen()),

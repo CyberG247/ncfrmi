@@ -41,11 +41,35 @@ class _UserManagementModuleState extends State<UserManagementModule> {
     super.dispose();
   }
 
+  Future<List<Map<String, dynamic>>> _fetchUsersFromDb() async {
+    final List<dynamic> profilesResponse = await _supabase.from('profiles').select('*').order('created_at', ascending: false);
+    final List<dynamic> rolesResponse = await _supabase.from('user_roles').select('*');
+    
+    final rolesMap = <String, String>{};
+    for (var item in rolesResponse) {
+      final userId = item['user_id']?.toString();
+      final role = item['role']?.toString();
+      if (userId != null && role != null) {
+        rolesMap[userId] = role;
+      }
+    }
+    
+    final List<Map<String, dynamic>> joinedList = [];
+    for (var item in profilesResponse) {
+      final joinedItem = Map<String, dynamic>.from(item as Map);
+      final userId = joinedItem['id']?.toString();
+      joinedItem['user_roles'] = {
+        'role': rolesMap[userId] ?? 'applicant'
+      };
+      joinedList.add(joinedItem);
+    }
+    return joinedList;
+  }
+
   Future<void> _fetchUsers() async {
     setState(() => _isLoading = true);
     try {
-      final response = await _supabase.from('profiles').select('*, user_roles(role)').order('created_at', ascending: false);
-      List<Map<String, dynamic>> list = List<Map<String, dynamic>>.from(response);
+      List<Map<String, dynamic>> list = await _fetchUsersFromDb();
 
       // Auto-insert current logged in admin if list is empty (guarantees at least one user appears)
       if (list.isEmpty) {
@@ -59,8 +83,7 @@ class _UserManagementModuleState extends State<UserManagementModule> {
               'updated_at': DateTime.now().toIso8601String(),
             });
             // Try fetching again
-            final retryResponse = await _supabase.from('profiles').select('*, user_roles(role)');
-            list = List<Map<String, dynamic>>.from(retryResponse);
+            list = await _fetchUsersFromDb();
           } catch (e) {
             debugPrint('Auto-profile creation failed: $e');
           }
@@ -88,7 +111,7 @@ class _UserManagementModuleState extends State<UserManagementModule> {
     }
   }
 
-  Future<void> _createUser() async {
+  Future<void> _createUser(StateSetter setDialogState) async {
     final email = _emailController.text.trim();
     final password = _passwordController.text;
     final name = _nameController.text.trim();
@@ -99,16 +122,28 @@ class _UserManagementModuleState extends State<UserManagementModule> {
       return;
     }
 
-    setState(() => _isActionLoading = true);
+    setDialogState(() => _isActionLoading = true);
     try {
-      final authResponse = await _supabase.auth.signUp(
+      // Use a temporary client to sign up the new user so it doesn't overwrite
+      // the Admin's session on the global Supabase.instance.client!
+      final tempClient = SupabaseClient(
+        'https://kbchfzawnkvppibakkst.supabase.co',
+        'sb_publishable_1mEoHkQX3WR_h2-DVgCHEg_OmA6ogkd',
+      );
+
+      final authResponse = await tempClient.auth.signUp(
         email: email,
         password: password,
-        data: {'display_name': name},
+        data: {
+          'full_name': name,
+          'phone': phone,
+        },
       );
 
       final user = authResponse.user;
       if (user != null) {
+        // Clear any auto-generated roles from the auth trigger, then insert selected role
+        await _supabase.from('user_roles').delete().eq('user_id', user.id);
         await _supabase.from('user_roles').insert({
           'user_id': user.id,
           'role': _selectedRole,
@@ -132,7 +167,7 @@ class _UserManagementModuleState extends State<UserManagementModule> {
       _phoneController.clear();
 
       if (!mounted) return;
-      setState(() => _isActionLoading = false);
+      setDialogState(() => _isActionLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('User account created successfully!')));
       Navigator.pop(context);
       _fetchUsers();
@@ -141,7 +176,7 @@ class _UserManagementModuleState extends State<UserManagementModule> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Failed to create account: $e'), backgroundColor: AppTheme.destructive),
       );
-      setState(() => _isActionLoading = false);
+      setDialogState(() => _isActionLoading = false);
     }
   }
   Future<void> _updateUser(String userId, String name, String phone, String role) async {
@@ -216,6 +251,7 @@ class _UserManagementModuleState extends State<UserManagementModule> {
     _nameController.clear();
     _phoneController.clear();
     _selectedRole = 'admin';
+    bool obscurePassword = true;
 
     showDialog(
       context: context,
@@ -232,7 +268,25 @@ class _UserManagementModuleState extends State<UserManagementModule> {
                 const SizedBox(height: 16),
                 TextField(controller: _emailController, decoration: const InputDecoration(labelText: 'Email Address *')),
                 const SizedBox(height: 16),
-                TextField(controller: _passwordController, decoration: const InputDecoration(labelText: 'Password *'), obscureText: true),
+                TextField(
+                  controller: _passwordController,
+                  obscureText: obscurePassword,
+                  decoration: InputDecoration(
+                    labelText: 'Password *',
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        obscurePassword ? LucideIcons.eye300 : LucideIcons.eyeOff300,
+                        size: 20,
+                        color: AppTheme.mutedForeground,
+                      ),
+                      onPressed: () {
+                        setDialogState(() {
+                          obscurePassword = !obscurePassword;
+                        });
+                      },
+                    ),
+                  ),
+                ),
                 const SizedBox(height: 16),
                 TextField(controller: _phoneController, decoration: const InputDecoration(labelText: 'Phone Number')),
                 const SizedBox(height: 20),
@@ -254,7 +308,7 @@ class _UserManagementModuleState extends State<UserManagementModule> {
           actions: [
             TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
             ElevatedButton(
-              onPressed: _isActionLoading ? null : _createUser,
+              onPressed: _isActionLoading ? null : () => _createUser(setDialogState),
               child: _isActionLoading
                   ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                   : const Text('Create Account'),
@@ -374,11 +428,35 @@ class _UserManagementModuleState extends State<UserManagementModule> {
 
   @override
   Widget build(BuildContext context) {
+    final isUnauthenticated = _supabase.auth.currentUser == null;
     return Padding(
       padding: const EdgeInsets.all(32.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (isUnauthenticated) ...[
+            Container(
+              padding: const EdgeInsets.all(16),
+              margin: const EdgeInsets.only(bottom: 24),
+              decoration: BoxDecoration(
+                color: Colors.amber.shade50,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.amber.shade300),
+              ),
+              child: Row(
+                children: [
+                  Icon(LucideIcons.alertTriangle300, color: Colors.amber.shade900),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'Warning: Bypassed/Unauthenticated Session. Supabase RLS will block User Creation and Deletion. Please register "commissioner@ncfrmi.gov.ng" and elevate it to Admin in the SQL Editor.',
+                      style: TextStyle(color: Colors.amber.shade900, fontSize: 13, fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -398,6 +476,12 @@ class _UserManagementModuleState extends State<UserManagementModule> {
               ),
               Row(
                 children: [
+                  IconButton(
+                    onPressed: _isLoading ? null : _fetchUsers,
+                    icon: const Icon(LucideIcons.refreshCw300, size: 20),
+                    tooltip: 'Refresh Users',
+                  ),
+                  const SizedBox(width: 12),
                   ElevatedButton.icon(
                     onPressed: _exportData,
                     icon: const Icon(LucideIcons.download300, size: 16),
@@ -454,10 +538,11 @@ class _UserManagementModuleState extends State<UserManagementModule> {
                               role = rObj['role']?.toString() ?? 'applicant';
                             }
 
-                            final isAdmin = role == 'admin' || role == 'commissioner';
-                            final isOfficer = role == 'officer';
+                             final isSelf = u['id'] == _supabase.auth.currentUser?.id;
+                             final isAdmin = role == 'admin' || role == 'commissioner';
+                             final isOfficer = role == 'officer';
 
-                            return ListTile(
+                             return ListTile(
                               leading: CircleAvatar(
                                 backgroundColor: isAdmin ? AppTheme.primary : (isOfficer ? AppTheme.secondary : AppTheme.muted),
                                 child: Text(
@@ -493,7 +578,7 @@ class _UserManagementModuleState extends State<UserManagementModule> {
                                   // Promote / Demote Action Buttons
                                   if (isAdmin)
                                     ElevatedButton.icon(
-                                      onPressed: () => _changeUserRole(u['id'], 'officer'),
+                                      onPressed: isSelf ? null : () => _changeUserRole(u['id'], 'officer'),
                                       icon: const Icon(LucideIcons.userMinus300, size: 14),
                                       label: const Text('Demote to Officer'),
                                       style: ElevatedButton.styleFrom(
@@ -503,7 +588,7 @@ class _UserManagementModuleState extends State<UserManagementModule> {
                                     )
                                   else
                                     ElevatedButton.icon(
-                                      onPressed: () => _changeUserRole(u['id'], 'admin'),
+                                      onPressed: isSelf ? null : () => _changeUserRole(u['id'], 'admin'),
                                       icon: const Icon(LucideIcons.userCheck300, size: 14),
                                       label: const Text('Promote to Admin'),
                                       style: ElevatedButton.styleFrom(
@@ -517,28 +602,29 @@ class _UserManagementModuleState extends State<UserManagementModule> {
                                     icon: const Icon(LucideIcons.pencil300, size: 18),
                                     onPressed: () => _showEditUserDialog(u),
                                   ),
-                                  IconButton(
-                                    icon: const Icon(LucideIcons.trash2300, size: 18, color: AppTheme.destructive),
-                                    onPressed: () {
-                                      showDialog(
-                                        context: context,
-                                        builder: (context) => AlertDialog(
-                                          title: const Text('Delete Account?'),
-                                          content: const Text('This will delete all database profile records for this user.'),
-                                          actions: [
-                                            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-                                            TextButton(
-                                              onPressed: () {
-                                                Navigator.pop(context);
-                                                _deleteUser(u['id']);
-                                              },
-                                              child: const Text('Delete', style: TextStyle(color: AppTheme.destructive)),
-                                            ),
-                                          ],
-                                        ),
-                                      );
-                                    },
-                                  ),
+                                  if (!isSelf)
+                                    IconButton(
+                                      icon: const Icon(LucideIcons.trash2300, size: 18, color: AppTheme.destructive),
+                                      onPressed: () {
+                                        showDialog(
+                                          context: context,
+                                          builder: (context) => AlertDialog(
+                                            title: const Text('Delete Account?'),
+                                            content: const Text('This will delete all database profile records for this user.'),
+                                            actions: [
+                                              TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+                                              TextButton(
+                                                onPressed: () {
+                                                  Navigator.pop(context);
+                                                  _deleteUser(u['id']);
+                                                },
+                                                child: const Text('Delete', style: TextStyle(color: AppTheme.destructive)),
+                                              ),
+                                            ],
+                                          ),
+                                        );
+                                      },
+                                    ),
                                 ],
                               ),
                             );

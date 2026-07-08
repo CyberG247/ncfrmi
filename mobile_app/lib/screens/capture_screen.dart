@@ -12,6 +12,7 @@ import '../models/registrant.dart';
 import '../models/intervention.dart';
 import '../services/offline_service.dart';
 import '../data/ng_states_lgas.dart';
+import '../utils/uuid.dart';
 class CaptureScreen extends StatefulWidget {
   final String? initialCategory;
   final VoidCallback? onCategoryHandled;
@@ -337,7 +338,59 @@ class _CaptureScreenState extends State<CaptureScreen> with SingleTickerProvider
   void _submitRegistrant() async {
     if (_isSaving) return;
     setState(() => _isSaving = true);
+    
+    final phone = _phoneController.text.trim();
+
+    // Check locally
+    final localRegs = await offlineService.getOfflineRegistrants();
+    final duplicateLocal = localRegs.any((r) => r.phone == phone && (widget.editRegistrant == null || r.id != widget.editRegistrant!.id));
+    if (duplicateLocal) {
+      if (mounted) {
+        setState(() => _isSaving = false);
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Duplicate Registrant'),
+            content: Text('A registrant with phone number $phone is already registered locally.'),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK')),
+            ],
+          ),
+        );
+      }
+      return;
+    }
+
+    // Check remotely if authenticated
     final user = Supabase.instance.client.auth.currentUser;
+    if (user != null) {
+      try {
+        final remoteRegs = await Supabase.instance.client
+            .from('registrants')
+            .select('id')
+            .eq('phone', phone)
+            .maybeSingle();
+        
+        if (remoteRegs != null && (widget.editRegistrant == null || remoteRegs['id'] != widget.editRegistrant!.id)) {
+          if (mounted) {
+            setState(() => _isSaving = false);
+            showDialog(
+              context: context,
+              builder: (context) => AlertDialog(
+                title: const Text('Duplicate Registrant'),
+                content: Text('A registrant with phone number $phone is already registered in the central database.'),
+                actions: [
+                  TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK')),
+                ],
+              ),
+            );
+          }
+          return;
+        }
+      } catch (e) {
+        debugPrint('Remote duplicate check failed (ignoring since offline): $e');
+      }
+    }
     
     // Merge the custom form fields into circumstances to match the Supabase schema and web app
     final circumstancesMerged = '''
@@ -351,10 +404,11 @@ EDUCATION BACKGROUND:
 NEEDS ASSESSMENT:
 - Immediate Needs: ${_selectedNeeds.join(", ").isEmpty ? "None" : _selectedNeeds.join(", ")}
 - Details: $_needsDetails
+${_faceImageBase64 != null ? '\n===PHOTO_BASE64===\n$_faceImageBase64' : ''}
 ''';
 
     final registrant = Registrant(
-      id: widget.editRegistrant != null ? widget.editRegistrant!.id : DateTime.now().millisecondsSinceEpoch.toString(),
+      id: widget.editRegistrant != null ? widget.editRegistrant!.id : generateUuidV4(),
       reference: _reference,
       category: _category,
       fullName: _fullNameController.text.trim(),
@@ -369,7 +423,6 @@ NEEDS ASSESSMENT:
       circumstances: circumstancesMerged,
       faceCaptured: _faceCaptured,
       thumbCaptured: _thumbCaptured,
-      photoBase64: _faceImageBase64,
       capturedBy: widget.editRegistrant != null ? widget.editRegistrant!.capturedBy : user?.id,
       createdAt: widget.editRegistrant != null ? widget.editRegistrant!.createdAt : DateTime.now().toIso8601String(),
     );
@@ -401,7 +454,7 @@ NEEDS ASSESSMENT:
       final user = Supabase.instance.client.auth.currentUser;
       
       final intervention = Intervention(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        id: generateUuidV4(),
         camp: _intCamp,
         category: _intCategory,
         details: _intDetails,

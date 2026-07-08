@@ -14,7 +14,6 @@ class Registrant {
   final String circumstances;
   final bool faceCaptured;
   final bool thumbCaptured;
-  final String? photoBase64;
   final String? capturedBy;
   final String createdAt;
 
@@ -34,7 +33,6 @@ class Registrant {
     required this.circumstances,
     required this.faceCaptured,
     required this.thumbCaptured,
-    this.photoBase64,
     this.capturedBy,
     required this.createdAt,
   });
@@ -55,9 +53,9 @@ class Registrant {
     'circumstances': circumstances,
     'face_captured': faceCaptured,
     'thumb_captured': thumbCaptured,
-    'photo_base64': photoBase64,
     'captured_by': capturedBy,
     'created_at': createdAt,
+    'photo_base64': photoBase64,
   };
 
   factory Registrant.fromJson(Map<String, dynamic> json) => Registrant(
@@ -76,8 +74,24 @@ class Registrant {
     circumstances: json['circumstances'],
     faceCaptured: json['face_captured'],
     thumbCaptured: json['thumb_captured'],
-    photoBase64: json['photo_base64'],
     capturedBy: json['captured_by'],
     createdAt: json['created_at'],
   );
+
+  String? get photoBase64 {
+    if (circumstances.contains('===PHOTO_BASE64===')) {
+      final parts = circumstances.split('===PHOTO_BASE64===\n');
+      if (parts.length > 1) {
+        return parts[1].trim();
+      }
+    }
+    return null;
+  }
+
+  String get cleanCircumstances {
+    if (circumstances.contains('===PHOTO_BASE64===')) {
+      return circumstances.split('===PHOTO_BASE64===').first.trim();
+    }
+    return circumstances;
+  }
 }

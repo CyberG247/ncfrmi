@@ -283,6 +283,38 @@ export default function FieldCapture() {
 
   const submit = async () => {
     setSubmitting(true);
+
+    // Validate phone duplicate locally
+    try {
+      const localData = JSON.parse(localStorage.getItem("ncfrmi_local_registrants") || "[]");
+      const isLocalDuplicate = localData.some((r: { phone: string }) => r.phone === data.phone);
+      if (isLocalDuplicate) {
+        toast.error(`A registrant with phone number ${data.phone} already exists in local storage.`);
+        setSubmitting(false);
+        return;
+      }
+    } catch (e) {
+      console.error(e);
+    }
+
+    // Validate phone duplicate remotely in Supabase
+    try {
+      const { data: existing, error: checkError } = await supabase
+        .from("registrants")
+        .select("id")
+        .eq("phone", data.phone)
+        .maybeSingle();
+
+      if (checkError) throw checkError;
+      if (existing) {
+        toast.error(`A registrant with phone number ${data.phone} is already registered in the system.`);
+        setSubmitting(false);
+        return;
+      }
+    } catch (err) {
+      console.warn("Could not check remote duplicates (likely offline):", err);
+    }
+
     const reference = `NCF-REG-${new Date().getFullYear()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
     const { data: u } = await supabase.auth.getUser();
 
@@ -297,6 +329,7 @@ EDUCATION BACKGROUND:
 NEEDS ASSESSMENT:
 - Immediate Needs: ${data.primary_needs.join(", ") || "None"}
 - Details: ${data.needs_details}
+${face ? `\n===PHOTO_BASE64===\n${face}` : ''}
 `;
 
     const payload = {
@@ -314,8 +347,8 @@ NEEDS ASSESSMENT:
       circumstances: circumstancesMerged,
       face_captured: !!face,
       thumb_captured: !!thumb,
-      photo_base64: face ?? undefined,
       captured_by: u.user?.id ?? null,
+      photo_base64: face,
     };
 
     // Always save the actual base64 biometric images locally under the reference number

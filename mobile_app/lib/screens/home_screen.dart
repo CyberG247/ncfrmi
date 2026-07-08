@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
@@ -299,11 +300,12 @@ class _HomeScreenState extends State<HomeScreen> {
                               return ListTile(
                                 leading: CircleAvatar(
                                   backgroundColor: (isReg ? AppTheme.primary : AppTheme.secondary).withValues(alpha: 0.1),
-                                  child: Icon(
+                                  backgroundImage: isReg && item.photoBase64 != null ? MemoryImage(base64Decode(item.photoBase64!.split(',').last)) : null,
+                                  child: (!isReg || item.photoBase64 == null) ? Icon(
                                     isReg ? LucideIcons.user300 : LucideIcons.handshake300,
                                     color: isReg ? AppTheme.primary : AppTheme.secondary,
                                     size: 18,
-                                  ),
+                                  ) : null,
                                 ),
                                 title: Text(
                                   isReg ? item.fullName : 'Intervention: ${item.category}',

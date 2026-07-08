@@ -4,6 +4,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../theme.dart';
 import 'login_screen.dart';
 import 'modules/analytics_module.dart';
+import 'modules/registrants_module.dart';
 import 'modules/user_management_module.dart';
 import 'modules/content_management_module.dart';
 import 'modules/geopolitical_map_module.dart';
@@ -22,6 +23,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   final List<Widget> _modules = const [
     AnalyticsModule(),
+    RegistrantsModule(),
     GeopoliticalMapModule(),
     ZonalManagementModule(),
     ReportsModule(),
@@ -58,11 +60,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   child: Column(
                     children: [
                       _buildNavItem(0, 'Overview Dashboard', LucideIcons.layoutDashboard300),
-                      _buildNavItem(1, 'Geopolitical Map', LucideIcons.map300),
-                      _buildNavItem(2, 'Zonal Registry', LucideIcons.mapPin300),
-                      _buildNavItem(3, 'Audits & Reports', LucideIcons.fileText300),
-                      _buildNavItem(4, 'User Management', LucideIcons.users300),
-                      _buildNavItem(5, 'Content Management', LucideIcons.newspaper300),
+                      _buildNavItem(1, 'Registrant Management', LucideIcons.users300),
+                      _buildNavItem(2, 'Geopolitical Map', LucideIcons.map300),
+                      _buildNavItem(3, 'Zonal Registry', LucideIcons.mapPin300),
+                      _buildNavItem(4, 'Audits & Reports', LucideIcons.fileText300),
+                      _buildNavItem(5, 'User Management', LucideIcons.shield300),
+                      _buildNavItem(6, 'Content Management', LucideIcons.newspaper300),
                     ],
                   ),
                 ),

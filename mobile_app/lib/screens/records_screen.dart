@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../theme.dart';
@@ -137,7 +138,8 @@ class _RecordsScreenState extends State<RecordsScreen> {
                   CircleAvatar(
                     radius: 28,
                     backgroundColor: AppTheme.primary.withValues(alpha: 0.1),
-                    child: const Icon(LucideIcons.user300, color: AppTheme.primary, size: 28),
+                    backgroundImage: r.photoBase64 != null ? MemoryImage(base64Decode(r.photoBase64!.split(',').last)) : null,
+                    child: r.photoBase64 == null ? const Icon(LucideIcons.user300, color: AppTheme.primary, size: 28) : null,
                   ),
                   const SizedBox(width: 16),
                   Expanded(
@@ -179,7 +181,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
                   _detailRow('Phone Number', r.phone, LucideIcons.phone300),
                   _detailRow('Home Address', r.address, LucideIcons.home300),
                   _detailRow('Accompanying Dependants', r.dependants.toString(), LucideIcons.users300),
-                  _detailRow('Special Circumstances', r.circumstances.isEmpty ? 'None specified' : r.circumstances, LucideIcons.info300),
+                  _detailRow('Special Circumstances', r.cleanCircumstances.isEmpty ? 'None specified' : r.cleanCircumstances, LucideIcons.info300),
                   
                   const SizedBox(height: 16),
                   const Text('Biometrics Captured', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
@@ -278,9 +280,10 @@ class _RecordsScreenState extends State<RecordsScreen> {
                                   margin: const EdgeInsets.only(bottom: 8),
                                   child: ListTile(
                                     onTap: () => _showRegistrantDetails(r),
-                                    leading: const CircleAvatar(
+                                    leading: CircleAvatar(
                                       backgroundColor: AppTheme.primary,
-                                      child: Icon(LucideIcons.user300, color: Colors.white, size: 20),
+                                      backgroundImage: r.photoBase64 != null ? MemoryImage(base64Decode(r.photoBase64!.split(',').last)) : null,
+                                      child: r.photoBase64 == null ? const Icon(LucideIcons.user300, color: Colors.white, size: 20) : null,
                                     ),
                                     title: Text(r.fullName, style: const TextStyle(fontWeight: FontWeight.bold)),
                                     subtitle: Text('${r.category.toUpperCase()} • ${r.reference}'),

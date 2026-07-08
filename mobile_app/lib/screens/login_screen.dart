@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../theme.dart';
 import 'main_navigation.dart';
 
@@ -46,6 +47,12 @@ class _LoginScreenState extends State<LoginScreen> {
           debugPrint('Bypass sign up failed: $err');
         }
       }
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('last_logged_in_email', email.toLowerCase());
+      } catch (e) {
+        debugPrint('Failed to save email to SharedPreferences: $e');
+      }
       if (mounted) {
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (_) => const MainNavigation()),
@@ -60,6 +67,13 @@ class _LoginScreenState extends State<LoginScreen> {
         password: password,
       );
       
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('last_logged_in_email', email.toLowerCase());
+      } catch (e) {
+        debugPrint('Failed to save email to SharedPreferences: $e');
+      }
+
       if (mounted) {
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (_) => const MainNavigation()),

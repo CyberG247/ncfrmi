@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'offline_service.dart';
+import '../utils/uuid.dart';
 
 class SupabaseSyncService {
   final _supabase = Supabase.instance.client;
@@ -39,6 +40,9 @@ class SupabaseSyncService {
           if (json['dob'] != null) {
             json['dob'] = _sanitizeDob(json['dob'].toString());
           }
+          if (json['id'] == null || !isValidUuid(json['id'].toString())) {
+            json['id'] = generateUuidV4();
+          }
           return json;
         }).toList();
         await _supabase.from('registrants').insert(records);
@@ -48,7 +52,13 @@ class SupabaseSyncService {
       // Sync Interventions
       final interventions = await offlineService.getOfflineInterventions();
       if (interventions.isNotEmpty) {
-        final List<Map<String, dynamic>> records = interventions.map((e) => e.toJson()).toList();
+        final List<Map<String, dynamic>> records = interventions.map((e) {
+          final json = e.toJson();
+          if (json['id'] == null || !isValidUuid(json['id'].toString())) {
+            json['id'] = generateUuidV4();
+          }
+          return json;
+        }).toList();
         await _supabase.from('interventions').insert(records);
         await offlineService.clearOfflineInterventions();
       }

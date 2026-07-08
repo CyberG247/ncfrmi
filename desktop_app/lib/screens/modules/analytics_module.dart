@@ -1,5 +1,7 @@
 import 'dart:io';
 import 'dart:math';
+import 'dart:convert';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:fl_chart/fl_chart.dart';
@@ -39,8 +41,6 @@ class _AnalyticsModuleState extends State<AnalyticsModule> {
   List<double> _refugeesMonthly = [0, 0, 0, 0, 0, 0];
   List<double> _idpsMonthly = [0, 0, 0, 0, 0, 0];
   List<double> _migrantsMonthly = [0, 0, 0, 0, 0, 0];
-
-  String _searchQuery = '';
   RealtimeChannel? _realtimeChannel;
 
   @override
@@ -58,8 +58,10 @@ class _AnalyticsModuleState extends State<AnalyticsModule> {
     super.dispose();
   }
 
-  Future<void> _fetchData() async {
-    setState(() => _isLoading = true);
+  Future<void> _fetchData({bool silent = false}) async {
+    if (!silent) {
+      setState(() => _isLoading = true);
+    }
     try {
       final regResponse = await _supabase.from('registrants').select();
       
@@ -79,6 +81,13 @@ class _AnalyticsModuleState extends State<AnalyticsModule> {
       List<double> refugeesMonthly = [0, 0, 0, 0, 0, 0];
       List<double> idpsMonthly = [0, 0, 0, 0, 0, 0];
       List<double> migrantsMonthly = [0, 0, 0, 0, 0, 0];
+
+      // Get the last 6 months dynamically in UTC (year & month)
+      final nowDateTime = DateTime.now().toUtc();
+      final List<DateTime> last6Months = [];
+      for (int i = 5; i >= 0; i--) {
+        last6Months.add(DateTime.utc(nowDateTime.year, nowDateTime.month - i, 1));
+      }
 
       for (var r in dataList) {
         final cat = r['category']?.toString().toLowerCase() ?? '';
@@ -117,16 +126,19 @@ class _AnalyticsModuleState extends State<AnalyticsModule> {
         final createdAtStr = r['created_at']?.toString() ?? '';
         if (createdAtStr.isNotEmpty) {
           try {
-            final createdAt = DateTime.parse(createdAtStr);
-            final monthIdx = createdAt.month - 1;
-            if (monthIdx >= 0 && monthIdx < 6) {
-              monthly[monthIdx]++;
-              if (cat == 'refugee') {
-                refugeesMonthly[monthIdx]++;
-              } else if (cat == 'idp') {
-                idpsMonthly[monthIdx]++;
-              } else if (cat == 'migrant' || cat == 'returnee') {
-                migrantsMonthly[monthIdx]++;
+            final createdAt = DateTime.parse(createdAtStr).toUtc();
+            for (int i = 0; i < 6; i++) {
+              final targetMonth = last6Months[i];
+              if (createdAt.year == targetMonth.year && createdAt.month == targetMonth.month) {
+                monthly[i]++;
+                if (cat == 'refugee') {
+                  refugeesMonthly[i]++;
+                } else if (cat == 'idp') {
+                  idpsMonthly[i]++;
+                } else if (cat == 'migrant' || cat == 'returnee') {
+                  migrantsMonthly[i]++;
+                }
+                break;
               }
             }
           } catch (_) {}
@@ -390,6 +402,23 @@ class _AnalyticsModuleState extends State<AnalyticsModule> {
                 LineChartData(
                   minY: 0,
                   maxY: maxYVal,
+                  lineTouchData: LineTouchData(
+                    touchTooltipData: LineTouchTooltipData(
+                      getTooltipColor: (touchedSpot) => AppTheme.primary,
+                      getTooltipItems: (List<LineBarSpot> touchedSpots) {
+                        return touchedSpots.map((barSpot) {
+                          return LineTooltipItem(
+                            '${barSpot.y.toInt()} captures',
+                            const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
+                          );
+                        }).toList();
+                      },
+                    ),
+                  ),
                   gridData: const FlGridData(show: false),
                   titlesData: FlTitlesData(
                     show: true,
@@ -399,11 +428,17 @@ class _AnalyticsModuleState extends State<AnalyticsModule> {
                       sideTitles: SideTitles(
                         showTitles: true,
                         getTitlesWidget: (val, meta) {
-                          const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
-                          if (val.toInt() >= 0 && val.toInt() < months.length) {
+                          final now = DateTime.now().toUtc();
+                          final List<String> dynamicMonths = [];
+                          const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                          for (int i = 5; i >= 0; i--) {
+                            final m = DateTime.utc(now.year, now.month - i, 1);
+                            dynamicMonths.add(monthNames[m.month - 1]);
+                          }
+                          if (val.toInt() >= 0 && val.toInt() < dynamicMonths.length) {
                             return Padding(
                               padding: const EdgeInsets.only(top: 8.0),
-                              child: Text(months[val.toInt()], style: const TextStyle(fontSize: 11, color: AppTheme.mutedForeground)),
+                              child: Text(dynamicMonths[val.toInt()], style: const TextStyle(fontSize: 11, color: AppTheme.mutedForeground)),
                             );
                           }
                           return const Text('');
@@ -856,7 +891,7 @@ class _AnalyticsModuleState extends State<AnalyticsModule> {
         callback: (payload) {
           debugPrint('Real-time change received: ${payload.toString()}');
           if (mounted) {
-            _fetchData();
+            _fetchData(silent: true);
           }
         },
       );
@@ -867,34 +902,29 @@ class _AnalyticsModuleState extends State<AnalyticsModule> {
       debugPrint('Real-time subscription error: $e');
     }
 
-    // Periodic polling fallback every 15 seconds in case Realtime is not enabled on the table
-    Future.delayed(const Duration(seconds: 15), () {
-      if (mounted) {
-        _fetchData();
-        _startPeriodicRefresh();
-      }
-    });
+    _startPeriodicRefresh();
   }
 
   void _startPeriodicRefresh() {
     Future.doWhile(() async {
       await Future.delayed(const Duration(seconds: 15));
       if (!mounted) return false;
-      await _fetchData();
+      await _fetchData(silent: true);
       return mounted;
     });
   }
 
+
+
   Widget _buildRegistrantsRegistryDirectoryCard() {
-    final List<Map<String, dynamic>> filteredList = _registrantsData.where((r) {
-      final query = _searchQuery.toLowerCase().trim();
-      if (query.isEmpty) return true;
-      final name = r['full_name']?.toString().toLowerCase() ?? '';
-      final ref = r['reference']?.toString().toLowerCase() ?? '';
-      final cat = r['category']?.toString().toLowerCase() ?? '';
-      final lga = r['lga']?.toString().toLowerCase() ?? '';
-      return name.contains(query) || ref.contains(query) || cat.contains(query) || lga.contains(query);
-    }).toList();
+    // Get the 5 most recent registrants
+    final recentList = List<Map<String, dynamic>>.from(_registrantsData);
+    recentList.sort((a, b) {
+      final aTime = DateTime.tryParse(a['created_at']?.toString() ?? '') ?? DateTime.fromMillisecondsSinceEpoch(0);
+      final bTime = DateTime.tryParse(b['created_at']?.toString() ?? '') ?? DateTime.fromMillisecondsSinceEpoch(0);
+      return bTime.compareTo(aTime);
+    });
+    final displayedList = recentList.take(5).toList();
 
     return Card(
       child: Padding(
@@ -902,60 +932,38 @@ class _AnalyticsModuleState extends State<AnalyticsModule> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            const Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Central Registrants Registry',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.foreground),
-                    ),
-                    SizedBox(height: 4),
-                    Text(
-                      'Search, view, and inspect detailed profiles of registered refugees, IDPs, and migrants.',
-                      style: TextStyle(fontSize: 12, color: AppTheme.mutedForeground),
-                    ),
-                  ],
+                Text(
+                  'Recent Registrations',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.foreground),
                 ),
-                SizedBox(
-                  width: 300,
-                  height: 40,
-                  child: TextField(
-                    onChanged: (value) {
-                      setState(() {
-                        _searchQuery = value;
-                      });
-                    },
-                    decoration: InputDecoration(
-                      hintText: 'Search registrants...',
-                      prefixIcon: const Icon(LucideIcons.search300, size: 16, color: AppTheme.mutedForeground),
-                      filled: true,
-                      fillColor: AppTheme.muted.withValues(alpha: 0.4),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
-                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: const BorderSide(color: AppTheme.primary, width: 1.5),
-                      ),
-                    ),
-                  ),
+                SizedBox(height: 4),
+                Text(
+                  'The latest 5 registered refugees, IDPs, and migrants.',
+                  style: TextStyle(fontSize: 12, color: AppTheme.mutedForeground),
                 ),
               ],
             ),
-            const Divider(height: 32),
+            const SizedBox(height: 24),
             
-            if (filteredList.isEmpty)
+            if (_isLoading)
               const Center(
                 child: Padding(
-                  padding: EdgeInsets.symmetric(vertical: 48.0),
+                  padding: EdgeInsets.symmetric(vertical: 24.0),
+                  child: CircularProgressIndicator(color: AppTheme.primary),
+                ),
+              )
+            else if (displayedList.isEmpty)
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(vertical: 24.0),
                   child: Column(
                     children: [
-                      Icon(LucideIcons.users300, size: 48, color: AppTheme.mutedForeground),
-                      SizedBox(height: 16),
-                      Text('No registrants found matching query.', style: TextStyle(color: AppTheme.mutedForeground)),
+                      Icon(LucideIcons.users300, size: 36, color: AppTheme.mutedForeground),
+                      SizedBox(height: 12),
+                      Text('No registrants found.', style: TextStyle(color: AppTheme.mutedForeground)),
                     ],
                   ),
                 ),
@@ -963,8 +971,8 @@ class _AnalyticsModuleState extends State<AnalyticsModule> {
             else
               Table(
                 columnWidths: const {
-                  0: FlexColumnWidth(1.2),
-                  1: FlexColumnWidth(2.0),
+                  0: FixedColumnWidth(60),
+                  1: FlexColumnWidth(2.2),
                   2: FlexColumnWidth(1.2),
                   3: FlexColumnWidth(1.5),
                   4: FlexColumnWidth(1.0),
@@ -976,7 +984,7 @@ class _AnalyticsModuleState extends State<AnalyticsModule> {
                   TableRow(
                     decoration: BoxDecoration(color: AppTheme.muted.withValues(alpha: 0.3)),
                     children: const [
-                      Padding(padding: EdgeInsets.all(12.0), child: Text('REFERENCE ID', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: AppTheme.mutedForeground))),
+                      Padding(padding: EdgeInsets.all(12.0), child: Text('PICTURE', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: AppTheme.mutedForeground))),
                       Padding(padding: EdgeInsets.all(12.0), child: Text('FULL NAME', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: AppTheme.mutedForeground))),
                       Padding(padding: EdgeInsets.all(12.0), child: Text('CATEGORY', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: AppTheme.mutedForeground))),
                       Padding(padding: EdgeInsets.all(12.0), child: Text('LOCATION', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: AppTheme.mutedForeground))),
@@ -985,7 +993,7 @@ class _AnalyticsModuleState extends State<AnalyticsModule> {
                       Padding(padding: EdgeInsets.all(12.0), child: Text('ACTION', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: AppTheme.mutedForeground), textAlign: TextAlign.center)),
                     ],
                   ),
-                  ...filteredList.map((r) {
+                  ...displayedList.map((r) {
                     final String cat = r['category']?.toString().toLowerCase() ?? 'refugee';
                     final bool hasFace = r['face_captured'] == true;
                     final bool hasThumb = r['thumb_captured'] == true;
@@ -1000,8 +1008,54 @@ class _AnalyticsModuleState extends State<AnalyticsModule> {
                         border: Border(bottom: BorderSide(color: AppTheme.border, width: 0.5)),
                       ),
                       children: [
-                        Padding(padding: const EdgeInsets.all(12.0), child: Text(r['reference'] ?? 'N/A', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
-                        Padding(padding: const EdgeInsets.all(12.0), child: Text(r['full_name'] ?? 'Unknown', style: const TextStyle(fontSize: 13))),
+                        Padding(
+                          padding: const EdgeInsets.all(12.0),
+                          child: Builder(
+                            builder: (context) {
+                              final rawPhoto = r['photo_base64']?.toString() ?? '';
+                              final photoBase64 = _cleanPhotoBase64(rawPhoto.isEmpty ? _getPhotoBase64(r['circumstances']?.toString()) : rawPhoto);
+                              
+                              Uint8List? photoBytes;
+                              if (photoBase64.isNotEmpty) {
+                                try {
+                                  photoBytes = base64Decode(photoBase64);
+                                } catch (e) {
+                                  debugPrint('Failed to decode row photo: $e');
+                                }
+                              }
+
+                              return Container(
+                                width: 36,
+                                height: 36,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: AppTheme.muted,
+                                  border: Border.all(color: AppTheme.border, width: 1),
+                                ),
+                                child: ClipOval(
+                                  child: photoBytes != null
+                                      ? Image.memory(
+                                          photoBytes,
+                                          fit: BoxFit.cover,
+                                          errorBuilder: (context, error, stackTrace) => const Icon(LucideIcons.user300, size: 18, color: AppTheme.mutedForeground),
+                                        )
+                                      : const Icon(LucideIcons.user300, size: 18, color: AppTheme.mutedForeground),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.all(12.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(r['full_name'] ?? 'Unknown', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                              const SizedBox(height: 2),
+                              Text(r['reference'] ?? 'N/A', style: TextStyle(fontSize: 11, color: AppTheme.mutedForeground)),
+                            ],
+                          ),
+                        ),
                         Padding(
                           padding: const EdgeInsets.all(12.0),
                           child: Container(
@@ -1041,15 +1095,62 @@ class _AnalyticsModuleState extends State<AnalyticsModule> {
     );
   }
 
+  String _cleanPhotoBase64(String raw) {
+    String clean = raw.trim();
+    if (clean.startsWith('data:image')) {
+      final commaIndex = clean.indexOf(',');
+      if (commaIndex != -1) {
+        clean = clean.substring(commaIndex + 1);
+      }
+    }
+    return clean.trim();
+  }
+
+  String _getPhotoBase64(String? circumstances) {
+    if (circumstances == null) return '';
+    final parts = circumstances.split('===PHOTO_BASE64===');
+    if (parts.length > 1) {
+      return parts[1].trim();
+    }
+    return '';
+  }
+
+  String _cleanCircumstances(String? circumstances) {
+    if (circumstances == null) return 'No circumstances registered.';
+    final parts = circumstances.split('===PHOTO_BASE64===');
+    return parts[0].trim();
+  }
+
   void _showRegistrantDetailsDialog(Map<String, dynamic> r) {
+    final circumstancesStr = r['circumstances']?.toString();
+    String rawPhoto = r['photo_base64']?.toString() ?? '';
+    if (rawPhoto.isEmpty) {
+      rawPhoto = _getPhotoBase64(circumstancesStr);
+    }
+    final photoBase64 = _cleanPhotoBase64(rawPhoto);
+    final cleanCircumstances = _cleanCircumstances(circumstancesStr);
+    
+    Uint8List? photoBytes;
+    if (photoBase64.isNotEmpty) {
+      try {
+        photoBytes = base64Decode(photoBase64);
+      } catch (e) {
+        debugPrint('Failed to decode registrant photo: $e');
+      }
+    }
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: Row(
           children: [
             CircleAvatar(
+              radius: 28,
               backgroundColor: AppTheme.primary.withValues(alpha: 0.1),
-              child: const Icon(LucideIcons.user300, color: AppTheme.primary),
+              backgroundImage: photoBytes != null ? MemoryImage(photoBytes) : null,
+              child: photoBytes == null 
+                  ? const Icon(LucideIcons.user300, color: AppTheme.primary, size: 28)
+                  : null,
             ),
             const SizedBox(width: 16),
             Column(
@@ -1091,7 +1192,7 @@ class _AnalyticsModuleState extends State<AnalyticsModule> {
                 const SizedBox(height: 24),
                 const Text('Special Circumstances / Vulnerability Notes', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.mutedForeground)),
                 const SizedBox(height: 6),
-                Text(r['circumstances'] ?? 'No circumstances registered.', style: const TextStyle(fontSize: 13)),
+                Text(cleanCircumstances, style: const TextStyle(fontSize: 13)),
                 const SizedBox(height: 28),
                 const Text('Biometrics Registration Status', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.mutedForeground)),
                 const SizedBox(height: 12),
