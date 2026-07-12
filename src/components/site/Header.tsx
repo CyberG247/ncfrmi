@@ -20,6 +20,22 @@ export const Header = () => {
   const [scrolled, setScrolled] = useState(false);
   const { session, role } = useAuth();
   const [currentLang, setCurrentLang] = useState("en");
+  const [helpline, setHelpline] = useState("0800-NCFRMI");
+  const [portalTitle, setPortalTitle] = useState("NCFRMI");
+
+  useEffect(() => {
+    const loadSettings = () => {
+      setHelpline(localStorage.getItem("ncfrmi_helpline") || "0800-NCFRMI");
+      setPortalTitle(localStorage.getItem("ncfrmi_title") || "NCFRMI");
+    };
+    loadSettings();
+    window.addEventListener("storage", loadSettings);
+    const interval = setInterval(loadSettings, 1000);
+    return () => {
+      window.removeEventListener("storage", loadSettings);
+      clearInterval(interval);
+    };
+  }, []);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
@@ -76,7 +92,7 @@ export const Header = () => {
         <div className="container-page flex h-9 items-center justify-between">
           <span className="font-medium">Federal Republic of Nigeria · Official Government Website</span>
           <a href="tel:+2340000000000" className="hidden items-center gap-2 transition-opacity hover:opacity-80 sm:inline-flex">
-            <Phone className="h-3.5 w-3.5 animate-pulse-soft" /> 24/7 Helpline: 0800-NCFRMI
+            <Phone className="h-3.5 w-3.5 animate-pulse-soft" /> 24/7 Helpline: {helpline}
           </a>
         </div>
       </div>
@@ -90,7 +106,7 @@ export const Header = () => {
             height={48}
           />
           <div className="leading-tight">
-            <div className="font-display text-base font-bold text-primary">NCFRMI</div>
+            <div className="font-display text-base font-bold text-primary">{portalTitle}</div>
             <div className="hidden text-[11px] text-muted-foreground sm:block">
               National Commission for Refugees, Migrants & IDPs
             </div>
@@ -136,6 +152,11 @@ export const Header = () => {
 
           {session && (
             <div className="flex items-center gap-2">
+              {role === "superuser" && (
+                <Button asChild size="sm" className="bg-emerald-800 hover:bg-emerald-700 hover-lift text-white font-bold">
+                  <Link to="/super-admin">Super Admin Panel</Link>
+                </Button>
+              )}
               {role === "commissioner" && (
                 <Button asChild size="sm" className="hover-lift">
                   <Link to="/admin/dashboard">Admin Dashboard</Link>

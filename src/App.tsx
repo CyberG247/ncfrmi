@@ -25,6 +25,7 @@ import Dashboard from "./pages/Dashboard.tsx";
 import NewApplication from "./pages/NewApplication.tsx";
 import ApplicationDetail from "./pages/ApplicationDetail.tsx";
 import AdminDashboard from "./pages/AdminDashboard.tsx";
+import SuperAdminDashboard from "./pages/SuperAdminDashboard.tsx";
 
 const queryClient = new QueryClient();
 
@@ -83,6 +84,7 @@ const App = () => {
             <Route path="/dashboard/applications/:id" element={<ProtectedRoute><ApplicationDetail /></ProtectedRoute>} />
             <Route path="/admin/dashboard" element={<AdminDashboard />} />
             <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
+            <Route path="/super-admin" element={<ProtectedRoute allowedRoles={["superuser"]}><SuperAdminDashboard /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>

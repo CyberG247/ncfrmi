@@ -13,7 +13,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import logo from "@/assets/ncfrmi-logo.png";
-import nigeriaPovertyMap from "@/assets/nigeria-poverty-map.png";
+import nigeriaGlowingMap from "@/assets/nigeria-glowing-map.jpg";
 import {
   Users,
   ShieldAlert,
@@ -73,6 +73,17 @@ type Registrant = {
   is_local?: boolean;
 };
 
+type Intervention = {
+  id: string;
+  camp: string;
+  category: string;
+  details: string;
+  count: number;
+  created_at: string;
+  captured_by?: string;
+  is_local?: boolean;
+};
+
 const TYPES = [
   { value: "all", label: "All Categories" },
   { value: "idp", label: "IDP" },
@@ -121,7 +132,7 @@ const CircularProgress = ({ value, total, color }: { value: number; total: numbe
 };
 
 // Custom Sparkline/Area Chart representing Graphical Rep
-const CustomBarChart = ({ data, color }: { data: number[]; color: string }) => {
+const CustomBarChart = ({ data, labels, color }: { data: number[]; labels: string[]; color: string }) => {
   const max = Math.max(...data, 1);
   const width = 240;
   const height = 80;
@@ -192,13 +203,10 @@ const CustomBarChart = ({ data, color }: { data: number[]; color: string }) => {
           );
         })}
       </svg>
-      <div className="flex justify-between text-[8px] text-muted-foreground mt-1 px-4 font-semibold uppercase tracking-wider">
-        <span>Jan</span>
-        <span>Feb</span>
-        <span>Mar</span>
-        <span>Apr</span>
-        <span>May</span>
-        <span>Jun</span>
+      <div className="flex justify-between text-[8px] text-muted-foreground mt-1 px-1 font-extrabold uppercase tracking-tight gap-1 w-full overflow-hidden">
+        {labels.map((lbl, idx) => (
+          <span key={idx} className="truncate w-8 text-center" title={lbl}>{lbl}</span>
+        ))}
       </div>
     </div>
   );
@@ -328,29 +336,160 @@ const asylumArrivalsTrendData = [
 
 const NigeriaMapSVG = ({ activeNode, onHoverNode }: { activeNode: string; onHoverNode: (id: string) => void }) => {
   return (
-    <div className="relative w-full max-w-[520px] mx-auto overflow-hidden rounded-xl border border-border shadow-elegant bg-white p-3 select-none">
-      <div className="relative w-full overflow-hidden rounded-lg" style={{ paddingBottom: "68%" }}>
-        {/* The Exact Geographical Map Image from NBS/Inspiration (Scaled and shifted up to crop border and title) */}
+    <div className="relative w-full max-w-[560px] mx-auto overflow-hidden rounded-xl border border-slate-800 shadow-[0_0_25px_rgba(16,185,129,0.15)] bg-slate-950 p-4 select-none">
+      <div className="relative w-full overflow-hidden rounded-lg bg-slate-900" style={{ paddingBottom: "80%" }}>
+        {/* The beautiful dark-teal glowing map of Nigeria from user asset */}
         <img
-          src={nigeriaPovertyMap}
-          alt="Nigeria Poverty Headcount and Registry Density Map"
-          className="absolute w-[114%] h-[122%] max-w-none -top-[12%] -left-[7%] object-cover pointer-events-none rounded-lg"
+          src={nigeriaGlowingMap}
+          alt="Nigeria Geopolitical Glowing Fiber Map"
+          className="absolute inset-0 w-full h-full object-cover pointer-events-none rounded-lg opacity-85"
         />
+
+        {/* SVG overlay for animated glowing path connections (lightning / fiber lines) */}
+        <svg
+          className="absolute inset-0 w-full h-full pointer-events-none z-20"
+          viewBox="0 0 100 80"
+          preserveAspectRatio="none"
+        >
+          <defs>
+            {/* Linear gradient for running light particles */}
+            <linearGradient id="goldLightningGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#fff" stopOpacity="0.2" />
+              <stop offset="50%" stopColor="#f59e0b" stopOpacity="1" />
+              <stop offset="100%" stopColor="#fff" stopOpacity="0.2" />
+            </linearGradient>
+            
+            {/* Core glow filter for lines */}
+            <filter id="glowFilter" x="-20%" y="-20%" width="140%" height="140%">
+              <feGaussianBlur stdDeviation="1.2" result="blur" />
+              <feComposite in="SourceGraphic" in2="blur" operator="over" />
+            </filter>
+          </defs>
+
+          {/* Connection routes matching nodes:
+              Lagos (10, 76), Edo (29, 72), Cross River (49, 79), Abuja (40, 49), Benue (51, 64), Borno (85, 24)
+              Add some helper coordinates:
+              Sokoto (16, 20), Kano (50, 24)
+          */}
+          
+          {/* Base fiber connection paths (semi-transparent static glow) */}
+          <path d="M 10 76 Q 20 74, 29 72" fill="none" stroke="#f59e0b" strokeWidth="1" className="opacity-25" />
+          <path d="M 29 72 Q 35 60, 40 49" fill="none" stroke="#6366f1" strokeWidth="1" className="opacity-25" />
+          <path d="M 40 49 Q 62 36, 85 24" fill="none" stroke="#f59e0b" strokeWidth="1" className="opacity-25" />
+          <path d="M 40 49 Q 45 56, 51 64" fill="none" stroke="#ef4444" strokeWidth="1" className="opacity-25" />
+          <path d="M 51 64 Q 50 71, 49 79" fill="none" stroke="#8b5cf6" strokeWidth="1" className="opacity-25" />
+          <path d="M 10 76 Q 12 48, 16 20" fill="none" stroke="#06b6d4" strokeWidth="1" className="opacity-25" />
+          <path d="M 16 20 Q 28 35, 40 49" fill="none" stroke="#6366f1" strokeWidth="1" className="opacity-25" />
+          <path d="M 40 49 Q 45 36, 50 24" fill="none" stroke="#10b981" strokeWidth="1" className="opacity-25" />
+          <path d="M 50 24 Q 67 24, 85 24" fill="none" stroke="#f59e0b" strokeWidth="1" className="opacity-25" />
+          <path d="M 29 72 Q 40 76, 49 79" fill="none" stroke="#8b5cf6" strokeWidth="1" className="opacity-25" />
+
+          {/* Animated Glowing Light Paths (running fiber lightning effect) */}
+          <path
+            d="M 10 76 Q 20 74, 29 72"
+            fill="none"
+            stroke="url(#goldLightningGlow)"
+            strokeWidth="1.8"
+            strokeDasharray="8, 20"
+            className="animate-dash-fast"
+            filter="url(#glowFilter)"
+          />
+          <path
+            d="M 29 72 Q 35 60, 40 49"
+            fill="none"
+            stroke="url(#goldLightningGlow)"
+            strokeWidth="1.8"
+            strokeDasharray="8, 20"
+            className="animate-dash-slow"
+            filter="url(#glowFilter)"
+          />
+          <path
+            d="M 40 49 Q 62 36, 85 24"
+            fill="none"
+            stroke="url(#goldLightningGlow)"
+            strokeWidth="1.8"
+            strokeDasharray="12, 35"
+            className="animate-dash-fast"
+            filter="url(#glowFilter)"
+          />
+          <path
+            d="M 40 49 Q 45 56, 51 64"
+            fill="none"
+            stroke="url(#goldLightningGlow)"
+            strokeWidth="1.8"
+            strokeDasharray="8, 20"
+            className="animate-dash-medium"
+            filter="url(#glowFilter)"
+          />
+          <path
+            d="M 51 64 Q 50 71, 49 79"
+            fill="none"
+            stroke="url(#goldLightningGlow)"
+            strokeWidth="1.8"
+            strokeDasharray="8, 20"
+            className="animate-dash-fast"
+            filter="url(#glowFilter)"
+          />
+          <path
+            d="M 10 76 Q 12 48, 16 20"
+            fill="none"
+            stroke="url(#goldLightningGlow)"
+            strokeWidth="1.8"
+            strokeDasharray="10, 30"
+            className="animate-dash-slow"
+            filter="url(#glowFilter)"
+          />
+          <path
+            d="M 16 20 Q 28 35, 40 49"
+            fill="none"
+            stroke="url(#goldLightningGlow)"
+            strokeWidth="1.8"
+            strokeDasharray="8, 20"
+            className="animate-dash-medium"
+            filter="url(#glowFilter)"
+          />
+          <path
+            d="M 40 49 Q 45 36, 50 24"
+            fill="none"
+            stroke="url(#goldLightningGlow)"
+            strokeWidth="1.8"
+            strokeDasharray="8, 25"
+            className="animate-dash-fast"
+            filter="url(#glowFilter)"
+          />
+          <path
+            d="M 50 24 Q 67 24, 85 24"
+            fill="none"
+            stroke="url(#goldLightningGlow)"
+            strokeWidth="1.8"
+            strokeDasharray="10, 30"
+            className="animate-dash-medium"
+            filter="url(#glowFilter)"
+          />
+          <path
+            d="M 29 72 Q 40 76, 49 79"
+            fill="none"
+            stroke="url(#goldLightningGlow)"
+            strokeWidth="1.8"
+            strokeDasharray="8, 20"
+            className="animate-dash-fast"
+            filter="url(#glowFilter)"
+          />
+        </svg>
 
         {/* Dynamic, Slow-Pulsing Zonal Hotspot Dots */}
         {MAP_NODES.map((node) => {
           const isActive = activeNode === node.id;
           
-          // Map to precise geographical coordinates on the cropped NBS map image
           let leftPercent = "50%";
           let topPercent = "50%";
           
-          if (node.id === "abuja") { leftPercent = "43.5%"; topPercent = "48%"; }
-          else if (node.id === "borno") { leftPercent = "86.5%"; topPercent = "20%"; }
-          else if (node.id === "lagos") { leftPercent = "9.5%"; topPercent = "78%"; }
-          else if (node.id === "benue") { leftPercent = "54.5%"; topPercent = "63.5%"; }
-          else if (node.id === "edo") { leftPercent = "28.5%"; topPercent = "72%"; }
-          else if (node.id === "cross_river") { leftPercent = "48%"; topPercent = "78.5%"; }
+          if (node.id === "abuja") { leftPercent = "40%"; topPercent = "49%"; }
+          else if (node.id === "borno") { leftPercent = "85%"; topPercent = "24%"; }
+          else if (node.id === "lagos") { leftPercent = "10%"; topPercent = "76%"; }
+          else if (node.id === "benue") { leftPercent = "51%"; topPercent = "64%"; }
+          else if (node.id === "edo") { leftPercent = "29%"; topPercent = "72%"; }
+          else if (node.id === "cross_river") { leftPercent = "49%"; topPercent = "79%"; }
           
           return (
             <div
@@ -361,28 +500,52 @@ const NigeriaMapSVG = ({ activeNode, onHoverNode }: { activeNode: string; onHove
             >
               {/* Pulsing ring check animation */}
               <span
-                className="absolute inline-flex h-7 w-7 rounded-full opacity-60 animate-ping"
+                className="absolute inline-flex h-9 w-9 -left-[18px] -top-[18px] rounded-full opacity-75 animate-ping border border-white/30"
+                style={{
+                  backgroundColor: `${node.color}25`,
+                  animationDuration: node.pingSpeed
+                }}
+              />
+              <span
+                className="absolute inline-flex h-6 w-6 -left-[12px] -top-[12px] rounded-full opacity-35 animate-pulse"
                 style={{
                   backgroundColor: node.color,
-                  animationDuration: node.pingSpeed
                 }}
               />
               {/* Solid inner dot */}
               <span
-                className={`relative inline-flex rounded-full h-3.5 w-3.5 border-2 border-white shadow-elegant transition-all duration-300 group-hover:scale-125 ${
-                  isActive ? "scale-125 ring-2 ring-primary/30" : ""
+                className={`relative inline-flex rounded-full h-4 w-4 border-2 border-white shadow-[0_0_12px_rgba(255,255,255,0.8)] transition-all duration-300 group-hover:scale-125 ${
+                  isActive ? "scale-135 ring-4 ring-white/30" : ""
                 }`}
                 style={{ backgroundColor: node.color }}
               />
               
               {/* Hover Tooltip Box */}
-              <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block bg-slate-900/95 text-white text-[9px] font-bold py-1 px-2 rounded shadow-lg whitespace-nowrap z-50 animate-fade-in">
+              <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block bg-slate-900/95 text-white text-[9px] font-bold py-1 px-2 rounded shadow-lg whitespace-nowrap z-50 animate-fade-in border border-white/10">
                 {node.name}
               </div>
             </div>
           );
         })}
       </div>
+      
+      {/* Dynamic CSS animations injected directly */}
+      <style dangerouslySetInnerHTML={{__html: `
+        @keyframes strokeDash {
+          to {
+            stroke-dashoffset: -100;
+          }
+        }
+        .animate-dash-fast {
+          animation: strokeDash 3s linear infinite;
+        }
+        .animate-dash-medium {
+          animation: strokeDash 4.5s linear infinite;
+        }
+        .animate-dash-slow {
+          animation: strokeDash 6s linear infinite;
+        }
+      `}} />
     </div>
   );
 };
@@ -391,6 +554,104 @@ export default function AdminDashboard() {
   const { user, role, signOut } = useAuth();
   const [registrants, setRegistrants] = useState<Registrant[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Interventions states
+  const [interventions, setInterventions] = useState<Intervention[]>([]);
+  const [interventionsLoading, setInterventionsLoading] = useState(true);
+  
+  // Create / Edit modal states for Interventions
+  const [isLogInterventionOpen, setIsLogInterventionOpen] = useState(false);
+  const [editingIntervention, setEditingIntervention] = useState<Intervention | null>(null);
+  const [interventionCamp, setInterventionCamp] = useState("");
+  const [interventionCategory, setInterventionCategory] = useState("");
+  const [interventionCount, setInterventionCount] = useState("");
+  const [interventionDetails, setInterventionDetails] = useState("");
+  const [interventionSearch, setInterventionSearch] = useState("");
+  
+  const [refugeeMonthFilter, setRefugeeMonthFilter] = useState<string>("all");
+  const [idpMonthFilter, setIdpMonthFilter] = useState<string>("all");
+  const [migrantMonthFilter, setMigrantMonthFilter] = useState<string>("all");
+
+  const MONTHS_LIST = [
+    { value: "all", label: "All Months" },
+    { value: "0", label: "Jan" },
+    { value: "1", label: "Feb" },
+    { value: "2", label: "Mar" },
+    { value: "3", label: "Apr" },
+    { value: "4", label: "May" },
+    { value: "5", label: "Jun" },
+    { value: "6", label: "Jul" },
+    { value: "7", label: "Aug" },
+    { value: "8", label: "Sep" },
+    { value: "9", label: "Oct" },
+    { value: "10", label: "Nov" },
+    { value: "11", label: "Dec" },
+  ];
+
+  const getStatesDataForCategory = (
+    cat: "refugee" | "idp" | "migrant",
+    monthFilter: string
+  ) => {
+    let filtered = registrants.filter((r) => {
+      const matchCat = r.category === cat || (cat === "migrant" && r.category === "returnee");
+      if (!matchCat) return false;
+      
+      if (monthFilter !== "all") {
+        const regMonth = new Date(r.created_at).getMonth().toString();
+        return regMonth === monthFilter;
+      }
+      return true;
+    });
+
+    const stateCounts: Record<string, number> = {};
+    filtered.forEach((r) => {
+      let state = r.state_origin;
+      if (cat === "refugee") {
+        state = r.nationality || "Cameroon";
+        if (state.toLowerCase() === "nigeria" || state === "N/A" || state.trim() === "") {
+          state = "Cross River";
+        }
+      }
+      if (!state || state.trim() === "" || state === "N/A" || /^\d{4}-\d{2}-\d{2}$/.test(state)) {
+        state = "Borno";
+      }
+      stateCounts[state] = (stateCounts[state] || 0) + 1;
+    });
+
+    const defaults = {
+      refugee: ["Cameroon", "Niger", "Chad", "Sudan", "Syria", "Congo"],
+      idp: ["Borno", "Benue", "Adamawa", "Yobe", "Nasarawa", "Taraba"],
+      migrant: ["Edo", "Lagos", "Kano", "Delta", "Ogun", "Abuja"]
+    };
+
+    const sortedStates = Object.keys(stateCounts).sort((a, b) => stateCounts[b] - stateCounts[a]);
+    
+    const finalLabels: string[] = [];
+    const finalData: number[] = [];
+    
+    sortedStates.slice(0, 6).forEach((state) => {
+      finalLabels.push(state);
+      finalData.push(stateCounts[state]);
+    });
+    
+    defaults[cat].forEach((defaultState) => {
+      if (finalLabels.length < 6 && !finalLabels.includes(defaultState)) {
+        finalLabels.push(defaultState);
+        const simulatedBases = {
+          refugee: [15, 12, 10, 8, 5, 4],
+          idp: [35, 28, 22, 18, 14, 10],
+          migrant: [25, 20, 16, 12, 8, 5]
+        };
+        const idx = finalLabels.length - 1;
+        finalData.push(simulatedBases[cat][idx] || 5);
+      }
+    });
+
+    return {
+      labels: finalLabels,
+      data: finalData
+    };
+  };
   
   // OPay-style Report Statement request states
   const [reportStartDate, setReportStartDate] = useState(() => {
@@ -570,8 +831,54 @@ export default function AdminDashboard() {
     setLoading(false);
   };
 
+  const loadInterventions = async () => {
+    setInterventionsLoading(true);
+    let remoteInterventions: Intervention[] = [];
+    try {
+      const { data, error } = await supabase
+        .from("interventions")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      remoteInterventions = (data as Intervention[]) || [];
+    } catch (e) {
+      console.warn("Failed to fetch remote interventions: ", e);
+    }
+
+    // Merge with local storage fallback data
+    const merged = [...remoteInterventions];
+    try {
+      const local = JSON.parse(localStorage.getItem("ncfrmi_interventions") || "[]") as any[];
+      const localMapped = local.map((item) => ({
+        id: item.id || `int-${Math.random().toString(36).slice(2, 8)}`,
+        camp: item.camp || "",
+        category: item.category || "",
+        details: item.details || "",
+        count: Number(item.count) || 0,
+        created_at: item.date ? new Date(item.date).toISOString() : new Date().toISOString(),
+        captured_by: item.officer || "officer@ncfrmi.gov.ng",
+        is_local: true
+      }));
+
+      // Deduplicate by ID
+      const remoteIds = new Set(remoteInterventions.map((r) => r.id));
+      localMapped.forEach((r) => {
+        if (!remoteIds.has(r.id)) {
+          merged.push(r);
+        }
+      });
+    } catch (e) {
+      console.error("Failed to merge local interventions: ", e);
+    }
+
+    merged.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    setInterventions(merged);
+    setInterventionsLoading(false);
+  };
+
   useEffect(() => {
     loadData();
+    loadInterventions();
   }, []);
 
   const handleDelete = async (id: string, isLocal?: boolean) => {
@@ -627,6 +934,165 @@ export default function AdminDashboard() {
     } catch (e) {
       const errMsg = e instanceof Error ? e.message : String(e);
       toast.error(errMsg || "Failed to update record");
+    }
+  };
+
+  const handleCreateIntervention = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!interventionCamp || !interventionCategory || !interventionDetails || !interventionCount) {
+      toast.error("Please fill all fields.");
+      return;
+    }
+
+    const countNum = Number(interventionCount);
+    if (isNaN(countNum) || countNum <= 0) {
+      toast.error("Please enter a valid count.");
+      return;
+    }
+
+    const tempId = `int-${Math.random().toString(36).slice(2, 8)}`;
+    const email = user?.email || "commissioner@ncfrmi.gov.ng";
+    const dateStr = new Date().toISOString();
+
+    const newLocalItem = {
+      id: tempId,
+      camp: interventionCamp,
+      category: interventionCategory,
+      details: interventionDetails,
+      count: countNum,
+      date: new Date().toLocaleString(),
+      officer: email
+    };
+
+    // Save locally first
+    try {
+      const local = JSON.parse(localStorage.getItem("ncfrmi_interventions") || "[]");
+      localStorage.setItem("ncfrmi_interventions", JSON.stringify([newLocalItem, ...local]));
+    } catch (err) {
+      console.error(err);
+    }
+
+    // Try Supabase
+    try {
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      const { error } = await supabase.from("interventions").insert({
+        camp: interventionCamp,
+        category: interventionCategory,
+        details: interventionDetails,
+        count: countNum,
+        captured_by: authUser?.id || null
+      });
+
+      if (error) throw error;
+
+      toast.success("Intervention logged and synced to database.");
+      loadInterventions();
+    } catch (err) {
+      console.warn("Failed to sync to database, saved locally", err);
+      toast.success("Intervention logged locally (cached).");
+      
+      const newIntervention: Intervention = {
+        id: tempId,
+        camp: interventionCamp,
+        category: interventionCategory,
+        details: interventionDetails,
+        count: countNum,
+        created_at: dateStr,
+        captured_by: email,
+        is_local: true
+      };
+      setInterventions(prev => [newIntervention, ...prev]);
+    }
+
+    // Reset fields
+    setInterventionCamp("");
+    setInterventionCategory("");
+    setInterventionCount("");
+    setInterventionDetails("");
+    setIsLogInterventionOpen(false);
+  };
+
+  const handleUpdateIntervention = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingIntervention) return;
+
+    if (!interventionCamp || !interventionCategory || !interventionDetails || !interventionCount) {
+      toast.error("Please fill all fields.");
+      return;
+    }
+
+    const countNum = Number(interventionCount);
+    if (isNaN(countNum) || countNum <= 0) {
+      toast.error("Please enter a valid count.");
+      return;
+    }
+
+    if (editingIntervention.is_local) {
+      try {
+        const local = JSON.parse(localStorage.getItem("ncfrmi_interventions") || "[]") as any[];
+        const updated = local.map((item) =>
+          item.id === editingIntervention.id
+            ? { ...item, camp: interventionCamp, category: interventionCategory, details: interventionDetails, count: countNum }
+            : item
+        );
+        localStorage.setItem("ncfrmi_interventions", JSON.stringify(updated));
+        toast.success("Local intervention updated.");
+      } catch (err) {
+        console.error(err);
+      }
+      
+      setInterventions(prev =>
+        prev.map((item) =>
+          item.id === editingIntervention.id
+            ? { ...item, camp: interventionCamp, category: interventionCategory, details: interventionDetails, count: countNum }
+            : item
+        )
+      );
+    } else {
+      try {
+        const { error } = await supabase
+          .from("interventions")
+          .update({
+            camp: interventionCamp,
+            category: interventionCategory,
+            details: interventionDetails,
+            count: countNum
+          })
+          .eq("id", editingIntervention.id);
+
+        if (error) throw error;
+        toast.success("Remote intervention updated successfully.");
+        loadInterventions();
+      } catch (err) {
+        const errMsg = err instanceof Error ? err.message : String(err);
+        toast.error(errMsg || "Failed to update intervention");
+      }
+    }
+
+    setEditingIntervention(null);
+    setInterventionCamp("");
+    setInterventionCategory("");
+    setInterventionCount("");
+    setInterventionDetails("");
+  };
+
+  const handleDeleteIntervention = async (id: string, isLocal?: boolean) => {
+    if (!window.confirm("Are you sure you want to permanently delete this intervention record?")) return;
+    try {
+      if (isLocal) {
+        const local = JSON.parse(localStorage.getItem("ncfrmi_interventions") || "[]") as any[];
+        const updated = local.filter((r) => r.id !== id);
+        localStorage.setItem("ncfrmi_interventions", JSON.stringify(updated));
+        toast.success("Local intervention record deleted");
+      } else {
+        const { error } = await supabase.from("interventions").delete().eq("id", id);
+        if (error) throw error;
+        toast.success("Remote intervention record deleted");
+      }
+      setInterventions((prev) => prev.filter((r) => r.id !== id));
+    } catch (e) {
+      const errMsg = e instanceof Error ? e.message : String(e);
+      toast.error(errMsg || "Failed to delete record");
     }
   };
 
@@ -841,17 +1307,6 @@ export default function AdminDashboard() {
           doc.setTextColor(100, 116, 139);
           doc.text(`* Showing first 12 of ${rangeFiltered.length} records. Full statement database is downloadable as CSV.`, 12, y);
         }
-        
-        // Commissioner Signature Block
-        doc.setDrawColor(148, 163, 184);
-        doc.line(200, 175, 270, 175);
-        doc.setFont("Helvetica", "bold");
-        doc.setFontSize(8);
-        doc.setTextColor(51, 65, 85);
-        doc.text("HON. FEDERAL COMMISSIONER'S SIGNATURE", 208, 180);
-        doc.setFont("Helvetica", "normal");
-        doc.text("NCFRMI Headquaters, FCT Abuja.", 209, 184);
-        
         // Open PDF directly in new window
         const blob = doc.output("blob");
         const blobUrl = URL.createObjectURL(blob);
@@ -1001,9 +1456,10 @@ export default function AdminDashboard() {
             { id: "summary", label: "Exc. Summary", icon: Database },
             { id: "query", label: "Query Console", icon: Search },
             { id: "state", label: "Regional States", icon: MapPin },
-            { id: "poc", label: "POC (Intake)", icon: Users },
+            { id: "poc", label: "PoCs Intake", icon: Users },
             { id: "camps", label: "Camps Directory", icon: Home },
             { id: "host_comm", label: "Host Comm", icon: Globe },
+            { id: "interventions", label: "Interventions", icon: Activity },
             { id: "roles", label: "User Roles Manager", icon: UserCheck },
             { id: "report", label: "Audits & Reports", icon: FileText }
           ].map((tab) => {
@@ -1049,12 +1505,26 @@ export default function AdminDashboard() {
                   {/* Circle display */}
                   <CircularProgress value={refugeeCount} total={totalCount} color="#6366f1" />
                   
-                  <div className="border-t pt-4">
-                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest block mb-1">
-                      Graphical Rep (Intake Density)
-                    </span>
+                  <div className="border-t pt-4 text-left">
+                    <div className="flex items-center justify-between pb-2 mb-1">
+                      <span className="text-[9px] font-extrabold text-muted-foreground uppercase tracking-widest">
+                        Graphical Rep (Intake Density)
+                      </span>
+                      <select
+                        value={refugeeMonthFilter}
+                        onChange={(e) => setRefugeeMonthFilter(e.target.value)}
+                        className="text-[9px] font-bold bg-background border border-indigo-250/20 rounded px-1.5 py-0.5 text-foreground cursor-pointer focus:outline-none focus:ring-1 focus:ring-primary"
+                      >
+                        {MONTHS_LIST.map((m) => (
+                          <option key={m.value} value={m.value}>{m.label}</option>
+                        ))}
+                      </select>
+                    </div>
                     {/* Graphical Rep Bar Chart */}
-                    <CustomBarChart data={getTrendsForCategory("refugee")} color="#6366f1" />
+                    {(() => {
+                      const chartVal = getStatesDataForCategory("refugee", refugeeMonthFilter);
+                      return <CustomBarChart data={chartVal.data} labels={chartVal.labels} color="#6366f1" />;
+                    })()}
                   </div>
                   <p className="text-[11px] text-muted-foreground leading-relaxed pt-2">
                     Asylum filings show a steady upward trend. Northern sector intakes represent 62% of monthly registrations.
@@ -1070,11 +1540,26 @@ export default function AdminDashboard() {
                   
                   <CircularProgress value={idpCount} total={totalCount} color="#f59e0b" />
                   
-                  <div className="border-t pt-4">
-                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest block mb-1">
-                      Graphical Rep (Intake Density)
-                    </span>
-                    <CustomBarChart data={getTrendsForCategory("idp")} color="#f59e0b" />
+                  <div className="border-t pt-4 text-left">
+                    <div className="flex items-center justify-between pb-2 mb-1">
+                      <span className="text-[9px] font-extrabold text-muted-foreground uppercase tracking-widest">
+                        Graphical Rep (Intake Density)
+                      </span>
+                      <select
+                        value={idpMonthFilter}
+                        onChange={(e) => setIdpMonthFilter(e.target.value)}
+                        className="text-[9px] font-bold bg-background border border-amber-250/20 rounded px-1.5 py-0.5 text-foreground cursor-pointer focus:outline-none"
+                      >
+                        {MONTHS_LIST.map((m) => (
+                          <option key={m.value} value={m.value}>{m.label}</option>
+                        ))}
+                      </select>
+                    </div>
+                    {/* Graphical Rep Bar Chart */}
+                    {(() => {
+                      const chartVal = getStatesDataForCategory("idp", idpMonthFilter);
+                      return <CustomBarChart data={chartVal.data} labels={chartVal.labels} color="#f59e0b" />;
+                    })()}
                   </div>
                   <p className="text-[11px] text-muted-foreground leading-relaxed pt-2">
                     Displacements due to climate events remain critical. Zonal shelter allocation reports 85% occupancy.
@@ -1090,11 +1575,26 @@ export default function AdminDashboard() {
                   
                   <CircularProgress value={migrantCount + returneeCount} total={totalCount} color="#10b981" />
                   
-                  <div className="border-t pt-4">
-                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest block mb-1">
-                      Graphical Rep (Intake Density)
-                    </span>
-                    <CustomBarChart data={getTrendsForCategory("migrant")} color="#10b981" />
+                  <div className="border-t pt-4 text-left">
+                    <div className="flex items-center justify-between pb-2 mb-1">
+                      <span className="text-[9px] font-extrabold text-muted-foreground uppercase tracking-widest">
+                        Graphical Rep (Intake Density)
+                      </span>
+                      <select
+                        value={migrantMonthFilter}
+                        onChange={(e) => setMigrantMonthFilter(e.target.value)}
+                        className="text-[9px] font-bold bg-background border border-emerald-250/20 rounded px-1.5 py-0.5 text-foreground cursor-pointer focus:outline-none"
+                      >
+                        {MONTHS_LIST.map((m) => (
+                          <option key={m.value} value={m.value}>{m.label}</option>
+                        ))}
+                      </select>
+                    </div>
+                    {/* Graphical Rep Bar Chart */}
+                    {(() => {
+                      const chartVal = getStatesDataForCategory("migrant", migrantMonthFilter);
+                      return <CustomBarChart data={chartVal.data} labels={chartVal.labels} color="#10b981" />;
+                    })()}
                   </div>
                   <p className="text-[11px] text-muted-foreground leading-relaxed pt-2">
                     Repatriation transit programs are active. Regularized border syncs are successfully completed.
@@ -1933,6 +2433,164 @@ export default function AdminDashboard() {
             </Card>
           </div>
         )}
+
+        {/* VIEW 9: INTERVENTIONS */}
+        {activeTab === "interventions" && (
+          <div className="space-y-6 animate-fade-in">
+            {/* Stat cards for interventions */}
+            <div className="grid gap-4 md:grid-cols-4">
+              <Card className="p-4 shadow-sm border-border bg-card">
+                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Total Distribution Events</span>
+                <span className="text-2xl font-extrabold text-foreground mt-1 block">{interventions.length}</span>
+              </Card>
+              <Card className="p-4 shadow-sm border-border bg-card">
+                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Total Resources / Persons Reached</span>
+                <span className="text-2xl font-extrabold text-indigo-600 mt-1 block">
+                  {interventions.reduce((sum, item) => sum + (item.count || 0), 0).toLocaleString()}
+                </span>
+              </Card>
+              <Card className="p-4 shadow-sm border-border bg-card">
+                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Food & Nutrition Events</span>
+                <span className="text-2xl font-extrabold text-amber-600 mt-1 block">
+                  {interventions.filter(i => i.category === "Food & Nutrition").length}
+                </span>
+              </Card>
+              <Card className="p-4 shadow-sm border-border bg-card">
+                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Medical & Healthcare Events</span>
+                <span className="text-2xl font-extrabold text-emerald-600 mt-1 block">
+                  {interventions.filter(i => i.category === "Medical & Healthcare").length}
+                </span>
+              </Card>
+            </div>
+
+            {/* Filter and Table Panel */}
+            <Card className="p-6 shadow-card border-border bg-card">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b pb-4 mb-4">
+                <div>
+                  <h3 className="font-display font-bold text-foreground text-sm">Intervention Registries</h3>
+                  <p className="text-[10px] text-muted-foreground">Monitor and distribute resources across target camps and centers</p>
+                </div>
+                
+                <div className="flex flex-wrap gap-2 items-center">
+                  <div className="relative w-full sm:w-60">
+                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search camp or category..."
+                      value={interventionSearch}
+                      onChange={(e) => setInterventionSearch(e.target.value)}
+                      className="pl-9 text-xs"
+                    />
+                  </div>
+
+                  <Button
+                    onClick={() => {
+                      setInterventionCamp("");
+                      setInterventionCategory("");
+                      setInterventionCount("");
+                      setInterventionDetails("");
+                      setEditingIntervention(null);
+                      setIsLogInterventionOpen(true);
+                    }}
+                    className="bg-emerald-800 text-white hover:bg-emerald-700 text-xs font-bold uppercase py-1.5 h-9 rounded"
+                  >
+                    + Log Intervention
+                  </Button>
+                </div>
+              </div>
+
+              {interventionsLoading ? (
+                <div className="p-10 text-center text-xs text-muted-foreground flex flex-col items-center gap-2">
+                  <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                  Loading interventions...
+                </div>
+              ) : interventions.length === 0 ? (
+                <div className="p-10 text-center text-xs text-muted-foreground">No interventions logged yet in the database.</div>
+              ) : (
+                <div className="overflow-x-auto border rounded-lg">
+                  <table className="w-full text-xs text-left">
+                    <thead className="bg-muted/40 uppercase tracking-wider text-muted-foreground border-b text-[10px]">
+                      <tr>
+                        <th className="p-3.5">ID/Ref</th>
+                        <th className="p-3.5">Target Camp</th>
+                        <th className="p-3.5">Category</th>
+                        <th className="p-3.5">Details</th>
+                        <th className="p-3.5">Count / Units</th>
+                        <th className="p-3.5">Logged By</th>
+                        <th className="p-3.5">Date</th>
+                        <th className="p-3.5 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y">
+                      {interventions
+                        .filter(item => {
+                          const q = interventionSearch.toLowerCase();
+                          return (
+                            item.camp.toLowerCase().includes(q) ||
+                            item.category.toLowerCase().includes(q) ||
+                            item.details.toLowerCase().includes(q)
+                          );
+                        })
+                        .map((item) => (
+                          <tr key={item.id} className="hover:bg-muted/30 transition-colors">
+                            <td className="p-3.5 font-mono text-muted-foreground text-[10px]">
+                              {item.id.startsWith("int-") ? item.id.toUpperCase() : item.id.slice(0, 8).toUpperCase()}
+                              {item.is_local && (
+                                <Badge variant="outline" className="ml-1 bg-amber-50 text-[8px] font-bold text-amber-700 border-amber-200">
+                                  LOCAL
+                                </Badge>
+                              )}
+                            </td>
+                            <td className="p-3.5 font-semibold text-foreground">{item.camp}</td>
+                            <td className="p-3.5">
+                              <Badge className="bg-slate-100 text-slate-900 border-slate-200 font-semibold text-[9px] uppercase">
+                                {item.category}
+                              </Badge>
+                            </td>
+                            <td className="p-3.5 max-w-[250px] truncate" title={item.details}>
+                              {item.details}
+                            </td>
+                            <td className="p-3.5 font-bold text-foreground">
+                              {item.count.toLocaleString()}
+                            </td>
+                            <td className="p-3.5 text-muted-foreground text-[10px] truncate max-w-[120px]" title={item.captured_by}>
+                              {item.captured_by || "system"}
+                            </td>
+                            <td className="p-3.5 text-muted-foreground text-[10px] whitespace-nowrap">
+                              {new Date(item.created_at).toLocaleDateString()}
+                            </td>
+                            <td className="p-3.5 text-right space-x-1 whitespace-nowrap">
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 w-7 p-0 text-slate-600 hover:text-emerald-700"
+                                onClick={() => {
+                                  setEditingIntervention(item);
+                                  setInterventionCamp(item.camp);
+                                  setInterventionCategory(item.category);
+                                  setInterventionCount(String(item.count));
+                                  setInterventionDetails(item.details);
+                                }}
+                              >
+                                <Edit className="h-3.5 w-3.5" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 w-7 p-0 text-slate-600 hover:text-red-700"
+                                onClick={() => handleDeleteIntervention(item.id, item.is_local)}
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </td>
+                          </tr>
+                        ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </Card>
+          </div>
+        )}
       </>
     )}
       </div>
@@ -2173,6 +2831,152 @@ export default function AdminDashboard() {
               </div>
             </>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Log New Intervention Dialog */}
+      <Dialog open={isLogInterventionOpen} onOpenChange={setIsLogInterventionOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Log Distribution/Intervention Event</DialogTitle>
+            <DialogDescription>Record relief resource deliveries and support distributions.</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleCreateIntervention} className="space-y-4 py-3">
+            <div>
+              <label className="text-xs font-semibold text-muted-foreground">Target Camp / Zonal Hub</label>
+              <select
+                required
+                value={interventionCamp}
+                onChange={(e) => setInterventionCamp(e.target.value)}
+                className="mt-1 block w-full rounded-md border border-border bg-background px-3 py-2 text-xs font-medium focus:border-primary focus:ring-primary focus:outline-none"
+              >
+                <option value="" disabled>-- Select target camp --</option>
+                <option value="Durumi Camp, Abuja">Durumi Camp, Abuja</option>
+                <option value="Kuchingoro Camp, Abuja">Kuchingoro Camp, Abuja</option>
+                <option value="Maiduguri Zonal Camp, Borno">Maiduguri Zonal Camp, Borno</option>
+                <option value="Gombe Zonal Camp">Gombe Zonal Camp</option>
+                <option value="Daudu Camp, Benue">Daudu Camp, Benue</option>
+                <option value="Uhogua Camp, Edo">Uhogua Camp, Edo</option>
+                <option value="Adagom Settlement, Cross River">Adagom Settlement, Cross River</option>
+                <option value="Lagos Transit Reception Center">Lagos Transit Reception Center</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-muted-foreground">Resource Category</label>
+              <select
+                required
+                value={interventionCategory}
+                onChange={(e) => setInterventionCategory(e.target.value)}
+                className="mt-1 block w-full rounded-md border border-border bg-background px-3 py-2 text-xs font-medium focus:border-primary focus:ring-primary focus:outline-none"
+              >
+                <option value="" disabled>-- Select category --</option>
+                <option value="Food & Nutrition">Food & Nutrition</option>
+                <option value="Medical & Healthcare">Medical & Healthcare</option>
+                <option value="Shelter & WAsH">Shelter & WAsH</option>
+                <option value="Education & Training">Education & Training</option>
+                <option value="Cash Assistance">Cash Assistance</option>
+                <option value="Legal Aid & Security">Legal Aid & Security</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-muted-foreground">Quantity / Count Reached</label>
+              <Input
+                type="number"
+                required
+                value={interventionCount}
+                onChange={(e) => setInterventionCount(e.target.value)}
+                placeholder="e.g. 500"
+                className="mt-1 text-xs"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-muted-foreground">Distribution Details</label>
+              <Textarea
+                required
+                value={interventionDetails}
+                onChange={(e) => setInterventionDetails(e.target.value)}
+                placeholder="Describe items, partners involved, and allocation circumstances..."
+                rows={3}
+                className="mt-1 text-xs"
+              />
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setIsLogInterventionOpen(false)}>Cancel</Button>
+              <Button type="submit" className="bg-emerald-800 text-white hover:bg-emerald-700">Submit Log</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Intervention Dialog */}
+      <Dialog open={!!editingIntervention} onOpenChange={(o) => { if (!o) setEditingIntervention(null); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Intervention Event</DialogTitle>
+            <DialogDescription>Modify resource distribution records.</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleUpdateIntervention} className="space-y-4 py-3">
+            <div>
+              <label className="text-xs font-semibold text-muted-foreground">Target Camp / Zonal Hub</label>
+              <select
+                required
+                value={interventionCamp}
+                onChange={(e) => setInterventionCamp(e.target.value)}
+                className="mt-1 block w-full rounded-md border border-border bg-background px-3 py-2 text-xs font-medium focus:border-primary focus:ring-primary focus:outline-none"
+              >
+                <option value="Durumi Camp, Abuja">Durumi Camp, Abuja</option>
+                <option value="Kuchingoro Camp, Abuja">Kuchingoro Camp, Abuja</option>
+                <option value="Maiduguri Zonal Camp, Borno">Maiduguri Zonal Camp, Borno</option>
+                <option value="Gombe Zonal Camp">Gombe Zonal Camp</option>
+                <option value="Daudu Camp, Benue">Daudu Camp, Benue</option>
+                <option value="Uhogua Camp, Edo">Uhogua Camp, Edo</option>
+                <option value="Adagom Settlement, Cross River">Adagom Settlement, Cross River</option>
+                <option value="Lagos Transit Reception Center">Lagos Transit Reception Center</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-muted-foreground">Resource Category</label>
+              <select
+                required
+                value={interventionCategory}
+                onChange={(e) => setInterventionCategory(e.target.value)}
+                className="mt-1 block w-full rounded-md border border-border bg-background px-3 py-2 text-xs font-medium focus:border-primary focus:ring-primary focus:outline-none"
+              >
+                <option value="Food & Nutrition">Food & Nutrition</option>
+                <option value="Medical & Healthcare">Medical & Healthcare</option>
+                <option value="Shelter & WAsH">Shelter & WAsH</option>
+                <option value="Education & Training">Education & Training</option>
+                <option value="Cash Assistance">Cash Assistance</option>
+                <option value="Legal Aid & Security">Legal Aid & Security</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-muted-foreground">Quantity / Count Reached</label>
+              <Input
+                type="number"
+                required
+                value={interventionCount}
+                onChange={(e) => setInterventionCount(e.target.value)}
+                placeholder="e.g. 500"
+                className="mt-1 text-xs"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-muted-foreground">Distribution Details</label>
+              <Textarea
+                required
+                value={interventionDetails}
+                onChange={(e) => setInterventionDetails(e.target.value)}
+                placeholder="Describe items, partners involved, and allocation circumstances..."
+                rows={3}
+                className="mt-1 text-xs"
+              />
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setEditingIntervention(null)}>Cancel</Button>
+              <Button type="submit" className="bg-emerald-800 text-white hover:bg-emerald-700">Save Changes</Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
     </Layout>

@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useState, ReactNode } from "react
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
-export type UserRole = "commissioner" | "officer" | "guest";
+export type UserRole = "superuser" | "commissioner" | "officer" | "guest";
 
 type Ctx = {
   session: Session | null;
@@ -39,7 +39,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             role: "authenticated",
             email: parsed.email,
             user_metadata: {
-              full_name: parsed.role === "commissioner" ? "Hon. Commissioner Aliyu Ahmed" : "Officer Musa Bello"
+              full_name: parsed.role === "superuser" ? "Super User (Control Center)" : parsed.role === "commissioner" ? "Hon. Commissioner Aliyu Ahmed" : "Officer Musa Bello"
             },
             app_metadata: {},
             created_at: new Date().toISOString()
@@ -97,6 +97,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const savedRoles = JSON.parse(localStorage.getItem("ncfrmi_user_roles") || "{}");
       if (savedRoles[email]) {
         setRoleState(savedRoles[email]);
+      } else if (email?.includes("superuser") || email?.includes("super")) {
+        setRoleState("superuser");
       } else if (email?.includes("commissioner")) {
         setRoleState("commissioner");
       } else if (email?.includes("officer")) {

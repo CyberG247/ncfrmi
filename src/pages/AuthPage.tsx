@@ -21,11 +21,36 @@ export default function AuthPage({ mode }: { mode: "login" | "register" }) {
     setLoading(true);
     try {
       if (isLogin) {
+        const isDemo = 
+          (email === "superuser@ncfrmi.gov.ng" && password === "superuser123") ||
+          (email === "commissioner@ncfrmi.gov.ng" && password === "commissioner123") ||
+          (email === "officer@ncfrmi.gov.ng" && password === "officer123");
+
+        if (isDemo) {
+          const role = email.includes("superuser") ? "superuser" : email.includes("commissioner") ? "commissioner" : "officer";
+          const mockUser = { email, role };
+          localStorage.setItem("ncfrmi_simulated_user", JSON.stringify(mockUser));
+          const savedRoles = JSON.parse(localStorage.getItem("ncfrmi_user_roles") || "{}");
+          savedRoles[email] = role;
+          localStorage.setItem("ncfrmi_user_roles", JSON.stringify(savedRoles));
+          
+          toast.success(`Demo signed in as ${role.toUpperCase()}`);
+          
+          // Perform direct page redirect load to force synchronous context initialization on mount
+          window.location.href = 
+            role === "superuser" ? "/super-admin" :
+            role === "commissioner" ? "/admin/dashboard" : 
+            "/field-capture";
+          return;
+        }
+
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
         toast.success("Signed in");
         if (email.includes("commissioner")) {
           navigate("/admin/dashboard");
+        } else if (email.includes("officer")) {
+          navigate("/field-capture");
         } else {
           navigate("/dashboard");
         }
@@ -45,7 +70,7 @@ export default function AuthPage({ mode }: { mode: "login" | "register" }) {
     } finally { setLoading(false); }
   };
 
-  const onSimulateLogin = async (role: "commissioner" | "officer") => {
+  const onSimulateLogin = async (role: "commissioner" | "officer" | "superuser") => {
     const email = `${role}@ncfrmi.gov.ng`;
     setLoading(true);
     try {
@@ -59,7 +84,10 @@ export default function AuthPage({ mode }: { mode: "login" | "register" }) {
       toast.success(`Signed in as simulated ${role}`);
       
       // Perform direct page redirect load to force synchronous context initialization on mount
-      window.location.href = role === "commissioner" ? "/admin/dashboard" : "/field-capture";
+      window.location.href = 
+        role === "superuser" ? "/super-admin" :
+        role === "commissioner" ? "/admin/dashboard" : 
+        "/field-capture";
     } catch (err: any) {
       toast.error(err?.message || "Simulation login failed");
     } finally {
@@ -105,6 +133,16 @@ export default function AuthPage({ mode }: { mode: "login" | "register" }) {
                 Simulator Mode (Quick Access)
               </div>
               <div className="grid gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="hover-lift border-emerald-600/25 text-emerald-700 bg-emerald-50 hover:bg-emerald-700 hover:text-white font-bold"
+                  onClick={() => onSimulateLogin("superuser")}
+                  disabled={loading}
+                >
+                  Login as Super User (Super Admin)
+                </Button>
                 <Button
                   type="button"
                   variant="outline"

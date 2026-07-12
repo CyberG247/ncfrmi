@@ -291,22 +291,6 @@ export async function downloadRegistrantPDF(r: any, logoSrc: string) {
       doc.text("SECURED SCAN", 155, bY + 20);
     }
 
-    // Signature Area
-    const sigY = 250;
-    doc.setDrawColor(148, 163, 184);
-    doc.setLineWidth(0.3);
-    doc.line(120, sigY, 195, sigY);
-
-    doc.setFont("Helvetica", "bold");
-    doc.setFontSize(8);
-    doc.setTextColor(51, 65, 85);
-    doc.text("HON. FEDERAL COMMISSIONER'S SIGNATURE", 121, sigY + 5);
-
-    doc.setFont("Helvetica", "normal");
-    doc.setFontSize(7.5);
-    doc.setTextColor(100, 116, 139);
-    doc.text("National Commission for Refugees, Migrants & IDPs", 121, sigY + 9);
-
     // Save PDF
     doc.save(`NCFRMI_Profile_${r.reference}.pdf`);
   } catch (err) {
@@ -629,13 +613,7 @@ export function printRegistrantProfile(r: any, logoSrc: string) {
           </div>
         </div>
         
-        <div class="signature-area">
-          <div class="signature-box">
-            <div style="height: 40px;"></div>
-            <strong>HON. FEDERAL COMMISSIONER'S SIGNATURE</strong><br/>
-            NCFRMI Headquarters, FCT Abuja.
-          </div>
-        </div>
+        
         
         <script>
           window.onload = function() {

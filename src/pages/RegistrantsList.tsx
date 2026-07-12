@@ -299,22 +299,6 @@ export default function RegistrantsList() {
         y += 7;
       });
 
-      // Signature Block on the last page
-      if (y > 170) {
-        doc.addPage();
-        y = 20;
-      }
-      
-      const sigY = 175;
-      doc.setDrawColor(148, 163, 184);
-      doc.line(200, sigY, 270, sigY);
-      doc.setFont("Helvetica", "bold");
-      doc.setFontSize(8);
-      doc.setTextColor(51, 65, 85);
-      doc.text("HON. FEDERAL COMMISSIONER'S SIGNATURE", 208, sigY + 5);
-      doc.setFont("Helvetica", "normal");
-      doc.text("NCFRMI Headquarters, FCT Abuja.", 209, sigY + 9);
-
       doc.save(`ncfrmi_registrants_report_${new Date().toISOString().slice(0, 10)}.pdf`);
       toast.success("PDF report generated successfully");
     }).catch((err) => {

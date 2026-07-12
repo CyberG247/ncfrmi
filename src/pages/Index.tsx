@@ -79,6 +79,16 @@ export default function Index() {
 
   return (
     <Layout>
+      {(() => {
+        const banner = localStorage.getItem("ncfrmi_homepage_banner");
+        if (!banner) return null;
+        return (
+          <div className="text-white font-semibold text-xs py-2.5 px-4 text-center animate-fade-in border-b relative z-50 flex items-center justify-center gap-2 shadow-sm" style={{ backgroundColor: "#b91c1c", borderColor: "#991b1b" }}>
+            <span className="h-2 w-2 rounded-full bg-white animate-pulse" />
+            <span>{banner}</span>
+          </div>
+        );
+      })()}
       {/* HERO */}
       <section className="relative overflow-hidden">
         {heroSlides.map((src, i) => (

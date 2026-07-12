@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Card } from "@/components/ui/card";
-import { Camera, Fingerprint, CheckCircle2, Loader2, RotateCcw, ShieldCheck, UserPlus, Download, Globe, Home, Activity, Eye, EyeOff } from "lucide-react";
+import { Camera, Fingerprint, CheckCircle2, Loader2, RotateCcw, ShieldCheck, UserPlus, Download, Globe, Home, Activity, Eye, EyeOff, Users } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import logo from "@/assets/ncfrmi-logo.png";
@@ -175,9 +175,18 @@ export default function FieldCapture() {
   const [scanning, setScanning] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
-  const [showIntro, setShowIntro] = useState(true);
+  const [showIntro, setShowIntro] = useState(false);
   const [simStep, setSimStep] = useState(0);
   const [appComingSoon, setAppComingSoon] = useState(false);
+  const [lastRef, setLastRef] = useState("");
+  const [enabledCategories, setEnabledCategories] = useState<string[]>(["refugee", "idp", "migrant", "returnee"]);
+
+  useEffect(() => {
+    const cats = localStorage.getItem("ncfrmi_enabled_categories");
+    if (cats) {
+      setEnabledCategories(JSON.parse(cats));
+    }
+  }, []);
   const [subCategoryOpen, setSubCategoryOpen] = useState(false);
   const [showInterventions, setShowInterventions] = useState(false);
   const [interventionsList, setInterventionsList] = useState<any[]>([]);
@@ -216,7 +225,7 @@ export default function FieldCapture() {
     }
   }, []);
 
-  const handleAddIntervention = (camp: string, category: string, details: string, count: number) => {
+  const handleAddIntervention = async (camp: string, category: string, details: string, count: number) => {
     if (!camp || !category || !details || count <= 0) {
       toast.error("Please fill in all intervention details correctly.");
       return;
@@ -235,8 +244,24 @@ export default function FieldCapture() {
     const updated = [newEntry, ...interventionsList];
     setInterventionsList(updated);
     localStorage.setItem("ncfrmi_interventions", JSON.stringify(updated));
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      const { error } = await supabase.from("interventions").insert({
+        camp,
+        category,
+        details,
+        count,
+        captured_by: user?.id || null
+      });
+      if (error) throw error;
+      toast.success("Intervention entry logged and synced!");
+    } catch (e) {
+      console.warn("Failed to sync intervention to Supabase: ", e);
+      toast.success("Intervention logged locally (cached for sync).");
+    }
+
     playBeep();
-    toast.success("Intervention entry logged and synced!");
   };
 
   useEffect(() => {
@@ -258,6 +283,9 @@ export default function FieldCapture() {
   const canNext = () => {
     if (step === 0) return !!data.type;
     if (step === 1) {
+      if (data.type === "refugee") {
+        return !!face && !!data.full_name && !!data.address && !!data.phone && !!data.dob && !!data.gender && !!data.nationality && !!data.state_origin;
+      }
       return !!face && !!data.full_name && !!data.address && !!data.phone && !!data.dob && !!data.gender &&
         !!data.nationality && !!data.state_origin && !!data.lga && data.reason.length >= 20 &&
         !!data.education_level && !!data.needs_details;
@@ -268,15 +296,135 @@ export default function FieldCapture() {
   };
 
   const reset = () => {
-    setStep(0); setData(empty); setFace(null); setThumb(null); setSuccess(false);
+    setStep(0); setData(empty); setFace(null); setThumb(null); setSuccess(false); setLastRef("");
+  };
+
+  const downloadRefugeeIDCard = async () => {
+    try {
+      const { jsPDF } = await import("jspdf");
+      const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: [85.6, 54] });
+      
+      // Green background header bar
+      doc.setFillColor(11, 102, 60);
+      doc.rect(0, 0, 85.6, 12, "F");
+      
+      // Gold accent line
+      doc.setFillColor(212, 175, 55);
+      doc.rect(0, 12, 85.6, 1, "F");
+      
+      // Header text
+      doc.setTextColor(255, 255, 255);
+      doc.setFont("Helvetica", "bold");
+      doc.setFontSize(5);
+      doc.text("NATIONAL COMMISSION FOR REFUGEES, MIGRANTS & IDPs", 42.8, 4, { align: "center" });
+      doc.setFontSize(6.5);
+      doc.text("REFUGEE IDENTITY CARD", 42.8, 9, { align: "center" });
+      
+      // Add logo
+      try {
+        const logoImg = new Image();
+        logoImg.src = logo;
+        doc.addImage(logoImg, "PNG", 2, 1, 9, 9);
+      } catch (e) {
+        console.warn("Logo load error:", e);
+      }
+      
+      // Body background
+      doc.setFillColor(253, 253, 253);
+      doc.rect(0, 13, 85.6, 41, "F");
+      
+      // Photo
+      if (face) {
+        try {
+          doc.addImage(face, "JPEG", 4, 16, 22, 26);
+        } catch (e) {
+          console.warn("Photo error:", e);
+        }
+      }
+      doc.setDrawColor(200, 200, 200);
+      doc.setLineWidth(0.2);
+      doc.rect(4, 16, 22, 26);
+      
+      // Details
+      doc.setTextColor(15, 23, 42);
+      doc.setFont("Helvetica", "bold");
+      doc.setFontSize(5.5);
+      
+      let xPos = 29;
+      let yPos = 20;
+      
+      doc.text("FULL NAME:", xPos, yPos);
+      doc.setFont("Helvetica", "normal");
+      doc.text(data.full_name.toUpperCase(), xPos + 18, yPos);
+      
+      yPos += 4.5;
+      doc.setFont("Helvetica", "bold");
+      doc.text("DATE OF BIRTH:", xPos, yPos);
+      doc.setFont("Helvetica", "normal");
+      doc.text(data.dob, xPos + 18, yPos);
+      
+      yPos += 4.5;
+      doc.setFont("Helvetica", "bold");
+      doc.text("COUNTRY OF ORIGIN:", xPos, yPos);
+      doc.setFont("Helvetica", "normal");
+      doc.text(data.nationality.toUpperCase(), xPos + 18, yPos);
+      
+      yPos += 4.5;
+      doc.setFont("Helvetica", "bold");
+      doc.text("GENDER:", xPos, yPos);
+      doc.setFont("Helvetica", "normal");
+      doc.text(data.gender.toUpperCase(), xPos + 18, yPos);
+      
+      yPos += 4.5;
+      doc.setFont("Helvetica", "bold");
+      doc.text("SETTLEMENT:", xPos, yPos);
+      doc.setFont("Helvetica", "normal");
+      doc.text(data.address.substring(0, 22).toUpperCase(), xPos + 18, yPos);
+
+      yPos += 6;
+      doc.setTextColor(11, 102, 60);
+      doc.setFont("Helvetica", "bold");
+      doc.setFontSize(6.5);
+      doc.text(`ID NO: ${lastRef}`, xPos, yPos);
+      
+      // Barcode strip
+      doc.setFillColor(240, 240, 240);
+      doc.rect(4, 46, 77.6, 6, "F");
+      
+      doc.setDrawColor(0, 0, 0);
+      doc.setLineWidth(0.4);
+      let barcodeX = 6;
+      for (let i = 0; i < 20; i++) {
+        const width = Math.random() > 0.4 ? 0.6 : 0.25;
+        const gap = Math.random() > 0.3 ? 0.8 : 0.4;
+        doc.setLineWidth(width);
+        doc.line(barcodeX, 47.5, barcodeX, 50.5);
+        barcodeX += gap;
+      }
+      
+      doc.setFont("Helvetica", "normal");
+      doc.setFontSize(4);
+      doc.setTextColor(100, 116, 139);
+      doc.text("BIOMETRIC VERIFIED SECURE ID", 50, 50);
+
+      doc.save(`NCFRMI_Refugee_Card_${data.full_name.replace(/\s+/g, "_")}.pdf`);
+      toast.success("Wallet-size ID Card PDF downloaded successfully!");
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to generate ID Card PDF");
+    }
   };
 
   const submit = async () => {
     setSubmitting(true);
-    const reference = `NCF-REG-${new Date().getFullYear()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+    const prefix = data.type === "refugee" ? "REF" : "REG";
+    const reference = `NCF-${prefix}-${new Date().getFullYear()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+    setLastRef(reference);
     const { data: u } = await supabase.auth.getUser();
 
-    const circumstancesMerged = `
+    const circumstancesMerged = data.type === "refugee"
+      ? `COUNTRY OF ORIGIN: ${data.nationality}\nDATE OF ARRIVAL: ${data.state_origin || "Not Specified"}\nASSIGNED SETTLEMENT: ${data.address}\nCASE PROFILE: Basic refugee intake biometrics.`
+      : `
 CAUSE OF DISPLACEMENT:
 ${data.reason}
 
@@ -299,8 +447,8 @@ NEEDS ASSESSMENT:
       gender: data.gender,
       nationality: data.nationality,
       state_origin: data.state_origin,
-      lga: data.lga,
-      dependants: Number(data.dependants) || 0,
+      lga: data.type === "refugee" ? "N/A" : data.lga,
+      dependants: data.type === "refugee" ? 0 : (Number(data.dependants) || 0),
       circumstances: circumstancesMerged,
       face_captured: !!face,
       thumb_captured: !!thumb,
@@ -327,10 +475,10 @@ NEEDS ASSESSMENT:
         const newLocalRecord = {
           id: Math.random().toString(36).slice(2, 11) + "-" + Math.random().toString(36).slice(2, 11),
           ...payload,
-          education_level: data.education_level,
-          skills: data.skills,
-          primary_needs: data.primary_needs,
-          needs_details: data.needs_details,
+          education_level: data.type === "refugee" ? "none" : data.education_level,
+          skills: data.type === "refugee" ? "" : data.skills,
+          primary_needs: data.type === "refugee" ? [] : data.primary_needs,
+          needs_details: data.type === "refugee" ? "" : data.needs_details,
           created_at: new Date().toISOString(),
           is_local: true,
         };
@@ -677,24 +825,27 @@ NEEDS ASSESSMENT:
                 <div className="absolute inset-0 bg-[radial-gradient(hsl(var(--primary))_1px,transparent_1px)] [background-size:16px_16px] opacity-[0.03] pointer-events-none" />
               )}
               
-              {step > 0 && (
-                <>
-                  <div className="mb-6 flex items-center justify-between">
-                    <div>
-                      <div className="text-xs uppercase tracking-wide text-muted-foreground">Step {step + 1} of {steps.length}</div>
-                      <h2 className="font-display text-2xl font-bold text-primary">{steps[step]}</h2>
+              {step > 0 && (() => {
+                const activeSteps = data.type === "refugee" ? ["Registration Type", "Basic Biodata", "Review", "Thumbprint Scan"] : steps;
+                return (
+                  <>
+                    <div className="mb-6 flex items-center justify-between">
+                      <div>
+                        <div className="text-xs uppercase tracking-wide text-muted-foreground">Step {step + 1} of {activeSteps.length}</div>
+                        <h2 className="font-display text-2xl font-bold text-primary">{activeSteps[step]}</h2>
+                      </div>
+                      <ShieldCheck className="h-8 w-8 text-accent" />
                     </div>
-                    <ShieldCheck className="h-8 w-8 text-accent" />
-                  </div>
-                  <Progress value={((step + 1) / steps.length) * 100} className="mb-6 h-2" />
-                </>
-              )}
+                    <Progress value={((step + 1) / activeSteps.length) * 100} className="mb-6 h-2" />
+                  </>
+                );
+              })()}
 
               {step === 0 && (
                 <div className="space-y-6">
                   <div className="border-b pb-4 mb-6 flex justify-between items-center">
                     <div>
-                      <h3 className="text-xs uppercase tracking-widest text-primary font-bold">Federal Republic of Nigeria</h3>
+                      <h3 className="text-xs uppercase tracking-widest text-primary font-bold">National Commission for Refugees, Migrants and Internally Displaced Persons</h3>
                       <h2 className="font-display text-xl sm:text-2xl font-extrabold text-foreground mt-0.5">DATA COLLECTION FORM</h2>
                     </div>
                     <img src={logo} alt="NCFRMI Crest" className="h-10 w-10 object-contain hover:scale-110 transition-transform duration-300" />
@@ -704,128 +855,131 @@ NEEDS ASSESSMENT:
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     
                     {/* Card 1: REFUGEES */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        set("type", "refugee");
-                        setStep(1);
-                      }}
-                      className="group flex flex-col items-start p-5 rounded-xl border border-border bg-card text-left transition-all duration-300 hover:border-primary/45 hover:shadow-elegant relative overflow-hidden active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-primary/40"
-                    >
-                      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                      <div className="flex items-center gap-3.5 z-10">
-                        <div className="h-10 w-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-bold group-hover:scale-110 transition-transform duration-300">
-                          <Globe className="h-5 w-5" />
+                    {enabledCategories.includes("refugee") && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          set("type", "refugee");
+                          set("nationality", ""); 
+                          set("state_origin", new Date().toISOString().slice(0, 10)); 
+                          setStep(1);
+                        }}
+                        className="group flex flex-col items-start p-5 rounded-xl border border-border bg-card text-left transition-all duration-300 hover:border-primary/45 hover:shadow-elegant relative overflow-hidden active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-primary/40"
+                      >
+                        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                        <div className="flex items-center gap-3.5 z-10">
+                          <div className="h-10 w-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-bold group-hover:scale-110 transition-transform duration-300">
+                            <Globe className="h-5 w-5" />
+                          </div>
+                          <div>
+                            <h4 className="font-display font-extrabold text-foreground text-sm tracking-wide uppercase">Refugees</h4>
+                            <span className="text-[9px] font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded-full mt-1 inline-block">
+                              Protection Division
+                            </span>
+                          </div>
                         </div>
-                        <div>
-                          <h4 className="font-display font-extrabold text-foreground text-sm tracking-wide uppercase">Refugees</h4>
-                          <span className="text-[9px] font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded-full mt-1 inline-block">
-                            Protection Division
-                          </span>
-                        </div>
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-3.5 leading-relaxed z-10">
-                        Enrol asylum seekers and certified refugees. Capture origin files and migration circumstances.
-                      </p>
-                    </button>
+                      </button>
+                    )}
 
                     {/* Card 2: IDPs */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        set("type", "idp");
-                        setStep(1);
-                      }}
-                      className="group flex flex-col items-start p-5 rounded-xl border border-border bg-card text-left transition-all duration-300 hover:border-primary/45 hover:shadow-elegant relative overflow-hidden active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-primary/40"
-                    >
-                      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                      <div className="flex items-center gap-3.5 z-10">
-                        <div className="h-10 w-10 rounded-lg bg-accent/10 text-accent flex items-center justify-center font-bold group-hover:scale-110 transition-transform duration-300">
-                          <Home className="h-5 w-5" />
+                    {enabledCategories.includes("idp") && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          set("type", "idp");
+                          setStep(1);
+                        }}
+                        className="group flex flex-col items-start p-5 rounded-xl border border-border bg-card text-left transition-all duration-300 hover:border-primary/45 hover:shadow-elegant relative overflow-hidden active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-primary/40"
+                      >
+                        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                        <div className="flex items-center gap-3.5 z-10">
+                          <div className="h-10 w-10 rounded-lg bg-accent/10 text-accent flex items-center justify-center font-bold group-hover:scale-110 transition-transform duration-300">
+                            <Home className="h-5 w-5" />
+                          </div>
+                          <div>
+                            <h4 className="font-display font-extrabold text-foreground text-sm tracking-wide uppercase">IDPs</h4>
+                            <span className="text-[9px] font-semibold text-accent bg-accent/10 px-2 py-0.5 rounded-full mt-1 inline-block">
+                              Camp Enrolment
+                            </span>
+                          </div>
                         </div>
-                        <div>
-                          <h4 className="font-display font-extrabold text-foreground text-sm tracking-wide uppercase">IDPs</h4>
-                          <span className="text-[9px] font-semibold text-accent bg-accent/10 px-2 py-0.5 rounded-full mt-1 inline-block">
-                            Camp Enrolment
-                          </span>
-                        </div>
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-3.5 leading-relaxed z-10">
-                        Register Internally Displaced Persons. Track shelter coordinates, camp assignments, and dependants.
-                      </p>
-                    </button>
+                      </button>
+                    )}
 
                     {/* Card 3: MIGRANTS / RETURNEES */}
-                    <div className="relative group flex flex-col items-start p-5 rounded-xl border border-border bg-card text-left transition-all duration-300 hover:border-primary/45 hover:shadow-elegant overflow-hidden">
-                      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                      
-                      {!subCategoryOpen ? (
-                        <div className="flex flex-col h-full w-full justify-between z-10">
-                          <div>
-                            <div className="flex items-center gap-3.5">
-                              <div className="h-10 w-10 rounded-lg bg-amber-500/10 text-amber-600 flex items-center justify-center font-bold group-hover:scale-110 transition-transform duration-300">
-                                <RotateCcw className="h-5 w-5" />
-                              </div>
-                              <div>
-                                <h4 className="font-display font-extrabold text-foreground text-sm tracking-wide uppercase">Migrants / Returnees</h4>
-                                <span className="text-[9px] font-semibold text-amber-600 bg-amber-500/10 px-2 py-0.5 rounded-full mt-1 inline-block">
-                                  Repatriation & Transit
-                                </span>
+                    {(enabledCategories.includes("migrant") || enabledCategories.includes("returnee")) && (
+                      <div className="relative group flex flex-col items-start p-5 rounded-xl border border-border bg-card text-left transition-all duration-300 hover:border-primary/45 hover:shadow-elegant overflow-hidden">
+                        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                        
+                        {!subCategoryOpen ? (
+                          <div className="flex flex-col h-full w-full justify-between z-10">
+                            <div>
+                              <div className="flex items-center gap-3.5">
+                                <div className="h-10 w-10 rounded-lg bg-amber-500/10 text-amber-600 flex items-center justify-center font-bold group-hover:scale-110 transition-transform duration-300">
+                                  <RotateCcw className="h-5 w-5" />
+                                </div>
+                                <div>
+                                  <h4 className="font-display font-extrabold text-foreground text-sm tracking-wide uppercase">Migrants / Returnees</h4>
+                                  <span className="text-[9px] font-semibold text-amber-600 bg-amber-500/10 px-2 py-0.5 rounded-full mt-1 inline-block">
+                                    Repatriation & Transit
+                                  </span>
+                                </div>
                               </div>
                             </div>
-                            <p className="text-xs text-muted-foreground mt-3.5 leading-relaxed">
-                              Enrol regularized migrants or returnee citizens. Track border transit and reintegration assets.
-                            </p>
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              onClick={() => setSubCategoryOpen(true)}
+                              className="mt-4 w-full text-xs font-bold bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200/50 hover-lift"
+                            >
+                              Choose Category
+                            </Button>
                           </div>
-                          <Button
-                            size="sm"
-                            variant="secondary"
-                            onClick={() => setSubCategoryOpen(true)}
-                            className="mt-4 w-full text-xs font-bold bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200/50 hover-lift"
-                          >
-                            Choose Category
-                          </Button>
-                        </div>
-                      ) : (
-                        <div className="flex flex-col w-full h-full justify-between z-10 animate-fade-in">
-                          <div>
-                            <h4 className="font-display font-extrabold text-foreground text-xs uppercase mb-2">Select category type:</h4>
-                            <p className="text-[10px] text-muted-foreground mb-4 leading-normal">Specify whether this enrollee is a regular Migrant or a Returnee.</p>
-                            <div className="grid grid-cols-2 gap-2">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  set("type", "migrant");
-                                  setStep(1);
-                                  setSubCategoryOpen(false);
-                                }}
-                                className="flex items-center justify-center p-2.5 rounded bg-muted hover:bg-primary hover:text-white text-xs font-bold text-foreground transition-all active:scale-95 text-center"
-                              >
-                                Migrant
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  set("type", "returnee");
-                                  setStep(1);
-                                  setSubCategoryOpen(false);
-                                }}
-                                className="flex items-center justify-center p-2.5 rounded bg-muted hover:bg-primary hover:text-white text-xs font-bold text-foreground transition-all active:scale-95 text-center"
-                              >
-                                Returnee
-                              </button>
+                        ) : (
+                          <div className="flex flex-col w-full h-full justify-between z-10 animate-fade-in">
+                            <div>
+                              <h4 className="font-display font-extrabold text-foreground text-xs uppercase mb-2">Select category type:</h4>
+                              <p className="text-[10px] text-muted-foreground mb-4 leading-normal">Specify whether this enrollee is a regular Migrant or a Returnee.</p>
+                              <div className="grid grid-cols-2 gap-2">
+                                {enabledCategories.includes("migrant") && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      set("type", "migrant");
+                                      setStep(1);
+                                      setSubCategoryOpen(false);
+                                    }}
+                                    className="flex items-center justify-center p-2.5 rounded bg-muted hover:bg-primary hover:text-white text-xs font-bold text-foreground transition-all active:scale-95 text-center"
+                                  >
+                                    Migrant
+                                  </button>
+                                )}
+                                {enabledCategories.includes("returnee") && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      set("type", "returnee");
+                                      setStep(1);
+                                      setSubCategoryOpen(false);
+                                    }}
+                                    className="flex items-center justify-center p-2.5 rounded bg-muted hover:bg-primary hover:text-white text-xs font-bold text-foreground transition-all active:scale-95 text-center"
+                                  >
+                                    Returnee
+                                  </button>
+                                )}
+                              </div>
                             </div>
+                            <button
+                              type="button"
+                              onClick={() => setSubCategoryOpen(false)}
+                              className="mt-3 text-center text-[10px] font-semibold text-muted-foreground hover:underline"
+                            >
+                              ← Back
+                            </button>
                           </div>
-                          <button
-                            type="button"
-                            onClick={() => setSubCategoryOpen(false)}
-                            className="mt-3 text-center text-[10px] font-semibold text-muted-foreground hover:underline"
-                          >
-                            ← Back
-                          </button>
-                        </div>
-                      )}
-                    </div>
+                        )}
+                      </div>
+                    )}
 
                     {/* Card 4: INTERVENTIONS */}
                     <button
@@ -845,9 +999,6 @@ NEEDS ASSESSMENT:
                           </span>
                         </div>
                       </div>
-                      <p className="text-xs text-muted-foreground mt-3.5 leading-relaxed z-10">
-                        Log zonal support activities, resource deliveries, medical aids, and relief material tracking.
-                      </p>
                     </button>
 
                   </div>
@@ -877,8 +1028,8 @@ NEEDS ASSESSMENT:
                         </Field>
                       </div>
                       <div className="sm:col-span-2">
-                        <Field label="Current address / shelter *">
-                          <Textarea rows={2} value={data.address} onChange={(e) => set("address", e.target.value)} placeholder="Detail current IDP camp name, community shelter, or transient host address..." />
+                        <Field label={data.type === "refugee" ? "Assigned Settlement / Camp *" : "Current address / shelter *"}>
+                          <Textarea rows={2} value={data.address} onChange={(e) => set("address", e.target.value)} placeholder={data.type === "refugee" ? "e.g. Ogoja Refugee Settlement, Cross River State" : "Detail current IDP camp name, community shelter, or transient host address..."} />
                         </Field>
                       </div>
                       <Field label="Phone *">
@@ -897,130 +1048,143 @@ NEEDS ASSESSMENT:
                           </SelectContent>
                         </Select>
                       </Field>
-                      <Field label="Nationality *">
-                        <Input value={data.nationality} onChange={(e) => set("nationality", e.target.value)} />
-                      </Field>
-                      <Field label="State of origin *">
-                        <Select value={data.state_origin} onValueChange={(v) => set("state_origin", v)}>
-                          <SelectTrigger><SelectValue placeholder="Select state" /></SelectTrigger>
-                          <SelectContent className="max-h-60">
-                            {NG_STATES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                          </SelectContent>
-                        </Select>
-                      </Field>
-                      <Field label="LGA *">
-                        <Input value={data.lga} onChange={(e) => set("lga", e.target.value)} placeholder="Local Government Area" />
-                      </Field>
-                      <div className="sm:col-span-2">
-                        <Field label="Number of dependants accompanying enrolee *">
-                          <Input type="number" min={0} value={data.dependants} onChange={(e) => set("dependants", e.target.value)} />
-                        </Field>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Section 2: Education background */}
-                  <div className="space-y-4 pt-4">
-                    <div className="flex items-center gap-2 border-b pb-1.5">
-                      <span className="text-xs font-extrabold text-primary bg-primary/10 px-2 py-0.5 rounded">II</span>
-                      <h3 className="text-sm font-extrabold uppercase tracking-wide text-foreground">Education background</h3>
-                    </div>
-
-                    <div className="grid gap-4 sm:grid-cols-2">
-                      <Field label="Highest Level of Education Completed *">
-                        <Select value={data.education_level} onValueChange={(v) => set("education_level", v)}>
-                          <SelectTrigger><SelectValue placeholder="Select education level" /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="none">No Formal Education</SelectItem>
-                            <SelectItem value="primary">Primary Education</SelectItem>
-                            <SelectItem value="secondary">Secondary Education</SelectItem>
-                            <SelectItem value="tertiary">Tertiary / University Degree</SelectItem>
-                            <SelectItem value="vocational">Vocational / Technical training</SelectItem>
-                          </SelectContent>
-                        </Select>
+                      <Field label={data.type === "refugee" ? "Country of Origin *" : "Nationality *"}>
+                        <Input value={data.nationality} onChange={(e) => set("nationality", e.target.value)} placeholder={data.type === "refugee" ? "e.g. Cameroon, Sudan" : "Nigeria"} />
                       </Field>
                       
-                      <Field label="Specialized Skills / Trade / Talents">
-                        <Input value={data.skills} onChange={(e) => set("skills", e.target.value)} placeholder="e.g. Farming, Carpentry, Tailoring, none" />
-                      </Field>
+                      {data.type === "refugee" ? (
+                        <Field label="Date of Arrival in Nigeria *">
+                          <Input type="date" value={data.state_origin} onChange={(e) => set("state_origin", e.target.value)} />
+                        </Field>
+                      ) : (
+                        <>
+                          <Field label="State of origin *">
+                            <Select value={data.state_origin} onValueChange={(v) => set("state_origin", v)}>
+                              <SelectTrigger><SelectValue placeholder="Select state" /></SelectTrigger>
+                              <SelectContent className="max-h-60">
+                                {NG_STATES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                              </SelectContent>
+                            </Select>
+                          </Field>
+                          <Field label="LGA *">
+                            <Input value={data.lga} onChange={(e) => set("lga", e.target.value)} placeholder="Local Government Area" />
+                          </Field>
+                          <div className="sm:col-span-2">
+                            <Field label="Number of dependants accompanying enrolee *">
+                              <Input type="number" min={0} value={data.dependants} onChange={(e) => set("dependants", e.target.value)} />
+                            </Field>
+                          </div>
+                        </>
+                      )}
                     </div>
                   </div>
 
-                  {/* Section 3: cause of displacement */}
-                  <div className="space-y-4 pt-4">
-                    <div className="flex items-center gap-2 border-b pb-1.5">
-                      <span className="text-xs font-extrabold text-primary bg-primary/10 px-2 py-0.5 rounded">III</span>
-                      <h3 className="text-sm font-extrabold uppercase tracking-wide text-foreground">cause of displacement</h3>
-                    </div>
-                    
-                    <Field label={`Describe circumstances & cause of displacement * (min 20 characters)`}>
-                      <Textarea
-                        rows={4}
-                        value={data.reason}
-                        onChange={(e) => set("reason", e.target.value)}
-                        placeholder="Detail the events that caused displacement (e.g. communal conflict, natural disaster, banditry), dates of event, and transit hurdles..."
-                      />
-                      <div className="mt-1 text-right text-[10px] text-muted-foreground">{data.reason.length} characters</div>
-                    </Field>
-                  </div>
+                  {data.type !== "refugee" && (
+                    <>
+                      {/* Section 2: Education background */}
+                      <div className="space-y-4 pt-4">
+                        <div className="flex items-center gap-2 border-b pb-1.5">
+                          <span className="text-xs font-extrabold text-primary bg-primary/10 px-2 py-0.5 rounded">II</span>
+                          <h3 className="text-sm font-extrabold uppercase tracking-wide text-foreground">Education background</h3>
+                        </div>
 
-                  {/* Section 4: Needs assessment */}
-                  <div className="space-y-4 pt-4">
-                    <div className="flex items-center gap-2 border-b pb-1.5">
-                      <span className="text-xs font-extrabold text-primary bg-primary/10 px-2 py-0.5 rounded">IV</span>
-                      <h3 className="text-sm font-extrabold uppercase tracking-wide text-foreground">Needs assessment</h3>
-                    </div>
-
-                    <div className="space-y-4">
-                      <div>
-                        <label className="text-xs font-bold text-foreground">Select Immediate Priority Needs (Select all that apply)</label>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
-                          {[
-                            "Food Security & Nutrition",
-                            "Emergency Shelter & Housing",
-                            "Medical Supplies & Healthcare",
-                            "Clean Water, Sanitation & Hygiene (WAsH)",
-                            "Educational Materials & Schools",
-                            "Livelihood & Cash Assistance"
-                          ].map((need) => {
-                            const isChecked = data.primary_needs.includes(need);
-                            return (
-                              <label
-                                key={need}
-                                className={`flex items-center gap-3 p-3 rounded-lg border text-xs font-semibold cursor-pointer transition-all ${
-                                  isChecked
-                                    ? "bg-primary/5 border-primary text-primary"
-                                    : "bg-background border-border text-foreground hover:bg-muted/50"
-                                }`}
-                              >
-                                <input
-                                  type="checkbox"
-                                  checked={isChecked}
-                                  onChange={() => {
-                                    const updated = isChecked
-                                      ? data.primary_needs.filter((n) => n !== need)
-                                      : [...data.primary_needs, need];
-                                    setData((d) => ({ ...d, primary_needs: updated }));
-                                  }}
-                                  className="h-4.5 w-4.5 rounded border-input text-primary focus:ring-primary focus:outline-none"
-                                />
-                                {need}
-                              </label>
-                            );
-                          })}
+                        <div className="grid gap-4 sm:grid-cols-2">
+                          <Field label="Highest Level of Education Completed *">
+                            <Select value={data.education_level} onValueChange={(v) => set("education_level", v)}>
+                              <SelectTrigger><SelectValue placeholder="Select education level" /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="none">No Formal Education</SelectItem>
+                                <SelectItem value="primary">Primary Education</SelectItem>
+                                <SelectItem value="secondary">Secondary Education</SelectItem>
+                                <SelectItem value="tertiary">Tertiary / University Degree</SelectItem>
+                                <SelectItem value="vocational">Vocational / Technical training</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </Field>
+                          
+                          <Field label="Specialized Skills / Trade / Talents">
+                            <Input value={data.skills} onChange={(e) => set("skills", e.target.value)} placeholder="e.g. Farming, Carpentry, Tailoring, none" />
+                          </Field>
                         </div>
                       </div>
 
-                      <Field label="Needs Assessment & Support Details *">
-                        <Textarea
-                          rows={3}
-                          value={data.needs_details}
-                          onChange={(e) => set("needs_details", e.target.value)}
-                          placeholder="Detail specific urgent needs (e.g. baby foods, chronic illness medicine, mental health, family tracking assistance)..."
-                        />
-                      </Field>
-                    </div>
-                  </div>
+                      {/* Section 3: cause of displacement */}
+                      <div className="space-y-4 pt-4">
+                        <div className="flex items-center gap-2 border-b pb-1.5">
+                          <span className="text-xs font-extrabold text-primary bg-primary/10 px-2 py-0.5 rounded">III</span>
+                          <h3 className="text-sm font-extrabold uppercase tracking-wide text-foreground">cause of displacement</h3>
+                        </div>
+                        
+                        <Field label={`Describe circumstances & cause of displacement * (min 20 characters)`}>
+                          <Textarea
+                            rows={4}
+                            value={data.reason}
+                            onChange={(e) => set("reason", e.target.value)}
+                            placeholder="Detail the events that caused displacement (e.g. communal conflict, natural disaster, banditry), dates of event, and transit hurdles..."
+                          />
+                          <div className="mt-1 text-right text-[10px] text-muted-foreground">{data.reason.length} characters</div>
+                        </Field>
+                      </div>
+
+                      {/* Section 4: Needs assessment */}
+                      <div className="space-y-4 pt-4">
+                        <div className="flex items-center gap-2 border-b pb-1.5">
+                          <span className="text-xs font-extrabold text-primary bg-primary/10 px-2 py-0.5 rounded">IV</span>
+                          <h3 className="text-sm font-extrabold uppercase tracking-wide text-foreground">Needs assessment</h3>
+                        </div>
+
+                        <div className="space-y-4">
+                          <div>
+                            <label className="text-xs font-bold text-foreground">Select Immediate Priority Needs (Select all that apply)</label>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
+                              {[
+                                "Food Security & Nutrition",
+                                "Emergency Shelter & Housing",
+                                "Medical Supplies & Healthcare",
+                                "Clean Water, Sanitation & Hygiene (WAsH)",
+                                "Educational Materials & Schools",
+                                "Livelihood & Cash Assistance"
+                              ].map((need) => {
+                                const isChecked = data.primary_needs.includes(need);
+                                return (
+                                  <label
+                                    key={need}
+                                    className={`flex items-center gap-3 p-3 rounded-lg border text-xs font-semibold cursor-pointer transition-all ${
+                                      isChecked
+                                        ? "bg-primary/5 border-primary text-primary"
+                                        : "bg-background border-border text-foreground hover:bg-muted/50"
+                                    }`}
+                                  >
+                                    <input
+                                      type="checkbox"
+                                      checked={isChecked}
+                                      onChange={() => {
+                                        const updated = isChecked
+                                          ? data.primary_needs.filter((n) => n !== need)
+                                          : [...data.primary_needs, need];
+                                        setData((d) => ({ ...d, primary_needs: updated }));
+                                      }}
+                                      className="h-4.5 w-4.5 rounded border-input text-primary focus:ring-primary focus:outline-none"
+                                    />
+                                    {need}
+                                  </label>
+                                );
+                              })}
+                            </div>
+                          </div>
+
+                          <Field label="Needs Assessment & Support Details *">
+                            <Textarea
+                              rows={3}
+                              value={data.needs_details}
+                              onChange={(e) => set("needs_details", e.target.value)}
+                              placeholder="Detail specific urgent needs (e.g. baby foods, chronic illness medicine, mental health, family tracking assistance)..."
+                            />
+                          </Field>
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </div>
               )}
 
@@ -1038,55 +1202,71 @@ NEEDS ASSESSMENT:
                     </div>
 
                     <div className="space-y-4">
-                      <div>
-                        <h4 className="text-xs font-bold uppercase tracking-wider text-primary border-b pb-1">Biodata Details</h4>
-                        <dl className="mt-2 grid gap-2 sm:grid-cols-2 text-sm">
-                          <Row k="Phone" v={data.phone} />
-                          <Row k="DOB" v={data.dob} />
-                          <Row k="Gender" v={data.gender} />
-                          <Row k="State of origin" v={data.state_origin} />
-                          <Row k="LGA" v={data.lga} />
-                          <Row k="Dependants" v={data.dependants} />
-                        </dl>
-                        <div className="mt-2"><span className="text-[10px] font-bold text-muted-foreground">Current Address:</span><p className="mt-0.5 text-xs">{data.address}</p></div>
-                      </div>
-
-                      <div>
-                        <h4 className="text-xs font-bold uppercase tracking-wider text-primary border-b pb-1">Education Background</h4>
-                        <dl className="mt-2 grid gap-2 sm:grid-cols-2 text-xs">
-                          <Row k="Highest Education" v={data.education_level || "None"} />
-                          <Row k="Specialized Skills / Trade" v={data.skills || "None"} />
-                        </dl>
-                      </div>
-
-                      <div>
-                        <h4 className="text-xs font-bold uppercase tracking-wider text-primary border-b pb-1">Cause of Displacement</h4>
-                        <p className="mt-2 text-xs leading-relaxed whitespace-pre-wrap">{data.reason}</p>
-                      </div>
-
-                      <div>
-                        <h4 className="text-xs font-bold uppercase tracking-wider text-primary border-b pb-1">Needs Assessment</h4>
-                        <dl className="mt-2 text-xs space-y-2">
-                          <div className="flex gap-2">
-                            <span className="min-w-28 text-[10px] font-bold text-muted-foreground">Immediate Needs:</span>
-                            <div className="flex flex-wrap gap-1">
-                              {data.primary_needs.length > 0 ? (
-                                data.primary_needs.map((need) => (
-                                  <span key={need} className="bg-primary/5 text-primary text-[10px] px-2 py-0.5 rounded-full font-semibold">
-                                    {need}
-                                  </span>
-                                ))
-                              ) : (
-                                <span className="text-muted-foreground">None selected</span>
-                              )}
-                            </div>
-                          </div>
+                      {data.type === "refugee" ? (
+                        <div>
+                          <h4 className="text-xs font-bold uppercase tracking-wider text-primary border-b pb-1">Refugee Basic Details</h4>
+                          <dl className="mt-2 grid gap-2 sm:grid-cols-2 text-sm">
+                            <Row k="Phone" v={data.phone} />
+                            <Row k="DOB" v={data.dob} />
+                            <Row k="Gender" v={data.gender} />
+                            <Row k="Country of Origin" v={data.nationality} />
+                            <Row k="Date of Arrival" v={data.state_origin} />
+                          </dl>
+                          <div className="mt-2"><span className="text-[10px] font-bold text-muted-foreground">Assigned Settlement:</span><p className="mt-0.5 text-xs">{data.address}</p></div>
+                        </div>
+                      ) : (
+                        <>
                           <div>
-                            <span className="text-[10px] font-bold text-muted-foreground">Assessment Details:</span>
-                            <p className="mt-0.5 text-xs leading-relaxed">{data.needs_details}</p>
+                            <h4 className="text-xs font-bold uppercase tracking-wider text-primary border-b pb-1">Biodata Details</h4>
+                            <dl className="mt-2 grid gap-2 sm:grid-cols-2 text-sm">
+                              <Row k="Phone" v={data.phone} />
+                              <Row k="DOB" v={data.dob} />
+                              <Row k="Gender" v={data.gender} />
+                              <Row k="State of origin" v={data.state_origin} />
+                              <Row k="LGA" v={data.lga} />
+                              <Row k="Dependants" v={data.dependants} />
+                            </dl>
+                            <div className="mt-2"><span className="text-[10px] font-bold text-muted-foreground">Current Address:</span><p className="mt-0.5 text-xs">{data.address}</p></div>
                           </div>
-                        </dl>
-                      </div>
+
+                          <div>
+                            <h4 className="text-xs font-bold uppercase tracking-wider text-primary border-b pb-1">Education Background</h4>
+                            <dl className="mt-2 grid gap-2 sm:grid-cols-2 text-xs">
+                              <Row k="Highest Education" v={data.education_level || "None"} />
+                              <Row k="Specialized Skills / Trade" v={data.skills || "None"} />
+                            </dl>
+                          </div>
+
+                          <div>
+                            <h4 className="text-xs font-bold uppercase tracking-wider text-primary border-b pb-1">Cause of Displacement</h4>
+                            <p className="mt-2 text-xs leading-relaxed whitespace-pre-wrap">{data.reason}</p>
+                          </div>
+
+                          <div>
+                            <h4 className="text-xs font-bold uppercase tracking-wider text-primary border-b pb-1">Needs Assessment</h4>
+                            <dl className="mt-2 text-xs space-y-2">
+                              <div className="flex gap-2">
+                                <span className="min-w-28 text-[10px] font-bold text-muted-foreground">Immediate Needs:</span>
+                                <div className="flex flex-wrap gap-1">
+                                  {data.primary_needs.length > 0 ? (
+                                    data.primary_needs.map((need) => (
+                                      <span key={need} className="bg-primary/5 text-primary text-[10px] px-2 py-0.5 rounded-full font-semibold">
+                                        {need}
+                                      </span>
+                                    ))
+                                  ) : (
+                                    <span className="text-muted-foreground">None selected</span>
+                                  )}
+                                </div>
+                              </div>
+                              <div>
+                                <span className="text-[10px] font-bold text-muted-foreground">Assessment Details:</span>
+                                <p className="mt-0.5 text-xs leading-relaxed">{data.needs_details}</p>
+                              </div>
+                            </dl>
+                          </div>
+                        </>
+                      )}
                     </div>
                   </div>
                   <p className="text-xs text-muted-foreground">
@@ -1152,19 +1332,102 @@ NEEDS ASSESSMENT:
       </section>
 
       <Dialog open={success} onOpenChange={(o) => { if (!o) reset(); }}>
-        <DialogContent className="max-w-md">
+        <DialogContent className={data.type === "refugee" ? "max-w-lg" : "max-w-md"}>
           <DialogHeader>
-            <div className="mx-auto mb-2 flex h-14 w-14 items-center justify-center rounded-full bg-accent/15">
-              <CheckCircle2 className="h-8 w-8 text-accent" />
+            <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-emerald-50">
+              <CheckCircle2 className="h-6 w-6 text-emerald-600" />
             </div>
-            <DialogTitle className="text-center font-display">Data has been captured successfully</DialogTitle>
-            <DialogDescription className="text-center">
-              {typeLabel} enrolment for <b>{data.full_name}</b> has been recorded with biometric verification.
+            <DialogTitle className="text-center font-display">Enrolment Completed Successfully</DialogTitle>
+            <DialogDescription className="text-center text-xs">
+              {data.type === "refugee" ? "Refugee" : typeLabel} biometric profile registered under reference <b>{lastRef}</b>.
             </DialogDescription>
           </DialogHeader>
+
+          {data.type === "refugee" && (
+            <div className="my-4 border border-emerald-600/30 rounded-xl overflow-hidden bg-white shadow-lg mx-auto w-full max-w-[400px]">
+              {/* ID Card Front Header */}
+              <div className="bg-[#0b663c] text-white p-3 flex items-center gap-2 relative">
+                <img src={logo} alt="NCFRMI seal" className="h-8 w-8 object-contain" />
+                <div className="leading-none text-left">
+                  <div className="text-[7.5px] font-bold tracking-tight">NATIONAL COMMISSION FOR REFUGEES, MIGRANTS & IDPs</div>
+                  <div className="text-[10px] font-extrabold tracking-wider uppercase mt-1 text-emerald-100">REFUGEE IDENTITY CARD</div>
+                </div>
+              </div>
+              
+              {/* ID Card Accent bar */}
+              <div className="h-1 bg-[#d4af37]" />
+
+              {/* ID Card Body */}
+              <div className="p-4 bg-slate-50 flex gap-4 text-left">
+                {/* Profile Pic */}
+                <div className="flex flex-col items-center">
+                  <div className="h-28 w-22 border border-slate-300 rounded bg-white overflow-hidden shadow-inner flex items-center justify-center relative">
+                    {face ? (
+                      <img src={face} className="h-full w-full object-cover" />
+                    ) : (
+                      <Users className="h-8 w-8 text-slate-300" />
+                    )}
+                  </div>
+                  <span className="text-[7px] text-emerald-700 font-bold mt-1 uppercase tracking-widest bg-emerald-50 px-1 border border-emerald-200 rounded">
+                    BIO-VERIFIED
+                  </span>
+                </div>
+
+                {/* Info List */}
+                <div className="flex-1 space-y-1.5 text-[10px] text-slate-800">
+                  <div>
+                    <span className="text-[8px] font-bold text-slate-500 block uppercase leading-none">Full Name</span>
+                    <span className="font-extrabold text-slate-900 leading-tight">{data.full_name.toUpperCase()}</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-1">
+                    <div>
+                      <span className="text-[8px] font-bold text-slate-500 block uppercase leading-none">Date of Birth</span>
+                      <span className="font-semibold text-slate-900">{new Date(data.dob || Date.now()).toLocaleDateString()}</span>
+                    </div>
+                    <div>
+                      <span className="text-[8px] font-bold text-slate-500 block uppercase leading-none">Gender</span>
+                      <span className="font-semibold text-slate-900 uppercase">{data.gender}</span>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-1">
+                    <div>
+                      <span className="text-[8px] font-bold text-slate-500 block uppercase leading-none">Nationality</span>
+                      <span className="font-semibold text-slate-900 uppercase">{data.nationality}</span>
+                    </div>
+                    <div>
+                      <span className="text-[8px] font-bold text-slate-500 block uppercase leading-none">Settlement</span>
+                      <span className="font-semibold text-slate-900 truncate block max-w-[80px]" title={data.address}>{data.address}</span>
+                    </div>
+                  </div>
+                  <div className="pt-1.5 border-t">
+                    <span className="text-[8px] font-bold text-emerald-800 uppercase block tracking-wider leading-none">Refugee ID Number</span>
+                    <span className="font-mono text-xs font-bold text-emerald-700">{lastRef}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Barcode & Security Strip */}
+              <div className="bg-slate-200/50 p-2 border-t flex justify-between items-center px-4">
+                {/* Simulated Barcode */}
+                <div className="flex items-center h-4 gap-[1.5px]">
+                  {[2, 1, 3, 1, 2, 4, 1, 2, 3, 1, 2, 1, 4, 2].map((w, idx) => (
+                    <div key={idx} className="bg-slate-900 h-full" style={{ width: `${w * 0.4}px` }} />
+                  ))}
+                </div>
+                <div className="text-[7px] font-bold text-slate-400 uppercase tracking-widest">
+                  NCFRMI Official Document
+                </div>
+              </div>
+            </div>
+          )}
+
           <DialogFooter className="sm:justify-center gap-2">
-            <Button variant="outline" onClick={() => setSuccess(false)}><RotateCcw className="mr-2 h-4 w-4" /> Review</Button>
-            <Button onClick={reset}><UserPlus className="mr-2 h-4 w-4" /> Add another registrant</Button>
+            {data.type === "refugee" && (
+              <Button onClick={downloadRefugeeIDCard} className="bg-emerald-800 hover:bg-emerald-700 text-white font-bold gap-1.5 text-xs">
+                <Download className="h-4 w-4" /> Download ID Card PDF
+              </Button>
+            )}
+            <Button variant="outline" onClick={reset}><UserPlus className="mr-2 h-4 w-4" /> Add another registrant</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
