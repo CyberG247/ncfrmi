@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../theme.dart';
 import 'login_screen.dart';
 import 'modules/analytics_module.dart';
+import 'modules/registrants_module.dart';
 import 'modules/user_management_module.dart';
 import 'modules/content_management_module.dart';
+import 'modules/geopolitical_map_module.dart';
+import 'modules/zonal_management_module.dart';
+import 'modules/reports_module.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -18,74 +23,192 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   final List<Widget> _modules = const [
     AnalyticsModule(),
+    RegistrantsModule(),
+    GeopoliticalMapModule(),
+    ZonalManagementModule(),
+    ReportsModule(),
     UserManagementModule(),
     ContentManagementModule(),
   ];
 
   @override
   Widget build(BuildContext context) {
+    final user = Supabase.instance.client.auth.currentUser;
+    final email = user?.email ?? 'commissioner@ncfrmi.gov.ng';
+    final displayName = user?.userMetadata?['display_name'] ?? 'Commissioner';
+
     return Scaffold(
+      backgroundColor: AppTheme.background,
       body: Row(
         children: [
-          // Side Navigation
+          // 1. Compact Sidebar Navigation (mimicking fitness mockup layout, color preserved)
           Container(
-            width: 280,
-            color: AppTheme.card,
+            width: 80,
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              border: Border(right: BorderSide(color: AppTheme.border, width: 1.5)),
+            ),
             child: Column(
               children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-                  width: double.infinity,
-                  color: AppTheme.primary,
-                  child: Row(
-                    children: [
-                      Image.asset('assets/images/ncfrmi-logo.png', width: 40, height: 40),
-                      const SizedBox(width: 12),
-                      const Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('NCFRMI', style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
-                          Text('Command Center', style: TextStyle(color: Colors.white70, fontSize: 12)),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
+                const SizedBox(height: 24),
+                // Top Brand Icon
+                Image.asset('assets/images/ncfrmi-logo.png', width: 36, height: 36),
+                const SizedBox(height: 32),
+                
+                // Navigation Items
                 Expanded(
-                  child: ListView(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
+                  child: Column(
                     children: [
-                      _buildNavItem(0, 'Analytics', Icons.analytics),
-                      _buildNavItem(1, 'User Management', Icons.people),
-                      _buildNavItem(2, 'Content Management', Icons.article),
+                      _buildNavItem(0, 'Overview Dashboard', LucideIcons.layoutDashboard300),
+                      _buildNavItem(1, 'Registrant Management', LucideIcons.users300),
+                      _buildNavItem(2, 'Geopolitical Map', LucideIcons.map300),
+                      _buildNavItem(3, 'Zonal Registry', LucideIcons.mapPin300),
+                      _buildNavItem(4, 'Audits & Reports', LucideIcons.fileText300),
+                      _buildNavItem(5, 'User Management', LucideIcons.shield300),
+                      _buildNavItem(6, 'Content Management', LucideIcons.newspaper300),
                     ],
                   ),
                 ),
-                const Divider(),
-                ListTile(
-                  leading: const Icon(Icons.logout, color: AppTheme.destructive),
-                  title: const Text('Sign Out', style: TextStyle(color: AppTheme.destructive)),
-                  onTap: () async {
-                    await Supabase.instance.client.auth.signOut();
-                    if (context.mounted) {
-                      Navigator.of(context).pushReplacement(
-                        MaterialPageRoute(builder: (_) => const LoginScreen()),
-                      );
-                    }
-                  },
+                
+                // Bottom Profile & Sign Out
+                Tooltip(
+                  message: 'Sign Out ($email)',
+                  child: Container(
+                    margin: const EdgeInsets.symmetric(vertical: 8),
+                    decoration: const BoxDecoration(
+                      color: AppTheme.muted,
+                      shape: BoxShape.circle,
+                    ),
+                    child: IconButton(
+                      icon: const Icon(LucideIcons.logOut300, color: AppTheme.destructive, size: 20),
+                      onPressed: () async {
+                        await Supabase.instance.client.auth.signOut();
+                        if (context.mounted) {
+                          Navigator.of(context).pushReplacement(
+                            MaterialPageRoute(builder: (_) => const LoginScreen()),
+                          );
+                        }
+                      },
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 16),
               ],
             ),
           ),
-          // Main Content Area
+          
+          // 2. Main Area (mimicking mockup style header and layout, color preserved)
           Expanded(
-            child: Container(
-              color: AppTheme.background,
-              child: IndexedStack(
-                index: _selectedIndex,
-                children: _modules,
-              ),
+            child: Column(
+              children: [
+                // Shared Top Header Bar
+                Container(
+                  height: 80,
+                  padding: const EdgeInsets.symmetric(horizontal: 32),
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    border: Border(bottom: BorderSide(color: AppTheme.border)),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      // User Greeting info
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            'Hello, $displayName!',
+                            style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w800,
+                              color: AppTheme.foreground,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          const Text(
+                            'Welcome to the NCFRMI Command Center',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: AppTheme.mutedForeground,
+                            ),
+                          ),
+                        ],
+                      ),
+                      
+                      // Search field
+                      SizedBox(
+                        width: 320,
+                        height: 44,
+                        child: TextField(
+                          decoration: InputDecoration(
+                            hintText: 'Search operations...',
+                            hintStyle: const TextStyle(fontSize: 13, color: AppTheme.mutedForeground),
+                            prefixIcon: const Icon(LucideIcons.search300, size: 18, color: AppTheme.mutedForeground),
+                            filled: true,
+                            fillColor: AppTheme.muted.withValues(alpha: 0.6),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(20),
+                              borderSide: BorderSide.none,
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(20),
+                              borderSide: BorderSide.none,
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(20),
+                              borderSide: const BorderSide(color: AppTheme.primary, width: 1.5),
+                            ),
+                          ),
+                        ),
+                      ),
+                      
+                      // Action buttons
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: AppTheme.primary.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: AppTheme.primary.withValues(alpha: 0.3)),
+                            ),
+                            child: const Row(
+                              children: [
+                                CircleAvatar(
+                                  radius: 4,
+                                  backgroundColor: AppTheme.primary,
+                                ),
+                                SizedBox(width: 8),
+                                Text(
+                                  'System Online',
+                                  style: TextStyle(
+                                    color: AppTheme.primary,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                
+                // Module Content Stack
+                Expanded(
+                  child: Container(
+                    color: AppTheme.muted.withValues(alpha: 0.5),
+                    child: IndexedStack(
+                      index: _selectedIndex,
+                      children: _modules,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -95,22 +218,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Widget _buildNavItem(int index, String title, IconData icon) {
     final isSelected = _selectedIndex == index;
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-      decoration: BoxDecoration(
-        color: isSelected ? AppTheme.primary.withValues(alpha: 0.1) : Colors.transparent,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: ListTile(
-        leading: Icon(icon, color: isSelected ? AppTheme.primary : AppTheme.mutedForeground),
-        title: Text(
-          title,
-          style: TextStyle(
-            color: isSelected ? AppTheme.primary : AppTheme.foreground,
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Tooltip(
+        message: title,
+        child: GestureDetector(
+          onTap: () => setState(() => _selectedIndex = index),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: isSelected ? AppTheme.primary.withValues(alpha: 0.12) : Colors.transparent,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              icon,
+              color: isSelected ? AppTheme.primary : AppTheme.mutedForeground,
+              size: 20,
+            ),
           ),
         ),
-        onTap: () => setState(() => _selectedIndex = index),
       ),
     );
   }

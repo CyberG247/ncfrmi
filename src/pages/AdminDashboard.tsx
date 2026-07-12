@@ -879,6 +879,27 @@ export default function AdminDashboard() {
   useEffect(() => {
     loadData();
     loadInterventions();
+
+    // Subscribe to real-time changes to registrants table to reload dashboard instantly
+    const channel = supabase
+      .channel("admin-dashboard-realtime")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "registrants",
+        },
+        (payload) => {
+          console.log("Real-time registry update received on admin dashboard:", payload);
+          loadData();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const handleDelete = async (id: string, isLocal?: boolean) => {

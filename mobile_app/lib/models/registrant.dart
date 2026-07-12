@@ -55,6 +55,7 @@ class Registrant {
     'thumb_captured': thumbCaptured,
     'captured_by': capturedBy,
     'created_at': createdAt,
+    'photo_base64': photoBase64,
   };
 
   factory Registrant.fromJson(Map<String, dynamic> json) => Registrant(
@@ -76,4 +77,21 @@ class Registrant {
     capturedBy: json['captured_by'],
     createdAt: json['created_at'],
   );
+
+  String? get photoBase64 {
+    if (circumstances.contains('===PHOTO_BASE64===')) {
+      final parts = circumstances.split('===PHOTO_BASE64===\n');
+      if (parts.length > 1) {
+        return parts[1].trim();
+      }
+    }
+    return null;
+  }
+
+  String get cleanCircumstances {
+    if (circumstances.contains('===PHOTO_BASE64===')) {
+      return circumstances.split('===PHOTO_BASE64===').first.trim();
+    }
+    return circumstances;
+  }
 }

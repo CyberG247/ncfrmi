@@ -13,8 +13,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import logo from "@/assets/ncfrmi-logo.png";
 import { useAuth } from "@/hooks/useAuth";
-
-const NG_STATES = ["Abia","Adamawa","Akwa Ibom","Anambra","Bauchi","Bayelsa","Benue","Borno","Cross River","Delta","Ebonyi","Edo","Ekiti","Enugu","FCT","Gombe","Imo","Jigawa","Kaduna","Kano","Katsina","Kebbi","Kogi","Kwara","Lagos","Nasarawa","Niger","Ogun","Ondo","Osun","Oyo","Plateau","Rivers","Sokoto","Taraba","Yobe","Zamfara"];
+import { NG_STATES, NG_STATES_AND_LGAS } from "@/data/ng_states_lgas";
 
 const TYPES = [
   { value: "idp", label: "Internally Displaced Person (IDP)" },
@@ -30,6 +29,16 @@ type Form = {
   education_level: string; skills: string; primary_needs: string[]; needs_details: string;
 };
 
+type Intervention = {
+  id: string;
+  camp: string;
+  category: string;
+  details: string;
+  count: number;
+  date: string;
+  officer: string;
+};
+
 const empty: Form = {
   type: "", full_name: "", address: "", phone: "", dob: "", gender: "",
   nationality: "Nigeria", state_origin: "", lga: "", dependants: "0", reason: "",
@@ -40,7 +49,8 @@ const steps = ["Registration Type", "Biodata & Needs", "Review", "Thumbprint Sca
 
 const playBeep = () => {
   try {
-    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    const ctx = new AudioCtx();
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.connect(gain);
@@ -144,8 +154,8 @@ export default function FieldCapture() {
       
       toast.success("Successfully logged in!");
       setIsLoggedIn(true);
-    } catch (err: any) {
-      toast.error(err.message || "Invalid credentials. Try officer@ncfrmi.gov.ng / officer123");
+    } catch (err: unknown) {
+      toast.error((err as Error).message || "Invalid credentials. Try officer@ncfrmi.gov.ng / officer123");
     } finally {
       setLoginLoading(false);
     }
@@ -189,7 +199,7 @@ export default function FieldCapture() {
   }, []);
   const [subCategoryOpen, setSubCategoryOpen] = useState(false);
   const [showInterventions, setShowInterventions] = useState(false);
-  const [interventionsList, setInterventionsList] = useState<any[]>([]);
+  const [interventionsList, setInterventionsList] = useState<Intervention[]>([]);
 
   useEffect(() => {
     try {
@@ -417,6 +427,38 @@ export default function FieldCapture() {
 
   const submit = async () => {
     setSubmitting(true);
+
+    // Validate phone duplicate locally
+    try {
+      const localData = JSON.parse(localStorage.getItem("ncfrmi_local_registrants") || "[]");
+      const isLocalDuplicate = localData.some((r: { phone: string }) => r.phone === data.phone);
+      if (isLocalDuplicate) {
+        toast.error(`A registrant with phone number ${data.phone} already exists in local storage.`);
+        setSubmitting(false);
+        return;
+      }
+    } catch (e) {
+      console.error(e);
+    }
+
+    // Validate phone duplicate remotely in Supabase
+    try {
+      const { data: existing, error: checkError } = await supabase
+        .from("registrants")
+        .select("id")
+        .eq("phone", data.phone)
+        .maybeSingle();
+
+      if (checkError) throw checkError;
+      if (existing) {
+        toast.error(`A registrant with phone number ${data.phone} is already registered in the system.`);
+        setSubmitting(false);
+        return;
+      }
+    } catch (err) {
+      console.warn("Could not check remote duplicates (likely offline):", err);
+    }
+
     const prefix = data.type === "refugee" ? "REF" : "REG";
     const reference = `NCF-${prefix}-${new Date().getFullYear()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
     setLastRef(reference);
@@ -435,11 +477,12 @@ EDUCATION BACKGROUND:
 NEEDS ASSESSMENT:
 - Immediate Needs: ${data.primary_needs.join(", ") || "None"}
 - Details: ${data.needs_details}
+${face ? `\n===PHOTO_BASE64===\n${face}` : ''}
 `;
 
     const payload = {
       reference,
-      category: data.type as any,
+      category: data.type as "idp" | "refugee" | "migrant" | "returnee",
       full_name: data.full_name,
       address: data.address,
       phone: data.phone,
@@ -453,6 +496,7 @@ NEEDS ASSESSMENT:
       face_captured: !!face,
       thumb_captured: !!thumb,
       captured_by: u.user?.id ?? null,
+      photo_base64: face,
     };
 
     // Always save the actual base64 biometric images locally under the reference number
@@ -1460,7 +1504,7 @@ function FaceCapture({ image, onCapture }: { image: string | null; onCapture: (d
       if (videoRef.current) { videoRef.current.srcObject = s; await videoRef.current.play(); }
       setLive(true);
       setScanning(true);
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.warn("Camera hardware access failed, falling back to secure simulation:", e);
       setIsSimulated(true);
       setScanning(true);
@@ -1544,6 +1588,7 @@ function FaceCapture({ image, onCapture }: { image: string | null; onCapture: (d
         clearTimeout(t5);
       };
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scanning, image, isSimulated]);
 
   return (
@@ -1608,10 +1653,34 @@ function FaceCapture({ image, onCapture }: { image: string | null; onCapture: (d
 function ThumbCapture({ image, scanning, setScanning, onCapture }: {
   image: string | null; scanning: boolean; setScanning: (b: boolean) => void; onCapture: (d: string | null) => void;
 }) {
-  const scan = async () => {
+  const [progress, setProgress] = useState(0);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  const startScan = () => {
+    if (image || scanning) return;
     setScanning(true);
-    await new Promise((r) => setTimeout(r, 2000));
-    // Generate a synthetic fingerprint pattern as a placeholder visualisation.
+    setProgress(0);
+    intervalRef.current = setInterval(() => {
+      setProgress((p) => {
+        const next = p + 4; // takes about 2.5 seconds
+        if (next >= 100) {
+          if (intervalRef.current) clearInterval(intervalRef.current);
+          finishScan();
+          return 100;
+        }
+        return next;
+      });
+    }, 100);
+  };
+
+  const stopScan = () => {
+    if (image || progress >= 100) return;
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    setScanning(false);
+    setProgress(0);
+  };
+
+  const finishScan = () => {
     const c = document.createElement("canvas");
     c.width = 240; c.height = 320;
     const ctx = c.getContext("2d")!;
@@ -1630,36 +1699,42 @@ function ThumbCapture({ image, scanning, setScanning, onCapture }: {
   };
 
   useEffect(() => {
-    if (!image && !scanning) {
-      scan();
-    }
-  }, [image]);
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, []);
 
   return (
     <div className="rounded-lg border border-border p-4">
       <div className="mb-3 flex items-center justify-between font-display text-sm font-semibold text-primary">
         <span className="flex items-center gap-2"><Fingerprint className="h-4 w-4" /> Thumbprint Capture</span>
-        {scanning && <span className="text-[10px] text-primary bg-primary/5 px-2 py-0.5 rounded animate-pulse">Scanning thumb...</span>}
+        {scanning && <span className="text-[10px] text-primary bg-primary/5 px-2 py-0.5 rounded animate-pulse">Scanning thumb... {progress}%</span>}
       </div>
-      <div className="relative flex aspect-square w-full items-center justify-center overflow-hidden rounded-md bg-muted">
+      <div 
+        className="relative flex aspect-square w-full items-center justify-center overflow-hidden rounded-md bg-muted cursor-pointer select-none touch-none"
+        onPointerDown={startScan}
+        onPointerUp={stopScan}
+        onPointerLeave={stopScan}
+        onContextMenu={(e) => e.preventDefault()}
+      >
         {image ? (
           <img src={image} alt="Captured thumbprint" className="h-full w-full object-contain animate-fade-in" />
         ) : (
           <>
-            <Fingerprint className={`h-32 w-32 text-primary/40 ${scanning ? "animate-pulse" : ""}`} />
+            <Fingerprint className={`h-32 w-32 text-primary/40 transition-transform ${scanning ? "scale-110 text-primary" : ""}`} />
             {scanning && (
-              <div className="absolute inset-x-0 top-0 h-1 animate-[scanline_1.6s_linear_infinite] bg-accent shadow-[0_0_12px_hsl(var(--accent))]"
-                   style={{ animationName: "scanline" }} />
+              <div className="absolute inset-x-0 bottom-0 bg-primary/20" style={{ height: `${progress}%`, transition: 'height 100ms linear' }}>
+                <div className="absolute inset-x-0 top-0 h-1 bg-accent shadow-[0_0_12px_hsl(var(--accent))]" />
+              </div>
             )}
           </>
         )}
       </div>
       <div className="mt-3">
         <Button disabled variant="outline" size="sm" className="w-full">
-          {image ? "Thumbprint Verified ✓" : scanning ? "Scanning automatically..." : "Awaiting Sensor..."}
+          {image ? "Thumbprint Verified ✓" : "Tap and hold sensor"}
         </Button>
       </div>
-      <style>{`@keyframes scanline { 0% { transform: translateY(0) } 100% { transform: translateY(100%) } }`}</style>
     </div>
   );
 }
@@ -1670,7 +1745,7 @@ function InterventionsPortal({
   onAdd
 }: {
   onBack: () => void;
-  list: any[];
+  list: Intervention[];
   onAdd: (camp: string, category: string, details: string, count: number) => void;
 }) {
   const [camp, setCamp] = useState("");
