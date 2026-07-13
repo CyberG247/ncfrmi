@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'dart:math';
 import 'dart:convert';
 import 'dart:typed_data';
@@ -6,9 +5,9 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:csv/csv.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../theme.dart';
+import '../../utils/file_saver.dart';
 
 class AnalyticsModule extends StatefulWidget {
   const AnalyticsModule({super.key});
@@ -196,48 +195,38 @@ class _AnalyticsModuleState extends State<AnalyticsModule> {
     }
 
     try {
-      String? outputFile = await FilePicker.saveFile(
-        dialogTitle: 'Export Registry Database to CSV',
-        fileName: 'ncfrmi_command_center_dump.csv',
-        type: FileType.custom,
-        allowedExtensions: ['csv'],
-      );
+      List<List<dynamic>> rows = [];
+      rows.add([
+        'ID', 'Reference ID', 'Category', 'Full Name', 'Gender', 'DOB',
+        'Phone', 'State of Origin', 'LGA', 'Nationality', 'Address',
+        'DependantsCount', 'Biometric Thumb', 'Face Captured', 'Created At'
+      ]);
 
-      if (outputFile != null) {
-        List<List<dynamic>> rows = [];
+      for (var item in _registrantsData) {
         rows.add([
-          'ID', 'Reference ID', 'Category', 'Full Name', 'Gender', 'DOB',
-          'Phone', 'State of Origin', 'LGA', 'Nationality', 'Address',
-          'DependantsCount', 'Biometric Thumb', 'Face Captured', 'Created At'
+          item['id'],
+          item['reference'],
+          item['category'],
+          item['full_name'],
+          item['gender'],
+          item['dob'],
+          item['phone'],
+          item['state_origin'],
+          item['lga'],
+          item['nationality'],
+          item['address'],
+          item['dependants'],
+          item['thumb_captured'],
+          item['face_captured'],
+          item['created_at'],
         ]);
+      }
 
-        for (var item in _registrantsData) {
-          rows.add([
-            item['id'],
-            item['reference'],
-            item['category'],
-            item['full_name'],
-            item['gender'],
-            item['dob'],
-            item['phone'],
-            item['state_origin'],
-            item['lga'],
-            item['nationality'],
-            item['address'],
-            item['dependants'],
-            item['thumb_captured'],
-            item['face_captured'],
-            item['created_at'],
-          ]);
-        }
-
-        String csvString = csv.encode(rows);
-        final file = File(outputFile);
-        await file.writeAsString(csvString);
-        
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Exported successfully to $outputFile')));
-        }
+      String csvString = csv.encode(rows);
+      await saveBytesOrString(csvString, 'ncfrmi_command_center_dump.csv');
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Exported successfully')));
       }
     } catch (e) {
       if (mounted) {

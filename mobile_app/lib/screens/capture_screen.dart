@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -181,6 +182,9 @@ class _CaptureScreenState extends State<CaptureScreen> with SingleTickerProvider
 
       _faceCaptured = r.faceCaptured;
       _thumbCaptured = r.thumbCaptured;
+      if (r.photoBase64 != null) {
+        _faceImageBase64 = r.photoBase64;
+      }
       
       _dobController.text = _dob;
       
@@ -284,7 +288,7 @@ class _CaptureScreenState extends State<CaptureScreen> with SingleTickerProvider
 
     try {
       final XFile photo = await _cameraController!.takePicture();
-      final bytes = await File(photo.path).readAsBytes();
+      final bytes = await photo.readAsBytes();
       final base64String = base64Encode(bytes);
       
       if (!mounted) return;
@@ -302,6 +306,17 @@ class _CaptureScreenState extends State<CaptureScreen> with SingleTickerProvider
         });
       }
     }
+  }
+
+  void _resetFaceCapture() {
+    setState(() {
+      _faceImagePath = null;
+      _faceImageBase64 = null;
+      _faceCaptured = false;
+      _livenessVerifying = false;
+      _livenessVerified = false;
+      _livenessProgress = 0.0;
+    });
   }
 
   void _startThumbTimer(String hand) {
@@ -919,7 +934,7 @@ ${_faceImageBase64 != null ? '\n===PHOTO_BASE64===\n$_faceImageBase64' : ''}
                   alignment: Alignment.center,
                   children: [
                     if (_faceImagePath != null)
-                      ClipOval(child: Image.file(File(_faceImagePath!), width: 260, height: 260, fit: BoxFit.cover))
+                      ClipOval(child: kIsWeb ? Image.network(_faceImagePath!, width: 260, height: 260, fit: BoxFit.cover) : Image.file(File(_faceImagePath!), width: 260, height: 260, fit: BoxFit.cover))
                     else if (_cameraController != null && _cameraController!.value.isInitialized)
                       ClipOval(
                         child: SizedBox(
@@ -982,9 +997,25 @@ ${_faceImageBase64 != null ? '\n===PHOTO_BASE64===\n$_faceImageBase64' : ''}
               label: Text(_livenessVerifying ? 'Running Enrolment...' : 'Start Liveness Check'),
             )
           else
-            ElevatedButton(
-              onPressed: () => setState(() => _wizardStep = 4),
-              child: const Text('Proceed to Thumbprint Scan'),
+            Row(
+              children: [
+                Expanded(
+                  flex: 1,
+                  child: OutlinedButton.icon(
+                    onPressed: _resetFaceCapture,
+                    icon: const Icon(LucideIcons.refreshCw300),
+                    label: const Text('Retake'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  flex: 2,
+                  child: ElevatedButton(
+                    onPressed: () => setState(() => _wizardStep = 4),
+                    child: const Text('Proceed to Thumbprint Scan'),
+                  ),
+                ),
+              ],
             ),
         ],
       ),
@@ -1142,6 +1173,41 @@ ${_faceImageBase64 != null ? '\n===PHOTO_BASE64===\n$_faceImageBase64' : ''}
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                Center(
+                  child: Column(
+                    children: [
+                      CircleAvatar(
+                        radius: 50,
+                        backgroundColor: AppTheme.primary.withValues(alpha: 0.1),
+                        backgroundImage: _faceImageBase64 != null 
+                            ? MemoryImage(base64Decode(_faceImageBase64!.split(',').last)) 
+                            : (_faceImagePath != null 
+                                ? (kIsWeb ? NetworkImage(_faceImagePath!) : FileImage(File(_faceImagePath!))) as ImageProvider?
+                                : null),
+                        child: (_faceImagePath == null && _faceImageBase64 == null) 
+                            ? const Icon(LucideIcons.user300, size: 40, color: AppTheme.primary) 
+                            : null,
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        _fullNameController.text.trim().isEmpty 
+                            ? 'Unnamed Registrant' 
+                            : _fullNameController.text.trim(),
+                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '${_category.toUpperCase()} • Ref: $_reference',
+                        style: const TextStyle(color: AppTheme.mutedForeground, fontSize: 12),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 16),
+                      const Divider(),
+                      const SizedBox(height: 8),
+                    ],
+                  ),
+                ),
                 _buildReviewRow('Reference', _reference),
                 _buildReviewRow('Category', _category.toUpperCase()),
                 _buildReviewRow('Full Name', _fullNameController.text),
