@@ -2730,13 +2730,13 @@ export default function AdminDashboard() {
                     </div>
                   </Card>
 
-                  {/* Educational and Needs Card */}
+                  {/* Educational and Displacement Card */}
                   {(() => {
                     const parsed = parseCircumstances(previewRegistrant.circumstances || "");
                     return (
                       <Card className="p-4 border-slate-200 shadow-sm bg-card/50">
                         <h4 className="font-bold text-xs text-emerald-800 border-b pb-1.5 mb-3 uppercase tracking-wider">
-                          Educational Background & Needs Assessment
+                          Educational Background & Displacement Details
                         </h4>
                         <div className="grid grid-cols-2 gap-x-4 gap-y-3">
                           <div>
@@ -2750,14 +2750,6 @@ export default function AdminDashboard() {
                           <div className="col-span-2">
                             <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">Displacement Circumstances / Reason</span>
                             <p className="mt-0.5 font-medium leading-relaxed bg-muted/20 p-2 rounded">{parsed.reason || previewRegistrant.circumstances || "—"}</p>
-                          </div>
-                          <div className="col-span-2">
-                            <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">Immediate Material Needs</span>
-                            <p className="capitalize mt-0.5 font-semibold text-emerald-850">{parsed.primary_needs.join(", ") || "None"}</p>
-                          </div>
-                          <div className="col-span-2">
-                            <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">Needs Assessment Details</span>
-                            <p className="mt-0.5 font-medium leading-relaxed bg-muted/20 p-2 rounded">{parsed.needs_details || "—"}</p>
                           </div>
                         </div>
                       </Card>

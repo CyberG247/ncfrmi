@@ -30,8 +30,9 @@ export const Footer = () => {
               ["About Us", "/about"],
               ["Online Application", "/apply"],
               ["Zonal & State Offices", "/offices"],
-              ["News & Updates", "/news"],
+              ["Media & Updates", "/media"],
               ["Report Incident", "/report"],
+              ["Resources & Publications", "/resources"],
             ].map(([l, h]) => (
               <li key={h}><Link to={h} className="hover:text-primary-foreground">{l}</Link></li>
             ))}
@@ -49,7 +50,7 @@ export const Footer = () => {
               "Legal Aid & Documentation",
               "Durable Solutions",
             ].map((s) => (
-              <li key={s}><Link to="/services" className="hover:text-primary-foreground">{s}</Link></li>
+              <li key={s}><Link to="/our-work" className="hover:text-primary-foreground">{s}</Link></li>
             ))}
           </ul>
         </div>

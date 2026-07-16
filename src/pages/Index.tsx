@@ -1,19 +1,59 @@
 import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { ArrowRight, ShieldCheck, FileText, AlertTriangle, MapPin, Users, HeartHandshake, Languages, Bot, BarChart3, Fingerprint, Download } from "lucide-react";
+import { ArrowRight, ShieldCheck, FileText, AlertTriangle, MapPin, Users, HeartHandshake, Languages, Bot, BarChart3, Fingerprint, Download, ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import Layout from "@/components/site/Layout";
 import Reveal from "@/components/site/Reveal";
 import CountUp from "@/components/site/CountUp";
-import hero1 from "@/assets/hero-1.png";
-import hero2 from "@/assets/hero-2.png";
-import hero3 from "@/assets/hero-3.png";
+import heroEvent1 from "@/assets/hero-event1.jpg";
+import heroEvent2 from "@/assets/hero-event2.jpg";
+import heroRabat1 from "@/assets/hero-rabat1.jpg";
+import heroRabat2 from "@/assets/hero-rabat2.jpg";
+import heroRabat3 from "@/assets/hero-rabat3.jpg";
+import heroRabat4 from "@/assets/hero-rabat4.jpg";
+import heroRabat5 from "@/assets/hero-rabat5.jpg";
 import logo from "@/assets/ncfrmi-logo.png";
 import commissioner from "@/assets/commissioner.jpg";
 
-const heroSlides = [hero1, hero2, hero3];
+const heroSlides = [
+  {
+    image: heroEvent1,
+    title: "A Landmark Day for Durable Solutions in Nigeria: NCFRMI Validates National Strategy and Inaugurates Technical Working Group",
+    link: "/news#durable-solutions-nigeria"
+  },
+  {
+    image: heroEvent2,
+    title: "Restoring Hope, Protecting Dignity: NCFRMI Marks World Refugee Day 2026",
+    link: "/news#world-refugee-day-2026"
+  },
+  {
+    image: heroRabat1,
+    title: "Nigeria Seated at the United Nations: Advancing Regional Dialogues on Safe and Regular Migration",
+    link: "/news#rabat-process-abuja"
+  },
+  {
+    image: heroRabat2,
+    title: "Strengthening Euro-African Alliances: NCFRMI Solidifies Bilateral Cooperation on Reintegration Support",
+    link: "/news#bilateral-cooperation-migration"
+  },
+  {
+    image: heroRabat3,
+    title: "NCFRMI Convenes the High-Level Rabat Process Summit at the Bola Ahmed Tinubu Conference Centre",
+    link: "/news#rabat-process-abuja"
+  },
+  {
+    image: heroRabat4,
+    title: "Coordinating Cross-Border Migration Policies for Orderly and Humane Repatriation Frameworks",
+    link: "/news#rabat-process-abuja"
+  },
+  {
+    image: heroRabat5,
+    title: "United in Commitment: Regional Delegations Reaffirm Support for Refugee Human Rights and Dignity",
+    link: "/news#rabat-process-abuja"
+  }
+];
 
 const services = [
   { icon: ShieldCheck, title: "Protection & Asylum", desc: "Status determination, protection orders, and safe haven for those fleeing persecution." },
@@ -40,36 +80,17 @@ export default function Index() {
   const [appComingSoon, setAppComingSoon] = useState(false);
 
   const playBeep = () => {
-    try {
-      const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-      const ctx = new AudioContextClass();
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.frequency.setValueAtTime(880, ctx.currentTime);
-      gain.gain.setValueAtTime(0.12, ctx.currentTime);
-      osc.start();
-      osc.stop(ctx.currentTime + 0.15);
-    } catch (e) {
-      console.warn("AudioContext beep failed:", e);
-    }
+    // Audio beep disabled to prevent constant beeping
   };
 
   useEffect(() => {
-    const id = setInterval(() => setSlide((s) => (s + 1) % heroSlides.length), 4500);
     const simInterval = setInterval(() => setSimStep((s) => (s + 1) % 7), 4505);
     return () => {
-      clearInterval(id);
       clearInterval(simInterval);
     };
   }, []);
 
-  useEffect(() => {
-    if (simStep === 5 || simStep === 6) {
-      playBeep();
-    }
-  }, [simStep]);
+
 
   useEffect(() => {
     const onScroll = () => setScrollY(window.scrollY);
@@ -89,22 +110,22 @@ export default function Index() {
           </div>
         );
       })()}
-      {/* HERO */}
-      <section className="relative overflow-hidden">
-        {heroSlides.map((src, i) => (
+      <section className="relative overflow-hidden h-[540px] sm:h-[600px] lg:h-[640px] flex items-end justify-center pb-20 sm:pb-24 lg:pb-28">
+        {heroSlides.map((slideObj, i) => (
           <img
             key={i}
-            src={src}
+            src={slideObj.image}
             alt=""
-            className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-1400 ${
-              i === slide ? "opacity-100 animate-ken-burns" : "opacity-0"
+            className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-700 ${
+              i === slide ? "opacity-100 scale-100" : "opacity-0 scale-95"
             }`}
             style={{ transform: `translate3d(0, ${scrollY * 0.18}px, 0)` }}
             width={1920}
             height={1080}
           />
         ))}
-        <div className="absolute inset-0 bg-gradient-overlay" />
+        {/* Slightly darker overlay to improve text readability */}
+        <div className="absolute inset-0 bg-black/45" />
 
         {/* Floating soft particles */}
         <div className="pointer-events-none absolute inset-0 overflow-hidden">
@@ -114,29 +135,51 @@ export default function Index() {
           <span className="particle h-10 w-10 right-[30%] top-[78%] animate-float" style={{ animationDelay: "0.6s" }} />
         </div>
 
-        <div className="relative">
-          <div className="container-page py-24 sm:py-32 lg:py-40">
-            <div className="max-w-2xl text-primary-foreground">
-              <Reveal variant="blur" className="mb-6 inline-flex items-center gap-2 rounded-full border border-primary-foreground/30 bg-primary-foreground/10 px-3 py-1 text-xs font-medium backdrop-blur">
-                <span className="inline-block h-2 w-2 rounded-full bg-primary-glow animate-pulse-soft" />
-                Federal Government of Nigeria
-              </Reveal>
-              <Reveal as="h1" delay={120} className="font-display text-4xl leading-[1.05] sm:text-5xl lg:text-6xl">
-                Protecting, Assisting, and Empowering Displaced Persons in Nigeria
-              </Reveal>
-              <Reveal as="p" delay={240} className="mt-5 max-w-xl text-base text-primary-foreground/90 sm:text-lg">
-                The official platform of the National Commission for Refugees, Migrants and Internally Displaced Persons. Apply, register, and access humanitarian services online.
-              </Reveal>
-              <Reveal delay={360} className="mt-8 flex flex-wrap gap-3">
-                <Button asChild size="lg" className="bg-emerald-650 hover:bg-emerald-700 text-white border border-emerald-650 hover-lift">
-                  <Link to="/apply?type=asylum">Apply for Asylum <ArrowRight className="ml-1 h-4 w-4 transition-transform group-hover:translate-x-1" /></Link>
-                </Button>
-                <Button asChild size="lg" className="bg-white hover:bg-slate-100 text-slate-900 border border-white hover-lift">
-                  <Link to="/field-capture">Field Capture</Link>
-                </Button>
-              </Reveal>
+        <div className="relative z-20 w-full">
+          <div className="container-page py-20 text-center">
+            <div className="max-w-4xl mx-auto flex flex-col items-center justify-center">
+              <div key={slide} className="animate-fade-in flex flex-col items-center space-y-6">
+                <h1 className="font-display text-xl sm:text-3xl lg:text-4xl font-light tracking-wide text-white leading-snug max-w-3xl drop-shadow-md">
+                  {heroSlides[slide].title}
+                </h1>
+                <div>
+                  <Button asChild variant="outline" className="border border-white bg-black/20 hover:bg-white text-white hover:text-slate-900 transition-all duration-300 px-10 py-6 text-base font-normal tracking-wide rounded-sm">
+                    <Link to={heroSlides[slide].link}>Read More</Link>
+                  </Button>
+                </div>
+              </div>
             </div>
           </div>
+        </div>
+
+        {/* Sideways Arrows */}
+        <button
+          onClick={() => setSlide((s) => (s - 1 + heroSlides.length) % heroSlides.length)}
+          className="absolute left-4 top-1/2 -translate-y-1/2 z-30 p-2.5 rounded-full bg-black/25 hover:bg-black/50 text-white hover:scale-105 active:scale-95 transition-all focus:outline-none border border-white/10"
+          aria-label="Previous slide"
+        >
+          <ChevronLeft className="h-6 w-6" />
+        </button>
+        <button
+          onClick={() => setSlide((s) => (s + 1) % heroSlides.length)}
+          className="absolute right-4 top-1/2 -translate-y-1/2 z-30 p-2.5 rounded-full bg-black/25 hover:bg-black/50 text-white hover:scale-105 active:scale-95 transition-all focus:outline-none border border-white/10"
+          aria-label="Next slide"
+        >
+          <ChevronRight className="h-6 w-6" />
+        </button>
+
+        {/* Carousel indicators */}
+        <div className="absolute bottom-6 left-0 right-0 z-30 flex justify-center gap-2.5">
+          {heroSlides.map((_, idx) => (
+            <button
+              key={idx}
+              onClick={() => setSlide(idx)}
+              className={`h-2 rounded-full transition-all duration-300 ${
+                slide === idx ? "bg-white w-6" : "bg-white/40 w-2 hover:bg-white/60"
+              }`}
+              aria-label={`Go to slide ${idx + 1}`}
+            />
+          ))}
         </div>
       </section>
 
@@ -166,7 +209,7 @@ export default function Index() {
             <div className="relative img-zoom rounded-2xl">
               <img
                 src={commissioner}
-                alt="Hon. Aliyu Tijani Ahmed, Federal Commissioner of NCFRMI"
+                alt="Hon. Dr. Aliyu Tijani Ahmed, Federal Commissioner of NCFRMI"
                 className="h-56 w-56 rounded-2xl object-cover shadow-elegant ring-4 ring-primary/15"
                 width={224}
                 height={224}
@@ -179,7 +222,7 @@ export default function Index() {
                 height={64}
               />
             </div>
-            <div className="mt-7 font-display text-lg font-bold">Hon. Aliyu Tijani Ahmed</div>
+            <div className="mt-7 font-display text-lg font-bold">Hon. Dr. Aliyu Tijani Ahmed</div>
             <div className="text-sm text-muted-foreground">Federal Commissioner / CEO</div>
           </Reveal>
           <Reveal delay={120}>
@@ -191,9 +234,12 @@ export default function Index() {
             <p className="mt-3 text-base leading-relaxed text-foreground/80">
               Through innovation and partnerships, we are transforming humanitarian services for better accessibility and impact — bringing every applicant, camp, and case onto a single, secure digital backbone.
             </p>
-            <div className="mt-7">
+            <div className="mt-7 flex flex-wrap gap-4 items-center justify-center lg:justify-start">
               <Button asChild variant="outline" className="hover-lift">
                 <Link to="/about">Read more about NCFRMI <ArrowRight className="ml-1 h-4 w-4" /></Link>
+              </Button>
+              <Button asChild className="bg-emerald-700 hover:bg-emerald-800 text-white hover-lift font-bold">
+                <Link to="/apply">Apply for Asylum Status <ShieldCheck className="ml-1.5 h-4 w-4" /></Link>
               </Button>
             </div>
           </Reveal>

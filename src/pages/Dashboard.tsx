@@ -35,27 +35,38 @@ export default function Dashboard() {
   useEffect(() => {
     ensureNotificationPermission();
     if (!user) return;
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(user.id);
     const load = async () => {
-      const { data } = await supabase.from("applications").select("*").order("created_at", { ascending: false });
-      setApps((data as App[]) || []);
+      let remoteApps: App[] = [];
+      if (isUuid) {
+        const { data } = await supabase.from("applications").select("*").order("created_at", { ascending: false });
+        remoteApps = (data as App[]) || [];
+      }
+      const localApps = JSON.parse(localStorage.getItem("ncfrmi_local_applications") || "[]");
+      const merged = [...remoteApps, ...localApps];
+      merged.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      setApps(merged);
       setLoading(false);
     };
     load();
 
-    const ch = supabase.channel("apps-rt")
-      .on("postgres_changes", { event: "*", schema: "public", table: "applications", filter: `user_id=eq.${user.id}` },
-        (payload) => {
-          if (payload.eventType === "UPDATE") {
-            const n = payload.new as App;
-            const o = payload.old as App;
-            setApps((prev) => prev.map((a) => (a.id === n.id ? n : a)));
-            if (n.status !== o.status) browserNotify(`Status: ${pretty(n.status)}`, `${n.reference} updated`);
-          } else if (payload.eventType === "INSERT") {
-            setApps((prev) => [payload.new as App, ...prev]);
-          }
-        })
-      .subscribe();
-    return () => { supabase.removeChannel(ch); };
+    let ch: any;
+    if (isUuid) {
+      ch = supabase.channel("apps-rt")
+        .on("postgres_changes", { event: "*", schema: "public", table: "applications", filter: `user_id=eq.${user.id}` },
+          (payload) => {
+            if (payload.eventType === "UPDATE") {
+              const n = payload.new as App;
+              const o = payload.old as App;
+              setApps((prev) => prev.map((a) => (a.id === n.id ? n : a)));
+              if (n.status !== o.status) browserNotify(`Status: ${pretty(n.status)}`, `${n.reference} updated`);
+            } else if (payload.eventType === "INSERT") {
+              setApps((prev) => [payload.new as App, ...prev]);
+            }
+          })
+        .subscribe();
+    }
+    return () => { if (ch) supabase.removeChannel(ch); };
   }, [user]);
 
   return (

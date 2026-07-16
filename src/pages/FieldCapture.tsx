@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Card } from "@/components/ui/card";
-import { Camera, Fingerprint, CheckCircle2, Loader2, RotateCcw, ShieldCheck, UserPlus, Download, Globe, Home, Activity, Eye, EyeOff, Users } from "lucide-react";
+import { Camera, Fingerprint, CheckCircle2, Loader2, RotateCcw, ShieldCheck, UserPlus, Download, Globe, Home, Activity, Eye, EyeOff, Users, CloudLightning } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import logo from "@/assets/ncfrmi-logo.png";
@@ -48,20 +48,7 @@ const empty: Form = {
 const steps = ["Registration Type", "Biodata & Needs", "Review", "Thumbprint Scan"];
 
 const playBeep = () => {
-  try {
-    const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-    const ctx = new AudioCtx();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.frequency.setValueAtTime(880, ctx.currentTime);
-    gain.gain.setValueAtTime(0.12, ctx.currentTime);
-    osc.start();
-    osc.stop(ctx.currentTime + 0.15);
-  } catch (e) {
-    console.warn("AudioContext beep failed:", e);
-  }
+  // Audio beep disabled to prevent constant beeping
 };
 
 const HeadContourSVG = () => (
@@ -113,6 +100,36 @@ const AvatarSVG = () => (
     </svg>
   </div>
 );
+
+const DISPLACEMENT_CAUSES: Record<string, string[]> = {
+  idp: [
+    "Conflict / Violence / Insurgency",
+    "Armed Banditry / Kidnapping",
+    "Communal Clash / Land Dispute",
+    "Farmer-Herder Conflict",
+    "Natural Disaster (Flooding, Drought, etc.)",
+  ],
+  migrant: [
+    "Economic Hardship / Search for Employment",
+    "Educational Opportunities",
+    "Family Reunification",
+    "Climate / Environmental Change",
+  ],
+  returnee: [
+    "Voluntary Repatriation",
+    "Deportation / Forced Return",
+    "Assisted Voluntary Return & Reintegration",
+  ],
+  general: [
+    "Conflict / Violence / Insurgency",
+    "Armed Banditry / Kidnapping",
+    "Communal Clash / Land Dispute",
+    "Farmer-Herder Conflict",
+    "Natural Disaster",
+    "Economic Hardship / Migration",
+    "Repatriation",
+  ]
+};
 
 export default function FieldCapture() {
   const { role, signOut } = useAuth();
@@ -200,6 +217,62 @@ export default function FieldCapture() {
   const [subCategoryOpen, setSubCategoryOpen] = useState(false);
   const [showInterventions, setShowInterventions] = useState(false);
   const [interventionsList, setInterventionsList] = useState<Intervention[]>([]);
+
+  const [localRegistrants, setLocalRegistrants] = useState<any[]>([]);
+  const [pushing, setPushing] = useState(false);
+
+  useEffect(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem("ncfrmi_local_registrants") || "[]");
+      setLocalRegistrants(stored);
+    } catch (e) {
+      console.error(e);
+    }
+  }, [success]);
+
+  const pushLocalData = async () => {
+    if (localRegistrants.length === 0) {
+      toast.info("No offline registrations to push.");
+      return;
+    }
+
+    setPushing(true);
+    const toastId = toast.loading(`Pushing ${localRegistrants.length} local records to central server...`);
+
+    let successCount = 0;
+    let failedCount = 0;
+    const remaining: any[] = [];
+
+    for (const record of localRegistrants) {
+      try {
+        const { id, is_local, created_at, ...payload } = record;
+
+        // Try inserting into Supabase
+        const { error } = await supabase.from("registrants").insert(payload);
+        if (error) throw error;
+        
+        successCount++;
+      } catch (err) {
+        console.error("Failed to push record:", record.reference, err);
+        failedCount++;
+        remaining.push(record);
+      }
+    }
+
+    localStorage.setItem("ncfrmi_local_registrants", JSON.stringify(remaining));
+    setLocalRegistrants(remaining);
+    setPushing(false);
+
+    toast.dismiss(toastId);
+
+    if (failedCount === 0) {
+      toast.success(`Successfully pushed all ${successCount} local records to the central system!`);
+    } else if (successCount > 0) {
+      toast.warning(`Pushed ${successCount} records. ${failedCount} records failed. Check connection.`);
+    } else {
+      toast.error(`Failed to push records. Connection error.`);
+    }
+  };
 
   useEffect(() => {
     try {
@@ -297,8 +370,8 @@ export default function FieldCapture() {
         return !!face && !!data.full_name && !!data.address && !!data.phone && !!data.dob && !!data.gender && !!data.nationality && !!data.state_origin;
       }
       return !!face && !!data.full_name && !!data.address && !!data.phone && !!data.dob && !!data.gender &&
-        !!data.nationality && !!data.state_origin && !!data.lga && data.reason.length >= 20 &&
-        !!data.education_level && !!data.needs_details;
+        !!data.nationality && !!data.state_origin && !!data.lga && !!data.reason &&
+        !!data.education_level;
     }
     if (step === 2) return true;
     if (step === 3) return !!thumb;
@@ -309,119 +382,269 @@ export default function FieldCapture() {
     setStep(0); setData(empty); setFace(null); setThumb(null); setSuccess(false); setLastRef("");
   };
 
+  const drawMockQRCode = (doc: any, x: number, y: number, size: number) => {
+    // Draw outer border
+    doc.setDrawColor(220, 220, 220);
+    doc.setLineWidth(0.1);
+    doc.rect(x, y, size, size);
+    
+    // Draw Finder Pattern (Top-Left)
+    doc.setFillColor(0, 0, 0);
+    doc.rect(x + 0.8, y + 0.8, 3, 3, "F");
+    doc.setFillColor(255, 255, 255);
+    doc.rect(x + 1.4, y + 1.4, 1.8, 1.8, "F");
+    doc.setFillColor(0, 0, 0);
+    doc.rect(x + 1.8, y + 1.8, 1, 1, "F");
+    
+    // Draw Finder Pattern (Top-Right)
+    doc.setFillColor(0, 0, 0);
+    doc.rect(x + size - 3.8, y + 0.8, 3, 3, "F");
+    doc.setFillColor(255, 255, 255);
+    doc.rect(x + size - 3.2, y + 1.4, 1.8, 1.8, "F");
+    doc.setFillColor(0, 0, 0);
+    doc.rect(x + size - 2.8, y + 1.8, 1, 1, "F");
+    
+    // Draw Finder Pattern (Bottom-Left)
+    doc.setFillColor(0, 0, 0);
+    doc.rect(x + 0.8, y + size - 3.8, 3, 3, "F");
+    doc.setFillColor(255, 255, 255);
+    doc.rect(x + 1.4, y + size - 3.2, 1.8, 1.8, "F");
+    doc.setFillColor(0, 0, 0);
+    doc.rect(x + 1.8, y + size - 2.8, 1, 1, "F");
+
+    // Draw some random small data bits
+    doc.setFillColor(0, 0, 0);
+    doc.rect(x + 4.5, y + 1, 0.8, 0.8, "F");
+    doc.rect(x + 6, y + 2, 1, 0.6, "F");
+    doc.rect(x + 4, y + 4.5, 0.6, 1.2, "F");
+    doc.rect(x + 5.5, y + 6, 1.5, 0.8, "F");
+    doc.rect(x + 7, y + 4, 0.8, 0.8, "F");
+    doc.rect(x + 4.5, y + 8, 1.2, 1.2, "F");
+    doc.rect(x + 8, y + 7, 1.5, 1.5, "F");
+    doc.rect(x + 9, y + 1.5, 0.8, 1.2, "F");
+    
+    doc.rect(x + 1.5, y + 4.5, 0.6, 0.6, "F");
+    doc.rect(x + 2.5, y + 5.5, 0.8, 0.8, "F");
+    doc.rect(x + 5, y + size - 3, 1, 1, "F");
+    doc.rect(x + size - 3, y + 5, 0.8, 1.2, "F");
+    doc.rect(x + size - 2.5, y + size - 2.5, 1.2, 1.2, "F");
+  };
+
   const downloadRefugeeIDCard = async () => {
     try {
       const { jsPDF } = await import("jspdf");
       const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: [85.6, 54] });
       
-      // Green background header bar
-      doc.setFillColor(11, 102, 60);
-      doc.rect(0, 0, 85.6, 12, "F");
+      // Entire background is white
+      doc.setFillColor(255, 255, 255);
+      doc.rect(0, 0, 85.6, 54, "F");
       
-      // Gold accent line
-      doc.setFillColor(212, 175, 55);
-      doc.rect(0, 12, 85.6, 1, "F");
-      
-      // Header text
-      doc.setTextColor(255, 255, 255);
-      doc.setFont("Helvetica", "bold");
-      doc.setFontSize(5);
-      doc.text("NATIONAL COMMISSION FOR REFUGEES, MIGRANTS & IDPs", 42.8, 4, { align: "center" });
-      doc.setFontSize(6.5);
-      doc.text("REFUGEE IDENTITY CARD", 42.8, 9, { align: "center" });
-      
-      // Add logo
+      // Add logo (Top Center)
       try {
         const logoImg = new Image();
         logoImg.src = logo;
-        doc.addImage(logoImg, "PNG", 2, 1, 9, 9);
+        doc.addImage(logoImg, "PNG", 38.8, 2, 8, 8);
       } catch (e) {
         console.warn("Logo load error:", e);
       }
-      
-      // Body background
-      doc.setFillColor(253, 253, 253);
-      doc.rect(0, 13, 85.6, 41, "F");
-      
-      // Photo
+
+      // Commission Name (centered)
+      doc.setTextColor(78, 52, 46); // Brown
+      doc.setFont("Helvetica", "bold");
+      doc.setFontSize(4.5);
+      doc.text("NATIONAL COMMISSION FOR REFUGEES, MIGRANTS & IDPs", 42.8, 11.5, { align: "center" });
+
+      // Title (centered)
+      doc.setFontSize(5.5);
+      doc.setTextColor(11, 102, 60); // Green
+      doc.text("REFUGEE IDENTITY CARD", 42.8, 14.5, { align: "center" });
+
+      // Photo (Left side)
       if (face) {
         try {
-          doc.addImage(face, "JPEG", 4, 16, 22, 26);
+          doc.addImage(face, "JPEG", 5, 18, 20, 24);
         } catch (e) {
           console.warn("Photo error:", e);
         }
       }
       doc.setDrawColor(200, 200, 200);
-      doc.setLineWidth(0.2);
-      doc.rect(4, 16, 22, 26);
-      
-      // Details
-      doc.setTextColor(15, 23, 42);
+      doc.setLineWidth(0.15);
+      doc.rect(5, 18, 20, 24);
+
+      // Bio Data (Middle)
+      doc.setTextColor(15, 23, 42); // Slate 900
+      let xPos = 27.5;
+      let yPos = 20.5;
+
       doc.setFont("Helvetica", "bold");
-      doc.setFontSize(5.5);
-      
-      let xPos = 29;
-      let yPos = 20;
-      
-      doc.text("FULL NAME:", xPos, yPos);
+      doc.setFontSize(4.5);
+      doc.text("NAME:", xPos, yPos);
       doc.setFont("Helvetica", "normal");
-      doc.text(data.full_name.toUpperCase(), xPos + 18, yPos);
-      
-      yPos += 4.5;
+      doc.text(data.full_name.toUpperCase(), xPos + 16, yPos);
+
+      yPos += 3.8;
       doc.setFont("Helvetica", "bold");
       doc.text("DATE OF BIRTH:", xPos, yPos);
       doc.setFont("Helvetica", "normal");
-      doc.text(data.dob, xPos + 18, yPos);
-      
-      yPos += 4.5;
+      doc.text(data.dob, xPos + 16, yPos);
+
+      yPos += 3.8;
       doc.setFont("Helvetica", "bold");
-      doc.text("COUNTRY OF ORIGIN:", xPos, yPos);
+      doc.text("COUNTRY:", xPos, yPos);
       doc.setFont("Helvetica", "normal");
-      doc.text(data.nationality.toUpperCase(), xPos + 18, yPos);
-      
-      yPos += 4.5;
+      doc.text(data.nationality.toUpperCase(), xPos + 16, yPos);
+
+      yPos += 3.8;
       doc.setFont("Helvetica", "bold");
       doc.text("GENDER:", xPos, yPos);
       doc.setFont("Helvetica", "normal");
-      doc.text(data.gender.toUpperCase(), xPos + 18, yPos);
-      
-      yPos += 4.5;
+      doc.text(data.gender.toUpperCase(), xPos + 16, yPos);
+
+      yPos += 3.8;
       doc.setFont("Helvetica", "bold");
       doc.text("SETTLEMENT:", xPos, yPos);
       doc.setFont("Helvetica", "normal");
-      doc.text(data.address.substring(0, 22).toUpperCase(), xPos + 18, yPos);
+      doc.text(data.address.substring(0, 22).toUpperCase(), xPos + 16, yPos);
 
-      yPos += 6;
+      yPos += 5;
       doc.setTextColor(11, 102, 60);
       doc.setFont("Helvetica", "bold");
-      doc.setFontSize(6.5);
+      doc.setFontSize(5.5);
       doc.text(`ID NO: ${lastRef}`, xPos, yPos);
-      
-      // Barcode strip
-      doc.setFillColor(240, 240, 240);
-      doc.rect(4, 46, 77.6, 6, "F");
-      
-      doc.setDrawColor(0, 0, 0);
-      doc.setLineWidth(0.4);
-      let barcodeX = 6;
-      for (let i = 0; i < 20; i++) {
-        const width = Math.random() > 0.4 ? 0.6 : 0.25;
-        const gap = Math.random() > 0.3 ? 0.8 : 0.4;
-        doc.setLineWidth(width);
-        doc.line(barcodeX, 47.5, barcodeX, 50.5);
-        barcodeX += gap;
-      }
-      
-      doc.setFont("Helvetica", "normal");
-      doc.setFontSize(4);
-      doc.setTextColor(100, 116, 139);
-      doc.text("BIOMETRIC VERIFIED SECURE ID", 50, 50);
+
+      // QR Code (Right side)
+      drawMockQRCode(doc, 67.5, 18, 13);
+
+      // Bottom Stripes
+      // Top stripe (Brown)
+      doc.setFillColor(78, 52, 46);
+      doc.rect(0, 48.5, 85.6, 1.5, "F");
+
+      // Bottom stripe (Green)
+      doc.setFillColor(11, 102, 60);
+      doc.rect(0, 50, 85.6, 4, "F");
+
+      // Secure text in bottom stripe
+      doc.setTextColor(255, 255, 255);
+      doc.setFont("Helvetica", "bold");
+      doc.setFontSize(3.8);
+      doc.text("NATIONAL SECURE DOCUMENT • BIOMETRIC VERIFIED", 42.8, 52.8, { align: "center" });
 
       doc.save(`NCFRMI_Refugee_Card_${data.full_name.replace(/\s+/g, "_")}.pdf`);
-      toast.success("Wallet-size ID Card PDF downloaded successfully!");
+      toast.success("Wallet-size Refugee ID Card downloaded successfully!");
     } catch (err) {
       console.error(err);
-      toast.error("Failed to generate ID Card PDF");
+      toast.error("Failed to generate Refugee ID Card PDF");
+    }
+  };
+
+  const downloadIDPIDCard = async () => {
+    try {
+      const { jsPDF } = await import("jspdf");
+      const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: [85.6, 54] });
+      
+      // Background with a warm tint
+      doc.setFillColor(254, 252, 245);
+      doc.rect(0, 0, 85.6, 54, "F");
+
+      // Top Brown Header Bar
+      doc.setFillColor(78, 52, 46);
+      doc.rect(0, 0, 85.6, 10.5, "F");
+
+      // Add logo (Top Left)
+      try {
+        const logoImg = new Image();
+        logoImg.src = logo;
+        doc.addImage(logoImg, "PNG", 2.5, 1, 8.5, 8.5);
+      } catch (e) {
+        console.warn("Logo load error:", e);
+      }
+
+      // Header Text (White)
+      doc.setTextColor(255, 255, 255);
+      doc.setFont("Helvetica", "bold");
+      doc.setFontSize(4.2);
+      doc.text("NATIONAL COMMISSION FOR REFUGEES, MIGRANTS & IDPs", 13.5, 4.2);
+
+      doc.setFontSize(5);
+      doc.text("INTERNALLY DISPLACED PERSON (IDP) SECURE ID", 13.5, 7.8);
+
+      // Photo (Left side)
+      if (face) {
+        try {
+          doc.addImage(face, "JPEG", 5, 18, 20, 24);
+        } catch (e) {
+          console.warn("Photo error:", e);
+        }
+      }
+      doc.setDrawColor(200, 200, 200);
+      doc.setLineWidth(0.15);
+      doc.rect(5, 18, 20, 24);
+
+      // Bio Data (Middle)
+      doc.setTextColor(15, 23, 42); // Slate 900
+      let xPos = 27.5;
+      let yPos = 20.5;
+
+      doc.setFont("Helvetica", "bold");
+      doc.setFontSize(4.5);
+      doc.text("NAME:", xPos, yPos);
+      doc.setFont("Helvetica", "normal");
+      doc.text(data.full_name.toUpperCase(), xPos + 17, yPos);
+
+      yPos += 3.8;
+      doc.setFont("Helvetica", "bold");
+      doc.text("DATE OF BIRTH:", xPos, yPos);
+      doc.setFont("Helvetica", "normal");
+      doc.text(data.dob, xPos + 17, yPos);
+
+      yPos += 3.8;
+      doc.setFont("Helvetica", "bold");
+      doc.text("STATE:", xPos, yPos);
+      doc.setFont("Helvetica", "normal");
+      doc.text(data.state_origin.toUpperCase(), xPos + 17, yPos);
+
+      yPos += 3.8;
+      doc.setFont("Helvetica", "bold");
+      doc.text("LGA OF ORIGIN:", xPos, yPos);
+      doc.setFont("Helvetica", "normal");
+      doc.text(data.lga.toUpperCase(), xPos + 17, yPos);
+
+      yPos += 3.8;
+      doc.setFont("Helvetica", "bold");
+      doc.text("DISPLACEMENT CAMP:", xPos, yPos);
+      doc.setFont("Helvetica", "normal");
+      doc.text(data.address.substring(0, 22).toUpperCase(), xPos + 17, yPos);
+
+      yPos += 5.2;
+      doc.setTextColor(78, 52, 46);
+      doc.setFont("Helvetica", "bold");
+      doc.setFontSize(5.5);
+      doc.text(`ID NO: ${lastRef}`, xPos, yPos);
+
+      // QR Code (Right side)
+      drawMockQRCode(doc, 67.5, 18, 13);
+
+      // Bottom Bar (Green with gold accent line)
+      // Gold line
+      doc.setFillColor(212, 175, 55);
+      doc.rect(0, 48.8, 85.6, 0.8, "F");
+
+      // Green bar
+      doc.setFillColor(11, 102, 60);
+      doc.rect(0, 49.6, 85.6, 4.4, "F");
+
+      // Secure text in bottom bar
+      doc.setTextColor(255, 255, 255);
+      doc.setFont("Helvetica", "bold");
+      doc.setFontSize(3.8);
+      doc.text("DOMESTIC REGISTRATION • INTERNALLY DISPLACED PERSON", 42.8, 52.8, { align: "center" });
+
+      doc.save(`NCFRMI_IDP_Card_${data.full_name.replace(/\s+/g, "_")}.pdf`);
+      toast.success("Wallet-size IDP Secure ID Card downloaded successfully!");
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to generate IDP Secure ID Card PDF");
     }
   };
 
@@ -473,10 +696,6 @@ ${data.reason}
 EDUCATION BACKGROUND:
 - Level: ${data.education_level}
 - Skills/Specialization: ${data.skills || "None"}
-
-NEEDS ASSESSMENT:
-- Immediate Needs: ${data.primary_needs.join(", ") || "None"}
-- Details: ${data.needs_details}
 ${face ? `\n===PHOTO_BASE64===\n${face}` : ''}
 `;
 
@@ -564,7 +783,7 @@ ${face ? `\n===PHOTO_BASE64===\n${face}` : ''}
                   <img src={logo} alt="NCFRMI seal" className="h-full w-full object-contain" />
                 </div>
                 <h3 className="font-display font-extrabold text-foreground text-base uppercase tracking-tight">
-                  Field Officer Node Authentication
+                  Field Officer's Login
                 </h3>
                 <p className="text-xs text-muted-foreground mt-1">
                   National Commission for Refugees, Migrants & IDPs
@@ -615,7 +834,7 @@ ${face ? `\n===PHOTO_BASE64===\n${face}` : ''}
                 <Button type="submit" disabled={loginLoading} className="w-full hover-lift font-bold uppercase tracking-wider text-xs">
                   {loginLoading ? (
                     <span className="flex items-center gap-1.5"><Loader2 className="h-3.5 w-3.5 animate-spin" /> Verifying...</span>
-                  ) : "Establish Secure Session"}
+                  ) : "Sign In as Field Officer"}
                 </Button>
               </form>
 
@@ -649,8 +868,38 @@ ${face ? `\n===PHOTO_BASE64===\n${face}` : ''}
               </div>
             </Card>
           </div>
-        ) : showIntro ? (
-          <div className="mx-auto max-w-4xl animate-fade-up">
+        ) : (
+          <div className="space-y-6">
+            {localRegistrants.length > 0 && (
+              <div className="mx-auto max-w-4xl animate-fade-in text-left">
+                <div className="bg-amber-50 dark:bg-amber-950/15 border border-amber-200 dark:border-amber-900/40 rounded-2xl p-4 flex flex-col sm:flex-row justify-between items-center gap-4 shadow-elegant">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2.5 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400">
+                      <CloudLightning className="h-5 w-5 animate-pulse" />
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-extrabold uppercase tracking-wide text-amber-800 dark:text-amber-300">
+                        Offline Captured Data Pending Sync
+                      </h4>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                        You have <b>{localRegistrants.length}</b> registration record{localRegistrants.length > 1 ? "s" : ""} captured offline in local storage. Tap Push to upload to the central system.
+                      </p>
+                    </div>
+                  </div>
+                  <Button 
+                    onClick={pushLocalData} 
+                    disabled={pushing} 
+                    className="bg-amber-600 hover:bg-amber-700 text-white font-bold gap-1.5 text-xs h-9 shadow-sm hover-lift px-5 shrink-0"
+                  >
+                    {pushing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CloudLightning className="h-3.5 w-3.5" />}
+                    Push Data ({localRegistrants.length})
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {showIntro ? (
+              <div className="mx-auto max-w-4xl animate-fade-up">
             <Card className="p-6 sm:p-8 shadow-card bg-card text-card-foreground">
               <div className="grid gap-8 md:grid-cols-2 items-center">
                 {/* Left Side: Onboarding Text & API Credentials */}
@@ -1159,73 +1408,16 @@ ${face ? `\n===PHOTO_BASE64===\n${face}` : ''}
                           <h3 className="text-sm font-extrabold uppercase tracking-wide text-foreground">cause of displacement</h3>
                         </div>
                         
-                        <Field label={`Describe circumstances & cause of displacement * (min 20 characters)`}>
-                          <Textarea
-                            rows={4}
-                            value={data.reason}
-                            onChange={(e) => set("reason", e.target.value)}
-                            placeholder="Detail the events that caused displacement (e.g. communal conflict, natural disaster, banditry), dates of event, and transit hurdles..."
-                          />
-                          <div className="mt-1 text-right text-[10px] text-muted-foreground">{data.reason.length} characters</div>
+                        <Field label="Cause of Displacement *">
+                          <Select value={data.reason} onValueChange={(v) => set("reason", v)}>
+                            <SelectTrigger><SelectValue placeholder="Select cause of displacement" /></SelectTrigger>
+                            <SelectContent>
+                              {(DISPLACEMENT_CAUSES[data.type] || DISPLACEMENT_CAUSES.general).map((cause) => (
+                                <SelectItem key={cause} value={cause}>{cause}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         </Field>
-                      </div>
-
-                      {/* Section 4: Needs assessment */}
-                      <div className="space-y-4 pt-4">
-                        <div className="flex items-center gap-2 border-b pb-1.5">
-                          <span className="text-xs font-extrabold text-primary bg-primary/10 px-2 py-0.5 rounded">IV</span>
-                          <h3 className="text-sm font-extrabold uppercase tracking-wide text-foreground">Needs assessment</h3>
-                        </div>
-
-                        <div className="space-y-4">
-                          <div>
-                            <label className="text-xs font-bold text-foreground">Select Immediate Priority Needs (Select all that apply)</label>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
-                              {[
-                                "Food Security & Nutrition",
-                                "Emergency Shelter & Housing",
-                                "Medical Supplies & Healthcare",
-                                "Clean Water, Sanitation & Hygiene (WAsH)",
-                                "Educational Materials & Schools",
-                                "Livelihood & Cash Assistance"
-                              ].map((need) => {
-                                const isChecked = data.primary_needs.includes(need);
-                                return (
-                                  <label
-                                    key={need}
-                                    className={`flex items-center gap-3 p-3 rounded-lg border text-xs font-semibold cursor-pointer transition-all ${
-                                      isChecked
-                                        ? "bg-primary/5 border-primary text-primary"
-                                        : "bg-background border-border text-foreground hover:bg-muted/50"
-                                    }`}
-                                  >
-                                    <input
-                                      type="checkbox"
-                                      checked={isChecked}
-                                      onChange={() => {
-                                        const updated = isChecked
-                                          ? data.primary_needs.filter((n) => n !== need)
-                                          : [...data.primary_needs, need];
-                                        setData((d) => ({ ...d, primary_needs: updated }));
-                                      }}
-                                      className="h-4.5 w-4.5 rounded border-input text-primary focus:ring-primary focus:outline-none"
-                                    />
-                                    {need}
-                                  </label>
-                                );
-                              })}
-                            </div>
-                          </div>
-
-                          <Field label="Needs Assessment & Support Details *">
-                            <Textarea
-                              rows={3}
-                              value={data.needs_details}
-                              onChange={(e) => set("needs_details", e.target.value)}
-                              placeholder="Detail specific urgent needs (e.g. baby foods, chronic illness medicine, mental health, family tracking assistance)..."
-                            />
-                          </Field>
-                        </div>
                       </div>
                     </>
                   )}
@@ -1286,29 +1478,7 @@ ${face ? `\n===PHOTO_BASE64===\n${face}` : ''}
                             <p className="mt-2 text-xs leading-relaxed whitespace-pre-wrap">{data.reason}</p>
                           </div>
 
-                          <div>
-                            <h4 className="text-xs font-bold uppercase tracking-wider text-primary border-b pb-1">Needs Assessment</h4>
-                            <dl className="mt-2 text-xs space-y-2">
-                              <div className="flex gap-2">
-                                <span className="min-w-28 text-[10px] font-bold text-muted-foreground">Immediate Needs:</span>
-                                <div className="flex flex-wrap gap-1">
-                                  {data.primary_needs.length > 0 ? (
-                                    data.primary_needs.map((need) => (
-                                      <span key={need} className="bg-primary/5 text-primary text-[10px] px-2 py-0.5 rounded-full font-semibold">
-                                        {need}
-                                      </span>
-                                    ))
-                                  ) : (
-                                    <span className="text-muted-foreground">None selected</span>
-                                  )}
-                                </div>
-                              </div>
-                              <div>
-                                <span className="text-[10px] font-bold text-muted-foreground">Assessment Details:</span>
-                                <p className="mt-0.5 text-xs leading-relaxed">{data.needs_details}</p>
-                              </div>
-                            </dl>
-                          </div>
+                          {/* Needs Assessment removed */}
                         </>
                       )}
                     </div>
@@ -1373,10 +1543,12 @@ ${face ? `\n===PHOTO_BASE64===\n${face}` : ''}
             </Card>
           </div>
         )}
-      </section>
+      </div>
+    )}
+  </section>
 
       <Dialog open={success} onOpenChange={(o) => { if (!o) reset(); }}>
-        <DialogContent className={data.type === "refugee" ? "max-w-lg" : "max-w-md"}>
+        <DialogContent className={(data.type === "refugee" || data.type === "idp") ? "max-w-lg" : "max-w-md"}>
           <DialogHeader>
             <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-emerald-50">
               <CheckCircle2 className="h-6 w-6 text-emerald-600" />
@@ -1387,87 +1559,181 @@ ${face ? `\n===PHOTO_BASE64===\n${face}` : ''}
             </DialogDescription>
           </DialogHeader>
 
+          {/* Refugee ID Card Preview */}
           {data.type === "refugee" && (
-            <div className="my-4 border border-emerald-600/30 rounded-xl overflow-hidden bg-white shadow-lg mx-auto w-full max-w-[400px]">
-              {/* ID Card Front Header */}
-              <div className="bg-[#0b663c] text-white p-3 flex items-center gap-2 relative">
-                <img src={logo} alt="NCFRMI seal" className="h-8 w-8 object-contain" />
-                <div className="leading-none text-left">
-                  <div className="text-[7.5px] font-bold tracking-tight">NATIONAL COMMISSION FOR REFUGEES, MIGRANTS & IDPs</div>
-                  <div className="text-[10px] font-extrabold tracking-wider uppercase mt-1 text-emerald-100">REFUGEE IDENTITY CARD</div>
+            <div className="my-4 border border-slate-200 rounded-2xl overflow-hidden bg-white shadow-xl mx-auto w-full max-w-[420px] flex flex-col justify-between min-h-[250px]">
+              {/* Header section (Centered logo + text) */}
+              <div className="flex flex-col items-center pt-3 px-3 text-center">
+                <img src={logo} alt="NCFRMI seal" className="h-9 w-9 object-contain" />
+                <div className="text-[7.5px] font-bold text-[#4E342E] uppercase mt-1 tracking-tight">
+                  NATIONAL COMMISSION FOR REFUGEES, MIGRANTS & IDPs
+                </div>
+                <div className="text-[9.5px] font-extrabold text-[#0B6E4F] tracking-wide mt-0.5">
+                  REFUGEE IDENTITY CARD
                 </div>
               </div>
-              
-              {/* ID Card Accent bar */}
-              <div className="h-1 bg-[#d4af37]" />
 
-              {/* ID Card Body */}
-              <div className="p-4 bg-slate-50 flex gap-4 text-left">
-                {/* Profile Pic */}
+              {/* Body Section */}
+              <div className="px-4 py-2.5 flex gap-3 items-start text-left">
+                {/* Photo (Left) */}
                 <div className="flex flex-col items-center">
-                  <div className="h-28 w-22 border border-slate-300 rounded bg-white overflow-hidden shadow-inner flex items-center justify-center relative">
+                  <div className="h-24 w-18 border border-slate-200 rounded bg-white overflow-hidden shadow-inner flex items-center justify-center relative">
                     {face ? (
                       <img src={face} className="h-full w-full object-cover" />
                     ) : (
-                      <Users className="h-8 w-8 text-slate-300" />
+                      <Users className="h-7 w-7 text-slate-300" />
                     )}
                   </div>
-                  <span className="text-[7px] text-emerald-700 font-bold mt-1 uppercase tracking-widest bg-emerald-50 px-1 border border-emerald-200 rounded">
+                  <span className="text-[6.5px] text-emerald-700 font-extrabold mt-1 uppercase tracking-widest bg-emerald-50 px-1 border border-emerald-200 rounded">
                     BIO-VERIFIED
                   </span>
                 </div>
 
-                {/* Info List */}
-                <div className="flex-1 space-y-1.5 text-[10px] text-slate-800">
+                {/* Info List (Middle) */}
+                <div className="flex-1 space-y-1 text-[9px] text-slate-800 font-medium">
                   <div>
-                    <span className="text-[8px] font-bold text-slate-500 block uppercase leading-none">Full Name</span>
-                    <span className="font-extrabold text-slate-900 leading-tight">{data.full_name.toUpperCase()}</span>
+                    <span className="text-[7.5px] font-bold text-slate-400 block uppercase leading-none">Full Name</span>
+                    <span className="font-extrabold text-slate-900 leading-tight block">{data.full_name.toUpperCase()}</span>
                   </div>
-                  <div className="grid grid-cols-2 gap-1">
-                    <div>
-                      <span className="text-[8px] font-bold text-slate-500 block uppercase leading-none">Date of Birth</span>
-                      <span className="font-semibold text-slate-900">{new Date(data.dob || Date.now()).toLocaleDateString()}</span>
-                    </div>
-                    <div>
-                      <span className="text-[8px] font-bold text-slate-500 block uppercase leading-none">Gender</span>
-                      <span className="font-semibold text-slate-900 uppercase">{data.gender}</span>
-                    </div>
+                  <div>
+                    <span className="text-[7.5px] font-bold text-slate-400 block uppercase leading-none">Date of Birth</span>
+                    <span className="text-slate-900">{data.dob}</span>
                   </div>
-                  <div className="grid grid-cols-2 gap-1">
-                    <div>
-                      <span className="text-[8px] font-bold text-slate-500 block uppercase leading-none">Nationality</span>
-                      <span className="font-semibold text-slate-900 uppercase">{data.nationality}</span>
-                    </div>
-                    <div>
-                      <span className="text-[8px] font-bold text-slate-500 block uppercase leading-none">Settlement</span>
-                      <span className="font-semibold text-slate-900 truncate block max-w-[80px]" title={data.address}>{data.address}</span>
-                    </div>
+                  <div>
+                    <span className="text-[7.5px] font-bold text-slate-400 block uppercase leading-none">Country of Origin</span>
+                    <span className="text-slate-900 uppercase">{data.nationality}</span>
                   </div>
-                  <div className="pt-1.5 border-t">
-                    <span className="text-[8px] font-bold text-emerald-800 uppercase block tracking-wider leading-none">Refugee ID Number</span>
-                    <span className="font-mono text-xs font-bold text-emerald-700">{lastRef}</span>
+                  <div>
+                    <span className="text-[7.5px] font-bold text-slate-400 block uppercase leading-none">Settlement</span>
+                    <span className="text-slate-900 uppercase truncate block max-w-[120px]" title={data.address}>{data.address}</span>
+                  </div>
+                  <div className="pt-0.5">
+                    <span className="text-[7px] font-bold text-emerald-800 uppercase block tracking-wider leading-none">ID Number</span>
+                    <span className="font-mono text-[9px] font-bold text-[#0B6E4F]">{lastRef}</span>
+                  </div>
+                </div>
+
+                {/* QR Code (Right) */}
+                <div className="h-13 w-13 bg-white border border-slate-200 p-0.5 rounded flex flex-col justify-between">
+                  <div className="grid grid-cols-5 gap-[1px] w-full h-full">
+                    {Array.from({ length: 25 }).map((_, i) => (
+                      <div 
+                        key={i} 
+                        className={`${
+                          (i % 3 === 0 || i % 7 === 0 || i < 5 || i > 20 || (i % 5 === 0 && i < 15)) && i !== 12
+                            ? "bg-slate-950" 
+                            : "bg-transparent"
+                        } rounded-[0.5px]`} 
+                      />
+                    ))}
                   </div>
                 </div>
               </div>
 
-              {/* Barcode & Security Strip */}
-              <div className="bg-slate-200/50 p-2 border-t flex justify-between items-center px-4">
-                {/* Simulated Barcode */}
-                <div className="flex items-center h-4 gap-[1.5px]">
-                  {[2, 1, 3, 1, 2, 4, 1, 2, 3, 1, 2, 1, 4, 2].map((w, idx) => (
-                    <div key={idx} className="bg-slate-900 h-full" style={{ width: `${w * 0.4}px` }} />
-                  ))}
+              {/* Bottom Stripes */}
+              <div className="w-full flex flex-col mt-2">
+                <div className="h-1 bg-[#4E342E]" />
+                <div className="bg-[#0B6E4F] text-white text-[7.5px] font-extrabold text-center py-1.5 uppercase tracking-wider">
+                  NATIONAL SECURE DOCUMENT • BIOMETRIC VERIFIED
                 </div>
-                <div className="text-[7px] font-bold text-slate-400 uppercase tracking-widest">
-                  NCFRMI Official Document
+              </div>
+            </div>
+          )}
+
+          {/* IDP ID Card Preview */}
+          {data.type === "idp" && (
+            <div className="my-4 border border-slate-200 rounded-2xl overflow-hidden bg-[#fefeeb] shadow-xl mx-auto w-full max-w-[420px] flex flex-col justify-between min-h-[250px]">
+              {/* Top Brown Header Bar */}
+              <div className="bg-[#4E342E] text-white p-2.5 flex items-center gap-2 relative text-left">
+                <img src={logo} alt="NCFRMI seal" className="h-8 w-8 object-contain" />
+                <div className="leading-tight">
+                  <div className="text-[7px] font-bold tracking-tight">NATIONAL COMMISSION FOR REFUGEES, MIGRANTS & IDPs</div>
+                  <div className="text-[9px] font-extrabold tracking-wider uppercase mt-0.5 text-amber-100">INTERNALLY DISPLACED PERSON (IDP) SECURE ID</div>
+                </div>
+              </div>
+
+              {/* Body Section */}
+              <div className="px-4 py-2.5 flex gap-3 items-start text-left mt-1">
+                {/* Photo (Left) */}
+                <div className="flex flex-col items-center">
+                  <div className="h-24 w-18 border border-slate-200 rounded bg-white overflow-hidden shadow-inner flex items-center justify-center relative">
+                    {face ? (
+                      <img src={face} className="h-full w-full object-cover" />
+                    ) : (
+                      <Users className="h-7 w-7 text-slate-300" />
+                    )}
+                  </div>
+                  <span className="text-[6.5px] text-[#4E342E] font-extrabold mt-1 uppercase tracking-widest bg-amber-50 px-1 border border-amber-200 rounded">
+                    DOMESTIC ID
+                  </span>
+                </div>
+
+                {/* Info List (Middle) */}
+                <div className="flex-1 space-y-1 text-[9px] text-slate-800 font-medium">
+                  <div>
+                    <span className="text-[7.5px] font-bold text-slate-400 block uppercase leading-none">Full Name</span>
+                    <span className="font-extrabold text-slate-900 leading-tight block">{data.full_name.toUpperCase()}</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    <div>
+                      <span className="text-[7.5px] font-bold text-slate-400 block uppercase leading-none">Date of Birth</span>
+                      <span className="text-slate-900">{data.dob}</span>
+                    </div>
+                    <div>
+                      <span className="text-[7.5px] font-bold text-slate-400 block uppercase leading-none">State of Origin</span>
+                      <span className="text-slate-900 uppercase">{data.state_origin}</span>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    <div>
+                      <span className="text-[7.5px] font-bold text-slate-400 block uppercase leading-none">LGA of Origin</span>
+                      <span className="text-slate-900 uppercase">{data.lga}</span>
+                    </div>
+                    <div>
+                      <span className="text-[7.5px] font-bold text-slate-400 block uppercase leading-none">Displacement Camp</span>
+                      <span className="text-slate-900 uppercase truncate block max-w-[65px]" title={data.address}>{data.address}</span>
+                    </div>
+                  </div>
+                  
+                  <div className="pt-0.5">
+                    <span className="text-[7px] font-bold text-[#4E342E] uppercase block tracking-wider leading-none">ID Number</span>
+                    <span className="font-mono text-[9px] font-bold text-[#4E342E]">{lastRef}</span>
+                  </div>
+                </div>
+
+                {/* QR Code (Right) */}
+                <div className="h-13 w-13 bg-white border border-slate-200 p-0.5 rounded flex flex-col justify-between">
+                  <div className="grid grid-cols-5 gap-[1px] w-full h-full">
+                    {Array.from({ length: 25 }).map((_, i) => (
+                      <div 
+                        key={i} 
+                        className={`${
+                          (i % 3 === 0 || i % 7 === 0 || i < 5 || i > 20 || (i % 5 === 0 && i < 15)) && i !== 12
+                            ? "bg-slate-950" 
+                            : "bg-transparent"
+                        } rounded-[0.5px]`} 
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Bottom Bar (Green with gold accent line) */}
+              <div className="w-full flex flex-col mt-2">
+                <div className="h-[2px] bg-[#d4af37]" />
+                <div className="bg-[#0B6E4F] text-white text-[7.5px] font-extrabold text-center py-1.5 uppercase tracking-wider">
+                  DOMESTIC REGISTRATION • INTERNALLY DISPLACED PERSON
                 </div>
               </div>
             </div>
           )}
 
           <DialogFooter className="sm:justify-center gap-2">
-            {data.type === "refugee" && (
-              <Button onClick={downloadRefugeeIDCard} className="bg-emerald-800 hover:bg-emerald-700 text-white font-bold gap-1.5 text-xs">
+            {(data.type === "refugee" || data.type === "idp") && (
+              <Button 
+                onClick={data.type === "refugee" ? downloadRefugeeIDCard : downloadIDPIDCard} 
+                className="bg-emerald-800 hover:bg-emerald-700 text-white font-bold gap-1.5 text-xs"
+              >
                 <Download className="h-4 w-4" /> Download ID Card PDF
               </Button>
             )}

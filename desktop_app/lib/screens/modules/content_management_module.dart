@@ -22,7 +22,7 @@ class _ContentManagementModuleState extends State<ContentManagementModule> with 
   String _currentFaviconUrl = 'favicon.ico';
   String _currentPrimaryColor = '#0B6E4F';
   String _currentSecondaryColor = '#4E342E';
-  String _currentCommissionerName = 'Hon. Aliyu Tijani Ahmed';
+  String _currentCommissionerName = 'Hon. Dr. Aliyu Tijani Ahmed';
   String _currentCommissionerPic = 'assets/images/commissioner.jpg';
   String _currentPortalName = 'NCFRMI Management Center';
 
@@ -53,7 +53,7 @@ class _ContentManagementModuleState extends State<ContentManagementModule> with 
       'id': 'a2',
       'asset': 'Commissioner Bio Name',
       'oldValue': 'Hon. Aliyu Ahmed',
-      'newValue': 'Hon. Aliyu Tijani Ahmed',
+      'newValue': 'Hon. Dr. Aliyu Tijani Ahmed',
       'date': '2026-07-07 09:12',
       'user': 'commissioner@ncfrmi.gov.ng',
       'status': 'Synced',

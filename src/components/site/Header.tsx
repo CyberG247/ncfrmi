@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, NavLink } from "react-router-dom";
-import { Menu, X, Phone, Globe } from "lucide-react";
+import { Menu, X, Phone, Globe, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import logo from "@/assets/ncfrmi-logo.png";
 import { useAuth } from "@/hooks/useAuth";
@@ -8,11 +8,19 @@ import NotificationBell from "./NotificationBell";
 
 const nav = [
   { to: "/", label: "Home" },
-  { to: "/about", label: "About" },
-  { to: "/services", label: "Services" },
-  { to: "/apply", label: "Apply" },
-  { to: "/news", label: "News" },
-  { to: "/contact", label: "Contact" },
+  {
+    label: "About Us",
+    children: [
+      { to: "/about", label: "Who We Are & Mandate" },
+      { to: "/about?tab=management", label: "Management Team" },
+      { to: "/about?tab=departments", label: "Departments & Units" },
+    ]
+  },
+  { to: "/our-pocs", label: "Our POCs" },
+  { to: "/our-work", label: "Our Work" },
+  { to: "/media", label: "Media" },
+  { to: "/resources", label: "Resources" },
+  { to: "/contact", label: "Contact Us" },
 ];
 
 export const Header = () => {
@@ -114,20 +122,47 @@ export const Header = () => {
         </Link>
 
         <nav className="hidden items-center gap-1 lg:flex">
-          {nav.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.to === "/"}
-              className={({ isActive }) =>
-                `link-underline rounded-md px-3 py-2 text-sm font-medium transition-colors hover:text-primary ${
-                  isActive ? "is-active text-primary" : "text-foreground/75"
-                }`
-              }
-            >
-              {item.label}
-            </NavLink>
-          ))}
+          {nav.map((item) => {
+            if (item.children) {
+              return (
+                <div key={item.label} className="relative group py-2">
+                  <button className="flex items-center gap-1 rounded-md px-3 py-2 text-sm font-medium transition-colors hover:text-primary text-foreground/75 group-hover:text-primary focus:outline-none">
+                    {item.label}
+                    <ChevronDown className="h-3.5 w-3.5 transition-transform duration-200 group-hover:rotate-180" />
+                  </button>
+                  <div className="absolute left-0 top-full hidden group-hover:block w-56 rounded-xl border border-border bg-background p-2 shadow-elegant animate-in fade-in duration-200 backdrop-blur-md">
+                    {item.children.map((child) => (
+                      <NavLink
+                        key={child.to}
+                        to={child.to}
+                        className={({ isActive }) =>
+                          `block rounded-lg px-3 py-2 text-xs font-semibold transition-colors hover:bg-muted hover:text-primary ${
+                            isActive ? "bg-muted text-primary" : "text-foreground/85"
+                          }`
+                        }
+                      >
+                        {child.label}
+                      </NavLink>
+                    ))}
+                  </div>
+                </div>
+              );
+            }
+            return (
+              <NavLink
+                key={item.to}
+                to={item.to!}
+                end={item.to === "/"}
+                className={({ isActive }) =>
+                  `link-underline rounded-md px-3 py-2 text-sm font-medium transition-colors hover:text-primary ${
+                    isActive ? "is-active text-primary" : "text-foreground/75"
+                  }`
+                }
+              >
+                {item.label}
+              </NavLink>
+            );
+          })}
         </nav>
 
         <div className="hidden items-center gap-2 lg:flex">
@@ -163,14 +198,9 @@ export const Header = () => {
                 </Button>
               )}
               {role === "officer" && (
-                <>
-                  <Button asChild variant="outline" size="sm" className="hover-lift">
-                    <Link to="/field-capture">Field Capture</Link>
-                  </Button>
-                  <Button asChild size="sm" className="hover-lift">
-                    <Link to="/registrants">Registrants Directory</Link>
-                  </Button>
-                </>
+                <Button asChild size="sm" className="hover-lift">
+                  <Link to="/registrants">Registrants Directory</Link>
+                </Button>
               )}
             </div>
           )}
@@ -211,23 +241,49 @@ export const Header = () => {
           open ? "max-h-[600px] opacity-100" : "max-h-0 opacity-0"
         }`}
       >
-        <div className="container-page flex flex-col py-3">
-          {nav.map((item, i) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.to === "/"}
-              onClick={() => setOpen(false)}
-              style={{ animationDelay: open ? `${i * 40}ms` : undefined }}
-              className={({ isActive }) =>
-                `${open ? "animate-fade-up" : ""} rounded-md px-3 py-2 text-sm font-medium transition-colors ${
-                  isActive ? "bg-muted text-primary" : "text-foreground/80 hover:bg-muted/60"
-                }`
-              }
-            >
-              {item.label}
-            </NavLink>
-          ))}
+        <div className="container-page flex flex-col py-3 space-y-1">
+          {nav.map((item, i) => {
+            if (item.children) {
+              return (
+                <div key={item.label} className="flex flex-col">
+                  <div className="rounded-md px-3 py-2 text-sm font-bold text-primary uppercase tracking-wider text-[10px] mt-2">
+                    {item.label}
+                  </div>
+                  <div className="pl-4 flex flex-col border-l border-primary/10 ml-3.5 space-y-1 mt-0.5 animate-in fade-in duration-200">
+                    {item.children.map((child) => (
+                      <NavLink
+                        key={child.to}
+                        to={child.to}
+                        onClick={() => setOpen(false)}
+                        className={({ isActive }) =>
+                          `rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                            isActive ? "bg-muted text-primary font-bold" : "text-foreground/80 hover:bg-muted/40"
+                          }`
+                        }
+                      >
+                        {child.label}
+                      </NavLink>
+                    ))}
+                  </div>
+                </div>
+              );
+            }
+            return (
+              <NavLink
+                key={item.to}
+                to={item.to!}
+                end={item.to === "/"}
+                onClick={() => setOpen(false)}
+                className={({ isActive }) =>
+                  `rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                    isActive ? "bg-muted text-primary font-bold" : "text-foreground/80 hover:bg-muted/60"
+                  }`
+                }
+              >
+                {item.label}
+              </NavLink>
+            );
+          })}
           {session && (
             <div className="mt-3 flex flex-col gap-2">
               {role === "commissioner" && (
@@ -236,14 +292,9 @@ export const Header = () => {
                 </Button>
               )}
               {role === "officer" && (
-                <>
-                  <Button asChild variant="outline" className="flex-1">
-                    <Link to="/field-capture" onClick={() => setOpen(false)}>Field Capture</Link>
-                  </Button>
-                  <Button asChild className="flex-1">
-                    <Link to="/registrants" onClick={() => setOpen(false)}>Registrants Directory</Link>
-                  </Button>
-                </>
+                <Button asChild className="flex-1">
+                  <Link to="/registrants" onClick={() => setOpen(false)}>Registrants Directory</Link>
+                </Button>
               )}
             </div>
           )}

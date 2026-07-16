@@ -179,11 +179,11 @@ export async function downloadRegistrantPDF(r: any, logoSrc: string) {
 
     y += 16;
 
-    // SECTION 2: EDUCATIONAL & Needs ASSESSMENT
+    // SECTION 2: EDUCATIONAL & DISPLACEMENT DETAILS
     doc.setFont("Helvetica", "bold");
     doc.setFontSize(9.5);
     doc.setTextColor(11, 102, 60); // Green
-    doc.text("2. EDUCATIONAL & NEEDS ASSESSMENT", 15, y);
+    doc.text("2. EDUCATIONAL & DISPLACEMENT DETAILS", 15, y);
     doc.line(15, y + 2, 135, y + 2);
 
     y += 8;
@@ -202,22 +202,6 @@ export async function downloadRegistrantPDF(r: any, logoSrc: string) {
     doc.setTextColor(15, 23, 42);
     const splitCirc = doc.splitTextToSize(parsed.reason || r.circumstances || "—", 115);
     doc.text(splitCirc, 15, y + 4.5);
-
-    y += 16;
-    drawField("Immediate Needs", parsed.primary_needs.join(", ") || "None", 15, y);
-
-    y += 11;
-    // Multi-line Needs Details
-    doc.setFont("Helvetica", "bold");
-    doc.setFontSize(7.5);
-    doc.setTextColor(100, 116, 139);
-    doc.text("NEEDS ASSESSMENT DETAILS", 15, y);
-
-    doc.setFont("Helvetica", "normal");
-    doc.setFontSize(8.5);
-    doc.setTextColor(15, 23, 42);
-    const splitNeeds = doc.splitTextToSize(parsed.needs_details || "—", 115);
-    doc.text(splitNeeds, 15, y + 4.5);
 
 
     // RIGHT COLUMN: BIOMETRICS
@@ -568,7 +552,7 @@ export function printRegistrantProfile(r: any, logoSrc: string) {
             </div>
             
             <div class="card">
-              <h2 class="card-title">Educational & Needs Details</h2>
+              <h2 class="card-title">Educational & Displacement Details</h2>
               <div class="info-group">
                 <div class="info-item">
                   <div class="label">Education Level Completed</div>
@@ -581,14 +565,6 @@ export function printRegistrantProfile(r: any, logoSrc: string) {
                 <div class="info-item full-width">
                   <div class="label">Displacement Reason / Cause</div>
                   <div class="value">${parsed.reason || r.circumstances || "—"}</div>
-                </div>
-                <div class="info-item full-width">
-                  <div class="label">Immediate Material Needs</div>
-                  <div class="value">${parsed.primary_needs.join(", ") || "None"}</div>
-                </div>
-                <div class="info-item full-width">
-                  <div class="label">Needs Assessment Details</div>
-                  <div class="value">${parsed.needs_details || "—"}</div>
                 </div>
               </div>
             </div>

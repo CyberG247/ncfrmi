@@ -27,9 +27,13 @@ export default function NewApplication() {
   const [profileName, setProfileName] = useState("");
 
   useEffect(() => {
-    if (!user) return;
-    supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle()
-      .then(({ data }) => data?.full_name && setProfileName(data.full_name));
+    const isUuid = user?.id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(user.id);
+    if (user && isUuid) {
+      supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle()
+        .then(({ data }) => data?.full_name && setProfileName(data.full_name));
+    } else {
+      setProfileName("Demo User");
+    }
   }, [user]);
 
   const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -37,6 +41,36 @@ export default function NewApplication() {
     if (!user) return;
     const f = new FormData(e.currentTarget);
     setSubmitting(true);
+
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(user.id);
+    if (!isUuid) {
+      // Simulate success for mock users
+      const mockRef = `NCF-APP-${new Date().getFullYear().toString().slice(-2)}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+      const mockId = Math.random().toString(36).slice(2, 9);
+      
+      const localApps = JSON.parse(localStorage.getItem("ncfrmi_local_applications") || "[]");
+      localApps.push({
+        id: mockId,
+        reference: mockRef,
+        user_id: user.id,
+        type: type,
+        full_name: String(f.get("full_name") || ""),
+        phone: String(f.get("phone") || ""),
+        state: String(f.get("state") || ""),
+        lga: String(f.get("lga") || ""),
+        reason: String(f.get("reason") || ""),
+        status: "submitted",
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      });
+      localStorage.setItem("ncfrmi_local_applications", JSON.stringify(localApps));
+      
+      setSubmitting(false);
+      toast.success(`Application ${mockRef} submitted (Demo Mode)`);
+      nav(`/dashboard`);
+      return;
+    }
+
     const { data, error } = await supabase.from("applications").insert({
       user_id: user.id,
       type: type as any,

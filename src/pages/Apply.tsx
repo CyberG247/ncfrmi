@@ -8,17 +8,13 @@ import { ArrowRight, ShieldCheck, Users, HeartHandshake, FileText } from "lucide
 import ApplicationFormDialog from "@/components/site/ApplicationFormDialog";
 
 const types = [
-  { id: "asylum", icon: ShieldCheck, title: "Asylum Application", desc: "For persons fleeing persecution and seeking international protection in Nigeria.", time: "15–25 minutes" },
+  { id: "asylum", icon: ShieldCheck, title: "Asylum Application", desc: "For persons fleeing persecution and seeking international protection in Nigeria.", time: "2 minutes" },
 ] as const;
 
 const steps = [
-  "Account Creation",
-  "Personal Information",
-  "Biometric / Identity Details",
-  "Reason for Displacement",
-  "Document Upload",
-  "Review & Submit",
-  "Application Tracking",
+  "Bio-Data Details",
+  "Biometrics Capture",
+  "Instant Certificate Issuance",
 ];
 
 export default function Apply() {
@@ -37,7 +33,7 @@ export default function Apply() {
       <PageHero
         eyebrow="Online Application Portal"
         title="Apply securely from anywhere in Nigeria"
-        description="Create an account, save your progress, upload documents, and track your case end-to-end."
+        description="Submit your details, verify your biometrics, and instantly generate a preview asylum certificate for demonstration purposes."
       />
 
       <section className="container-page py-16 flex flex-col items-center">

@@ -12,6 +12,9 @@ import Index from "./pages/Index.tsx";
 import NotFound from "./pages/NotFound.tsx";
 import About from "./pages/About.tsx";
 import Services from "./pages/Services.tsx";
+import OurPocs from "./pages/OurPocs.tsx";
+import OurWork from "./pages/OurWork.tsx";
+import Resources from "./pages/Resources.tsx";
 import Apply from "./pages/Apply.tsx";
 import FieldCapture from "./pages/FieldCapture.tsx";
 import RegistrantsList from "./pages/RegistrantsList.tsx";
@@ -69,12 +72,16 @@ const App = () => {
             <Route path="/" element={<Index />} />
             <Route path="/about" element={<About />} />
             <Route path="/services" element={<Services />} />
+            <Route path="/our-pocs" element={<OurPocs />} />
+            <Route path="/our-work" element={<OurWork />} />
+            <Route path="/resources" element={<Resources />} />
             <Route path="/apply" element={<Apply />} />
             <Route path="/field-capture" element={<FieldCapture />} />
             <Route path="/registrants" element={<ProtectedRoute allowedRoles={["officer", "commissioner"]}><RegistrantsList /></ProtectedRoute>} />
             <Route path="/registrants/:id" element={<ProtectedRoute allowedRoles={["officer", "commissioner"]}><RegistrantDetail /></ProtectedRoute>} />
             <Route path="/offices" element={<Offices />} />
             <Route path="/news" element={<News />} />
+            <Route path="/media" element={<News />} />
             <Route path="/report" element={<Report />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/login" element={<AuthPage mode="login" />} />
