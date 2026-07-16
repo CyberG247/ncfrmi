@@ -37,11 +37,55 @@ class OfflineService extends ChangeNotifier {
     return File('${dir.path}/$nameWithUser');
   }
 
+  Future<String> _getWebKey(String fileName) async {
+    String suffix = '_bypassed';
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final savedEmail = prefs.getString('last_logged_in_email');
+      if (savedEmail != null && savedEmail.isNotEmpty) {
+        suffix = '_${savedEmail.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '_')}';
+      } else {
+        final currentUser = Supabase.instance.client.auth.currentUser;
+        if (currentUser != null) {
+          suffix = '_${currentUser.id}';
+        }
+      }
+    } catch (e) {
+      final currentUser = Supabase.instance.client.auth.currentUser;
+      if (currentUser != null) {
+        suffix = '_${currentUser.id}';
+      }
+    }
+    return 'offline_${fileName}_$suffix';
+  }
+
+  Future<void> _writeToStorage(String fileName, String content) async {
+    if (kIsWeb) {
+      final key = await _getWebKey(fileName);
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(key, content);
+    } else {
+      final file = await _getFile(fileName);
+      await file.writeAsString(content);
+    }
+  }
+
+  Future<String?> _readFromStorage(String fileName) async {
+    if (kIsWeb) {
+      final key = await _getWebKey(fileName);
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getString(key);
+    } else {
+      final file = await _getFile(fileName);
+      if (!await file.exists()) return null;
+      return await file.readAsString();
+    }
+  }
+
   Future<List<Registrant>> getOfflineRegistrants() async {
     try {
-      final file = await _getFile(_registrantsFile);
-      if (!await file.exists()) return [];
-      final String contents = await file.readAsString();
+      final String? contents = await _readFromStorage(_registrantsFile);
+      if (contents == null || contents.isEmpty) return [];
       final List<dynamic> jsonList = jsonDecode(contents);
       return jsonList.map((e) => Registrant.fromJson(e)).toList();
     } catch (e) {
@@ -52,8 +96,7 @@ class OfflineService extends ChangeNotifier {
   Future<void> saveRegistrant(Registrant registrant) async {
     final list = await getOfflineRegistrants();
     list.add(registrant);
-    final file = await _getFile(_registrantsFile);
-    await file.writeAsString(jsonEncode(list.map((e) => e.toJson()).toList()));
+    await _writeToStorage(_registrantsFile, jsonEncode(list.map((e) => e.toJson()).toList()));
     notifyListeners();
   }
 
@@ -65,32 +108,26 @@ class OfflineService extends ChangeNotifier {
     } else {
       list.add(registrant);
     }
-    final file = await _getFile(_registrantsFile);
-    await file.writeAsString(jsonEncode(list.map((e) => e.toJson()).toList()));
+    await _writeToStorage(_registrantsFile, jsonEncode(list.map((e) => e.toJson()).toList()));
     notifyListeners();
   }
 
   Future<void> deleteRegistrant(String id) async {
     final list = await getOfflineRegistrants();
     list.removeWhere((r) => r.id == id);
-    final file = await _getFile(_registrantsFile);
-    await file.writeAsString(jsonEncode(list.map((e) => e.toJson()).toList()));
+    await _writeToStorage(_registrantsFile, jsonEncode(list.map((e) => e.toJson()).toList()));
     notifyListeners();
   }
 
   Future<void> clearOfflineRegistrants() async {
-    final file = await _getFile(_registrantsFile);
-    if (await file.exists()) {
-      await file.writeAsString('[]');
-    }
+    await _writeToStorage(_registrantsFile, '[]');
     notifyListeners();
   }
 
   Future<List<Intervention>> getOfflineInterventions() async {
     try {
-      final file = await _getFile(_interventionsFile);
-      if (!await file.exists()) return [];
-      final String contents = await file.readAsString();
+      final String? contents = await _readFromStorage(_interventionsFile);
+      if (contents == null || contents.isEmpty) return [];
       final List<dynamic> jsonList = jsonDecode(contents);
       return jsonList.map((e) => Intervention.fromJson(e)).toList();
     } catch (e) {
@@ -101,16 +138,12 @@ class OfflineService extends ChangeNotifier {
   Future<void> saveIntervention(Intervention intervention) async {
     final list = await getOfflineInterventions();
     list.add(intervention);
-    final file = await _getFile(_interventionsFile);
-    await file.writeAsString(jsonEncode(list.map((e) => e.toJson()).toList()));
+    await _writeToStorage(_interventionsFile, jsonEncode(list.map((e) => e.toJson()).toList()));
     notifyListeners();
   }
 
   Future<void> clearOfflineInterventions() async {
-    final file = await _getFile(_interventionsFile);
-    if (await file.exists()) {
-      await file.writeAsString('[]');
-    }
+    await _writeToStorage(_interventionsFile, '[]');
     notifyListeners();
   }
 }

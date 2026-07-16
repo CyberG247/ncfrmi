@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
@@ -39,14 +40,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (user != null) {
         _displayNameController.text = mockName ?? user.userMetadata?['display_name'] ?? '';
         final path = mockAvatar ?? user.userMetadata?['avatar_url']?.toString();
-        if (path != null && !path.startsWith('http') && File(path).existsSync()) {
+        final fileExists = !kIsWeb && path != null && !path.startsWith('http') && File(path).existsSync();
+        if (path != null && (path.startsWith('http') || path.startsWith('blob:') || fileExists)) {
           setState(() {
             _localAvatarPath = path;
           });
         }
       } else {
         _displayNameController.text = mockName ?? 'Test Officer';
-        if (mockAvatar != null && File(mockAvatar).existsSync()) {
+        final fileExists = !kIsWeb && mockAvatar != null && File(mockAvatar).existsSync();
+        if (mockAvatar != null && (mockAvatar.startsWith('http') || mockAvatar.startsWith('blob:') || fileExists)) {
           setState(() {
             _localAvatarPath = mockAvatar;
           });
@@ -215,7 +218,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         radius: 50,
                         backgroundColor: AppTheme.primary,
                         backgroundImage: _localAvatarPath != null
-                            ? FileImage(File(_localAvatarPath!))
+                            ? (kIsWeb ? NetworkImage(_localAvatarPath!) : FileImage(File(_localAvatarPath!))) as ImageProvider
                             : (user?.userMetadata?['avatar_url'] != null &&
                                     (user!.userMetadata!['avatar_url'] as String).startsWith('http')
                                 ? NetworkImage(user.userMetadata!['avatar_url'])

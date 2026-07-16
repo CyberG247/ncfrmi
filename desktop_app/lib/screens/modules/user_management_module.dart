@@ -1,10 +1,9 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:csv/csv.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../theme.dart';
+import '../../utils/file_saver.dart';
 
 class UserManagementModule extends StatefulWidget {
   const UserManagementModule({super.key});
@@ -383,41 +382,31 @@ class _UserManagementModuleState extends State<UserManagementModule> {
     if (_usersList.isEmpty) return;
 
     try {
-      String? outputFile = await FilePicker.saveFile(
-        dialogTitle: 'Export Users List',
-        fileName: 'ncfrmi_users_accounts.csv',
-        type: FileType.custom,
-        allowedExtensions: ['csv'],
-      );
-
-      if (outputFile != null) {
-        List<List<dynamic>> rows = [];
-        rows.add(['User ID', 'Full Name', 'Phone', 'Role', 'Created At']);
-        
-        for (var u in _usersList) {
-          String userRole = 'applicant';
-          final rObj = u['user_roles'];
-          if (rObj is List && rObj.isNotEmpty) {
-            userRole = rObj.first['role']?.toString() ?? 'applicant';
-          } else if (rObj is Map) {
-            userRole = rObj['role']?.toString() ?? 'applicant';
-          }
-
-          rows.add([
-            u['id'],
-            u['full_name'] ?? 'Unknown',
-            u['phone'] ?? 'N/A',
-            userRole,
-            u['created_at']
-          ]);
+      List<List<dynamic>> rows = [];
+      rows.add(['User ID', 'Full Name', 'Phone', 'Role', 'Created At']);
+      
+      for (var u in _usersList) {
+        String userRole = 'applicant';
+        final rObj = u['user_roles'];
+        if (rObj is List && rObj.isNotEmpty) {
+          userRole = rObj.first['role']?.toString() ?? 'applicant';
+        } else if (rObj is Map) {
+          userRole = rObj['role']?.toString() ?? 'applicant';
         }
-        
-        String csvString = csv.encode(rows);
-        final file = File(outputFile);
-        await file.writeAsString(csvString);
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Exported to $outputFile')));
-        }
+
+        rows.add([
+          u['id'],
+          u['full_name'] ?? 'Unknown',
+          u['phone'] ?? 'N/A',
+          userRole,
+          u['created_at']
+        ]);
+      }
+      
+      String csvString = csv.encode(rows);
+      await saveBytesOrString(csvString, 'ncfrmi_users_accounts.csv');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Exported successfully')));
       }
     } catch (e) {
       if (mounted) {

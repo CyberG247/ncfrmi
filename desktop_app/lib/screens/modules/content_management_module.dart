@@ -1,11 +1,12 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:csv/csv.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../theme.dart';
+import '../../utils/file_saver.dart';
 
 class ContentManagementModule extends StatefulWidget {
   const ContentManagementModule({super.key});
@@ -286,33 +287,23 @@ class _ContentManagementModuleState extends State<ContentManagementModule> with 
     if (_assetChanges.isEmpty) return;
 
     try {
-      String? outputFile = await FilePicker.saveFile(
-        dialogTitle: 'Export Web Audit Log',
-        fileName: 'ncfrmi_web_assets_audit.csv',
-        type: FileType.custom,
-        allowedExtensions: ['csv'],
-      );
-
-      if (outputFile != null) {
-        List<List<dynamic>> rows = [];
-        rows.add(['ID', 'Asset Name', 'Previous Value', 'New Value', 'Date Changed', 'User', 'Status']);
-        for (var c in _assetChanges) {
-          rows.add([
-            c['id'],
-            c['asset'],
-            c['oldValue'],
-            c['newValue'],
-            c['date'],
-            c['user'],
-            c['status']
-          ]);
-        }
-        String csvString = csv.encode(rows);
-        final file = File(outputFile);
-        await file.writeAsString(csvString);
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Exported log successfully to $outputFile')));
-        }
+      List<List<dynamic>> rows = [];
+      rows.add(['ID', 'Asset Name', 'Previous Value', 'New Value', 'Date Changed', 'User', 'Status']);
+      for (var c in _assetChanges) {
+        rows.add([
+          c['id'],
+          c['asset'],
+          c['oldValue'],
+          c['newValue'],
+          c['date'],
+          c['user'],
+          c['status']
+        ]);
+      }
+      String csvString = csv.encode(rows);
+      await saveBytesOrString(csvString, 'ncfrmi_web_assets_audit.csv');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Exported log successfully')));
       }
     } catch (e) {
       if (mounted) {
@@ -362,6 +353,9 @@ class _ContentManagementModuleState extends State<ContentManagementModule> with 
     }
     
     // File system path
+    if (kIsWeb) {
+      return Icon(fallbackIcon, size: 24, color: AppTheme.mutedForeground);
+    }
     try {
       final file = File(cleanPath);
       if (file.existsSync()) {
