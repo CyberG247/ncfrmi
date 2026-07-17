@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { Link, NavLink } from "react-router-dom";
-import { Menu, X, Phone, Globe, ChevronDown } from "lucide-react";
+import { Menu, X, Phone, Globe, ChevronDown, Facebook, Instagram } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import logo from "@/assets/ncfrmi-logo.png";
 import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 import NotificationBell from "./NotificationBell";
 
 const nav = [
@@ -30,6 +31,37 @@ export const Header = () => {
   const [currentLang, setCurrentLang] = useState("en");
   const [helpline, setHelpline] = useState("0800-NCFRMI");
   const [portalTitle, setPortalTitle] = useState("NCFRMI");
+
+  const [tickerNews, setTickerNews] = useState<string[]>([]);
+
+  useEffect(() => {
+    const fetchTickerNews = async () => {
+      try {
+        const { data } = await supabase
+          .from("news")
+          .select("title")
+          .order("created_at", { ascending: false })
+          .limit(5);
+
+        const hardcodedTitles = [
+          "Rabat Process: Nigeria Hosts High-Level Euro-African Dialogue in Abuja",
+          "NCFRMI Strengthens Bilateral Cooperation on Reintegration Support",
+          "NCFRMI Validates National Strategy on Durable Solutions for refugees and IDPs",
+          "World Refugee Day 2026: Commissioner Hails Lagos State's Support for Persons of Concern"
+        ];
+
+        if (data && data.length > 0) {
+          const titles = data.map(item => item.title);
+          setTickerNews([...titles, ...hardcodedTitles]);
+        } else {
+          setTickerNews(hardcodedTitles);
+        }
+      } catch (e) {
+        console.error("Failed to load ticker news", e);
+      }
+    };
+    fetchTickerNews();
+  }, []);
 
   useEffect(() => {
     const loadSettings = () => {
@@ -96,11 +128,45 @@ export const Header = () => {
           : "border-transparent bg-background/85 backdrop-blur"
       }`}
     >
-      <div className="bg-primary text-primary-foreground text-xs">
-        <div className="container-page flex h-9 items-center justify-between">
-          <span className="font-medium">Federal Republic of Nigeria · Official Government Website</span>
-          <a href="tel:+2340000000000" className="hidden items-center gap-2 transition-opacity hover:opacity-80 sm:inline-flex">
-            <Phone className="h-3.5 w-3.5 animate-pulse-soft" /> 24/7 Helpline: {helpline}
+      <div className="bg-[#0B663C] text-white text-xs border-b border-emerald-900/50">
+        <div className="container-page flex h-9 items-center justify-between overflow-hidden gap-4">
+          {/* Social Icons */}
+          <div className="flex items-center gap-3.5 flex-shrink-0">
+            <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" className="hover:text-emerald-250 transition-colors">
+              <Facebook className="h-3.5 w-3.5" />
+            </a>
+            <a href="https://twitter.com" target="_blank" rel="noopener noreferrer" className="hover:text-emerald-250 transition-colors font-sans font-bold text-xs select-none">
+              X
+            </a>
+            <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" className="hover:text-emerald-250 transition-colors">
+              <Instagram className="h-3.5 w-3.5" />
+            </a>
+          </div>
+
+          {/* Marquee Ticker */}
+          <div className="relative flex-1 overflow-hidden h-full flex items-center">
+            <style>{`
+              @keyframes marquee {
+                0% { transform: translate3d(100%, 0, 0); }
+                100% { transform: translate3d(-100%, 0, 0); }
+              }
+              .animate-marquee {
+                display: inline-block;
+                white-space: nowrap;
+                animation: marquee 35s linear infinite;
+              }
+              .animate-marquee:hover {
+                animation-play-state: paused;
+              }
+            `}</style>
+            <div className="animate-marquee font-medium cursor-pointer text-[11px] tracking-wide select-none">
+              {tickerNews.length > 0 ? tickerNews.join("   •   ") : "Loading latest updates..."}
+            </div>
+          </div>
+
+          {/* Helpline */}
+          <a href={`tel:${helpline}`} className="hidden items-center gap-1.5 transition-opacity hover:opacity-90 sm:inline-flex flex-shrink-0 text-[11px] font-bold text-white">
+            <Phone className="h-3.5 w-3.5 animate-pulse-soft" /> Helpline: {helpline}
           </a>
         </div>
       </div>
