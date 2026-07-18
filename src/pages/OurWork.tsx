@@ -1,3 +1,5 @@
+import { useMemo } from "react";
+import { useSearchParams } from "react-router-dom";
 import Layout from "@/components/site/Layout";
 import PageHero from "@/components/site/PageHero";
 import { Card, CardContent } from "@/components/ui/card";
@@ -45,6 +47,24 @@ const workInterventions = [
 ];
 
 export default function OurWork() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const programParam = searchParams.get("program") || "all";
+
+  const filteredInterventions = useMemo(() => {
+    if (programParam === "all") return workInterventions;
+    return workInterventions.filter((item) => {
+      const title = item.title.toLowerCase();
+      const prog = item.program.toLowerCase();
+      if (programParam === "refugee-protection") return title.includes("refugee protection") || prog.includes("registry");
+      if (programParam === "rehabilitation") return title.includes("rehabilitation") || prog.includes("camp assistance");
+      if (programParam === "migration-policy") return title.includes("migration policy") || prog.includes("migration policy");
+      if (programParam === "livelihood") return title.includes("livelihood") || prog.includes("yerp");
+      if (programParam === "agriculture") return title.includes("agricultural") || prog.includes("farmers");
+      if (programParam === "resettlement") return title.includes("resettlement") || prog.includes("resettlement cities");
+      return true;
+    });
+  }, [programParam]);
+
   return (
     <Layout>
       <PageHero
@@ -106,13 +126,42 @@ export default function OurWork() {
       {/* DETAILED INTERVENTIONS */}
       <section className="bg-muted/40 border-t border-border/70 py-16">
         <div className="container-page">
-          <Reveal className="mx-auto max-w-2xl text-center mb-12">
+          <Reveal className="mx-auto max-w-2xl text-center mb-6">
             <h2 className="font-display text-3xl font-bold">Our Operational Programs</h2>
             <p className="text-xs text-muted-foreground mt-1">Providing care, protection, and long-term economic independence.</p>
           </Reveal>
 
+          {/* Program Tabs */}
+          <Reveal className="flex flex-wrap justify-center gap-2 mb-12 max-w-5xl mx-auto">
+            {[
+              { id: "all", label: "All Interventions" },
+              { id: "refugee-protection", label: "Refugee Protection" },
+              { id: "rehabilitation", label: "Emergency Relief" },
+              { id: "migration-policy", label: "Migration Coordination" },
+              { id: "livelihood", label: "Livelihood Reintegration" },
+              { id: "agriculture", label: "Agricultural Support" },
+              { id: "resettlement", label: "Resettlement Solutions" }
+            ].map((tab) => {
+              const isActive = programParam === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setSearchParams({ program: tab.id })}
+                  className={`px-4 py-2 text-xs font-bold uppercase rounded-md border transition-all duration-300 active:scale-95 ${
+                    isActive
+                      ? "bg-gradient-to-r from-emerald-800 to-emerald-700 text-white border-emerald-650 shadow-elegant"
+                      : "text-muted-foreground hover:bg-emerald-500/[0.04] hover:text-emerald-800 hover:border-emerald-500/10 border-border bg-card"
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              );
+            })}
+          </Reveal>
+
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {workInterventions.map((work, idx) => {
+            {filteredInterventions.map((work, idx) => {
               const Icon = work.icon;
               return (
                 <Reveal key={work.title} delay={idx * 85} variant="scale">

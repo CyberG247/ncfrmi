@@ -13,6 +13,8 @@ import { ArrowRight, Search, UserPlus, Users, Download, FileText } from "lucide-
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import logo from "@/assets/ncfrmi-logo.png";
+import { generateRealisticSeedData } from "@/data/seedData";
+import { NG_STATES } from "@/data/ng_states_lgas";
 
 type Registrant = {
   id: string;
@@ -54,7 +56,13 @@ export default function RegistrantsList() {
 
       let localData: Registrant[] = [];
       try {
-        localData = JSON.parse(localStorage.getItem("ncfrmi_local_registrants") || "[]");
+        let localRaw = localStorage.getItem("ncfrmi_local_registrants");
+        if (!localRaw || JSON.parse(localRaw).length === 0) {
+          const seeded = generateRealisticSeedData();
+          localStorage.setItem("ncfrmi_local_registrants", JSON.stringify(seeded));
+          localRaw = JSON.stringify(seeded);
+        }
+        localData = JSON.parse(localRaw) as Registrant[];
       } catch (e) {
         console.error(e);
       }
@@ -107,7 +115,16 @@ export default function RegistrantsList() {
     };
   }, []);
 
-  const states = useMemo(() => Array.from(new Set(rows.map((r) => r.state_origin))).sort(), [rows]);
+  const states = useMemo(() => {
+    const validStates = new Set([
+      ...NG_STATES,
+      "FCT",
+      "Abuja"
+    ]);
+    return Array.from(
+      new Set(rows.map((r) => r.state_origin).filter((st) => st && (validStates.has(st) || NG_STATES.includes(st))))
+    ).sort();
+  }, [rows]);
 
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase();
@@ -118,8 +135,10 @@ export default function RegistrantsList() {
       return (
         r.full_name.toLowerCase().includes(needle) ||
         r.reference.toLowerCase().includes(needle) ||
-        r.phone.toLowerCase().includes(needle) ||
-        r.lga.toLowerCase().includes(needle)
+        r.phone.includes(needle) ||
+        r.lga.toLowerCase().includes(needle) ||
+        (r.state_origin && r.state_origin.toLowerCase().includes(needle)) ||
+        ((r as any).nationality && (r as any).nationality.toLowerCase().includes(needle))
       );
     });
   }, [rows, q, cat, state]);

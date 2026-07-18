@@ -21,6 +21,7 @@ import RegistrantsList from "./pages/RegistrantsList.tsx";
 import RegistrantDetail from "./pages/RegistrantDetail.tsx";
 import Offices from "./pages/Offices.tsx";
 import News from "./pages/News.tsx";
+import Gallery from "./pages/Gallery.tsx";
 import Report from "./pages/Report.tsx";
 import Contact from "./pages/Contact.tsx";
 import AuthPage from "./pages/AuthPage.tsx";
@@ -81,7 +82,8 @@ const App = () => {
             <Route path="/registrants/:id" element={<ProtectedRoute allowedRoles={["officer", "commissioner"]}><RegistrantDetail /></ProtectedRoute>} />
             <Route path="/offices" element={<Offices />} />
             <Route path="/news" element={<News />} />
-            <Route path="/media" element={<News />} />
+            <Route path="/gallery" element={<Gallery />} />
+            <Route path="/media" element={<Navigate to="/news" replace />} />
             <Route path="/report" element={<Report />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/login" element={<AuthPage mode="login" />} />

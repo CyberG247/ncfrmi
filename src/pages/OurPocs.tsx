@@ -1,3 +1,5 @@
+import { useMemo } from "react";
+import { useSearchParams } from "react-router-dom";
 import Layout from "@/components/site/Layout";
 import PageHero from "@/components/site/PageHero";
 import { Card, CardContent } from "@/components/ui/card";
@@ -51,6 +53,22 @@ const pocCategories = [
 ];
 
 export default function OurPocs() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const typeParam = searchParams.get("type") || "all";
+
+  const filteredCategories = useMemo(() => {
+    if (typeParam === "all") return pocCategories;
+    return pocCategories.filter((cat) => {
+      if (typeParam === "refugees") return cat.title === "Refugees";
+      if (typeParam === "idps") return cat.title.includes("IDPs") || cat.title.includes("Internally Displaced");
+      if (typeParam === "migrants") return cat.title === "Migrants";
+      if (typeParam === "asylum-seekers") return cat.title === "Asylum Seekers";
+      if (typeParam === "returnees") return cat.title === "Returnees";
+      if (typeParam === "stateless") return cat.title === "Stateless Persons";
+      return true;
+    });
+  }, [typeParam]);
+
   return (
     <Layout>
       <PageHero
@@ -70,8 +88,37 @@ export default function OurPocs() {
           </p>
         </Reveal>
 
+        {/* Category Tabs */}
+        <Reveal className="flex flex-wrap justify-center gap-2 mb-12 max-w-4xl mx-auto">
+          {[
+            { id: "all", label: "All POCs" },
+            { id: "refugees", label: "Refugees" },
+            { id: "idps", label: "IDPs" },
+            { id: "migrants", label: "Migrants" },
+            { id: "asylum-seekers", label: "Asylum Seekers" },
+            { id: "returnees", label: "Returnees" },
+            { id: "stateless", label: "Stateless Persons" }
+          ].map((tab) => {
+            const isActive = typeParam === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setSearchParams({ type: tab.id })}
+                className={`px-4 py-2 text-xs font-bold uppercase rounded-md border transition-all duration-300 active:scale-95 ${
+                  isActive
+                    ? "bg-gradient-to-r from-emerald-800 to-emerald-700 text-white border-emerald-650 shadow-elegant"
+                    : "text-muted-foreground hover:bg-emerald-500/[0.04] hover:text-emerald-800 hover:border-emerald-500/10 border-border bg-card"
+                }`}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
+        </Reveal>
+
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {pocCategories.map((poc, i) => {
+          {filteredCategories.map((poc, i) => {
             const Icon = poc.icon;
             return (
               <Reveal key={poc.title} delay={i * 80} variant="scale">

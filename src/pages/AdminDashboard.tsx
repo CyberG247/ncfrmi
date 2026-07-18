@@ -54,6 +54,8 @@ import {
   LineChart as RechartsLineChart,
   Line as RechartsLine
 } from "recharts";
+import { generateRealisticSeedData } from "@/data/seedData";
+import { NG_STATES } from "@/data/ng_states_lgas";
 
 type Registrant = {
   id: string;
@@ -221,11 +223,11 @@ const MAP_NODES = [
     y: 134,
     color: "#6366f1", // Indigo
     pingSpeed: "4.5s",
-    camps: ["Durumi Camp", "Kuchingoro Camp"],
-    registrants: 3520,
-    refugees: 1120,
-    idps: 1850,
-    migrants: 550,
+    camps: ["Durumi Camp", "Kuchingoro Camp", "Wassa Camp"],
+    registrants: 28500,
+    refugees: 5200,
+    idps: 18300,
+    migrants: 5000,
     status: "Operational"
   },
   {
@@ -236,11 +238,11 @@ const MAP_NODES = [
     y: 75,
     color: "#f59e0b", // Amber
     pingSpeed: "3.2s",
-    camps: ["Maiduguri Zonal Camp", "Muna Garage Camp"],
-    registrants: 12450,
-    refugees: 3400,
-    idps: 8200,
-    migrants: 850,
+    camps: ["Bakassi IDP Camp", "Dalori Camp I & II", "Teacher's Village Camp"],
+    registrants: 1850000,
+    refugees: 35000,
+    idps: 1750000,
+    migrants: 65000,
     status: "High Load Warning"
   },
   {
@@ -251,11 +253,11 @@ const MAP_NODES = [
     y: 208,
     color: "#10b981", // Emerald
     pingSpeed: "5.5s",
-    camps: ["Ikeja Reception Center"],
-    registrants: 1850,
-    refugees: 450,
-    idps: 0,
-    migrants: 1400,
+    camps: ["Ikeja Reception Center", "Lagos Returnee Transit Camp"],
+    registrants: 45000,
+    refugees: 8500,
+    idps: 1500,
+    migrants: 35000,
     status: "Operational"
   },
   {
@@ -266,11 +268,11 @@ const MAP_NODES = [
     y: 170,
     color: "#ef4444", // Red
     pingSpeed: "3.8s",
-    camps: ["Daudu Camp 1 & 2"],
-    registrants: 4120,
-    refugees: 120,
-    idps: 3800,
-    migrants: 200,
+    camps: ["Daudu Camp 1 & 2", "Anyiin Camp", "Gbajimba Camp"],
+    registrants: 280000,
+    refugees: 1200,
+    idps: 275000,
+    migrants: 3800,
     status: "Operational"
   },
   {
@@ -281,11 +283,11 @@ const MAP_NODES = [
     y: 190,
     color: "#06b6d4", // Cyan
     pingSpeed: "5.0s",
-    camps: ["Uhogua Camp"],
-    registrants: 2150,
-    refugees: 350,
-    idps: 1700,
-    migrants: 100,
+    camps: ["Uhogua Camp", "Benin City Reintegration Centre"],
+    registrants: 55000,
+    refugees: 2500,
+    idps: 12500,
+    migrants: 40000,
     status: "Operational"
   },
   {
@@ -296,30 +298,30 @@ const MAP_NODES = [
     y: 208,
     color: "#8b5cf6", // Violet
     pingSpeed: "4.6s",
-    camps: ["Adagom Refugee Settlement"],
-    registrants: 5820,
-    refugees: 5200,
-    idps: 300,
-    migrants: 320,
+    camps: ["Adagom Settlement", "Okende Settlement", "Adagom III Settlement"],
+    registrants: 85500,
+    refugees: 76000,
+    idps: 3500,
+    migrants: 6000,
     status: "Operational"
   }
 ];
 
 const asylumDemographicData = [
-  { age: "00-04 yrs", Female: 6000, Male: 6000 },
-  { age: "05-11 yrs", Female: 15000, Male: 15000 },
-  { age: "12-17 yrs", Female: 10000, Male: 9000 },
-  { age: "18-59 yrs", Female: 38000, Male: 22000 },
-  { age: "60+ yrs", Female: 4000, Male: 2000 }
+  { age: "00-04 yrs", Female: 6500, Male: 6500 },
+  { age: "05-11 yrs", Female: 16500, Male: 16500 },
+  { age: "12-17 yrs", Female: 11000, Male: 10000 },
+  { age: "18-59 yrs", Female: 40500, Male: 23900 },
+  { age: "60+ yrs", Female: 4300, Male: 3200 }
 ];
 
 const asylumCountriesData = [
-  { country: "Cameroon", Enrollees: 119737 },
+  { country: "Cameroon", Enrollees: 119641 },
   { country: "Niger", Enrollees: 13466 },
-  { country: "Syria", Enrollees: 1883 },
+  { country: "Chad", Enrollees: 1883 },
   { country: "Sudan", Enrollees: 1365 },
   { country: "C.A.R.", Enrollees: 1041 },
-  { country: "Others", Enrollees: 1881 }
+  { country: "Others", Enrollees: 1504 }
 ].sort((a, b) => b.Enrollees - a.Enrollees);
 
 const asylumArrivalsTrendData = [
@@ -330,8 +332,9 @@ const asylumArrivalsTrendData = [
   { year: "2021", Total: 13000, Cameroonian: 10000, Others: 3000 },
   { year: "2022", Total: 24000, Cameroonian: 21000, Others: 3000 },
   { year: "2023", Total: 17000, Cameroonian: 15000, Others: 2000 },
-  { year: "2024", Total: 6000, Cameroonian: 4000, Others: 2000 },
-  { year: "2026", Total: 306, Cameroonian: 200, Others: 106 }
+  { year: "2024", Total: 11000, Cameroonian: 8500, Others: 2500 },
+  { year: "2025", Total: 9500, Cameroonian: 7000, Others: 2500 },
+  { year: "2026", Total: 2400, Cameroonian: 1641, Others: 759 }
 ];
 
 const NigeriaMapSVG = ({ activeNode, onHoverNode }: { activeNode: string; onHoverNode: (id: string) => void }) => {
@@ -638,9 +641,9 @@ export default function AdminDashboard() {
       if (finalLabels.length < 6 && !finalLabels.includes(defaultState)) {
         finalLabels.push(defaultState);
         const simulatedBases = {
-          refugee: [15, 12, 10, 8, 5, 4],
-          idp: [35, 28, 22, 18, 14, 10],
-          migrant: [25, 20, 16, 12, 8, 5]
+          refugee: [85000, 15000, 6800, 3200, 1500, 1100],
+          idp: [1750000, 275000, 220000, 180000, 140000, 100000],
+          migrant: [40000, 35500, 16000, 12000, 8000, 5500]
         };
         const idx = finalLabels.length - 1;
         finalData.push(simulatedBases[cat][idx] || 5);
@@ -777,9 +780,9 @@ export default function AdminDashboard() {
     const now = new Date();
     
     const baseTrends = {
-      refugee: [12, 19, 15, 25, 32, 28],
-      idp: [35, 42, 58, 48, 62, 55],
-      migrant: [8, 12, 11, 15, 20, 18]
+      refugee: [1200, 1900, 1500, 2500, 3200, 2800],
+      idp: [35000, 42000, 58000, 48000, 62000, 55000],
+      migrant: [800, 1200, 1100, 1500, 2000, 1800]
     };
     
     registrants.forEach((r) => {
@@ -812,8 +815,14 @@ export default function AdminDashboard() {
     // Merge with local storage fallback data
     const merged = [...remoteData];
     try {
-      const local = JSON.parse(localStorage.getItem("ncfrmi_local_registrants") || "[]") as Registrant[];
-      const localMapped = local.map((r) => ({ ...r, is_local: true }));
+      let localRaw = localStorage.getItem("ncfrmi_local_registrants");
+      if (!localRaw || JSON.parse(localRaw).length === 0) {
+        const seeded = generateRealisticSeedData();
+        localStorage.setItem("ncfrmi_local_registrants", JSON.stringify(seeded));
+        localRaw = JSON.stringify(seeded);
+      }
+      const local = JSON.parse(localRaw) as Registrant[];
+      const localMapped = local.map((r) => ({ ...r, is_local: r.is_local ?? true }));
       // Deduplicate by reference
       const remoteRefs = new Set(remoteData.map((r) => r.reference));
       localMapped.forEach((r) => {
@@ -1124,7 +1133,9 @@ export default function AdminDashboard() {
       r.full_name.toLowerCase().includes(q) ||
       r.reference.toLowerCase().includes(q) ||
       r.phone.includes(q) ||
-      r.lga.toLowerCase().includes(q);
+      r.lga.toLowerCase().includes(q) ||
+      (r.state_origin && r.state_origin.toLowerCase().includes(q)) ||
+      (r.nationality && r.nationality.toLowerCase().includes(q));
 
     const matchesCategory = categoryFilter === "all" || r.category === categoryFilter;
     const matchesState = stateFilter === "all" || r.state_origin === stateFilter;
@@ -1133,8 +1144,17 @@ export default function AdminDashboard() {
   });
 
   const getUniqueStates = () => {
-    const states = new Set(registrants.map((r) => r.state_origin).filter(Boolean));
-    return Array.from(states);
+    const validStates = new Set([
+      ...NG_STATES,
+      "FCT",
+      "Abuja"
+    ]);
+    const states = new Set(
+      registrants
+        .map((r) => r.state_origin)
+        .filter((st) => st && (validStates.has(st) || NG_STATES.includes(st)))
+    );
+    return Array.from(states).sort();
   };
 
   // Metric summaries
