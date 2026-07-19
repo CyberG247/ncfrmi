@@ -4,54 +4,8 @@ import PageHero from "@/components/site/PageHero";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
-import { CalendarDays, Globe, Award, Landmark, Users, X, ZoomIn } from "lucide-react";
+import { CalendarDays, Globe, Award, Landmark, Users } from "lucide-react";
 import Reveal from "@/components/site/Reveal";
-
-import heroRabat1 from "@/assets/hero-rabat1.jpg";
-import heroRabat2 from "@/assets/hero-rabat2.jpg";
-import heroRabat3 from "@/assets/hero-rabat3.jpg";
-import heroRabat4 from "@/assets/hero-rabat4.jpg";
-import heroRabat5 from "@/assets/hero-rabat5.jpg";
-import heroEvent1 from "@/assets/hero-event1.jpg";
-import heroEvent2 from "@/assets/hero-event2.jpg";
-
-const galleryImages = [
-  {
-    src: heroRabat1,
-    title: "United Nations Dialogue",
-    description: "Nigeria delegation seated at the high-level United Nations Rabat Process summit in Abuja."
-  },
-  {
-    src: heroRabat2,
-    title: "Presidential Opening Address",
-    description: "High-level delegation stand representing regional alliances at the summit."
-  },
-  {
-    src: heroRabat3,
-    title: "Euro-African Summit Panel",
-    description: "Delegations debating safe and regular migration governance and policy frameworks."
-  },
-  {
-    src: heroRabat4,
-    title: "Presentation of Humanitarian Award",
-    description: "Hon. Federal Commissioner presenting bilateral cooperation symbols representing durable solutions."
-  },
-  {
-    src: heroRabat5,
-    title: "Consultations on Reintegration",
-    description: "Delegates discussing joint initiatives for orderly and humane returnee programs."
-  },
-  {
-    src: heroEvent1,
-    title: "Durable Solutions Committee",
-    description: "Validation session for the National Strategy on Durable Solutions for refugees and IDPs."
-  },
-  {
-    src: heroEvent2,
-    title: "World Refugee Day 2026",
-    description: "Commemoration event restoring hope and protecting the dignity of displaced populations."
-  }
-];
 
 const hardcodedNews = [
   {
@@ -142,7 +96,6 @@ type NewsItem = { id?: string; date: string; tag: string; title: string; excerpt
 export default function News() {
   const [news, setNews] = useState<NewsItem[]>([]);
   const [highlightedId, setHighlightedId] = useState("");
-  const [lightbox, setLightbox] = useState<{ src: string; title: string; description: string } | null>(null);
 
   useEffect(() => {
     const handleHashChange = () => {
@@ -278,74 +231,28 @@ export default function News() {
         </div>
       </section>
 
-      {/* PHOTO GALLERY SECTION */}
-      <section className="bg-muted/30 border-t border-b border-border py-16">
-        <div className="container-page">
-          <Reveal>
-            <div className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Media Gallery</div>
-            <h2 className="mt-3 font-display text-2xl sm:text-3xl font-bold">Summits &amp; Humanitarian Events</h2>
-            <p className="text-xs text-muted-foreground mt-1 mb-10">High-resolution briefings from international dialogues and field interventions.</p>
+      {/* PHOTO GALLERY CTA SECTION */}
+      <section className="bg-gradient-to-br from-emerald-950 via-[#0B663C] to-emerald-900 text-white py-16 border-t border-b border-emerald-800">
+        <div className="container-page text-center max-w-4xl space-y-6">
+          <Reveal variant="scale">
+            <div className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-300">Visual Archives</div>
+            <h2 className="mt-3 font-display text-3xl sm:text-4xl font-extrabold tracking-tight">
+              Explore Our Media Gallery
+            </h2>
+            <p className="text-sm text-emerald-100 max-w-2xl mx-auto leading-relaxed mt-3">
+              View comprehensive, high-resolution photo segments of our key summits, diplomatic dialogues, and on-the-ground humanitarian interventions across Nigeria.
+            </p>
+            <div className="mt-8 flex justify-center">
+              <a
+                href="/gallery"
+                className="bg-white text-emerald-900 hover:bg-emerald-50 hover-lift px-6 py-3 rounded-full text-xs font-bold uppercase tracking-wider transition-all duration-300 shadow-lg shadow-black/10"
+              >
+                Go to Photo Gallery
+              </a>
+            </div>
           </Reveal>
-
-          <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-            {galleryImages.map((img, idx) => (
-              <Reveal key={idx} delay={idx * 50} variant="scale">
-                <div 
-                  onClick={() => setLightbox(img)}
-                  className="group relative cursor-pointer overflow-hidden rounded-xl border border-border bg-card shadow-card hover-lift transition-all duration-300"
-                >
-                  <div className="aspect-[4/3] w-full overflow-hidden">
-                    <img 
-                      src={img.src} 
-                      alt={img.title} 
-                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                      loading="lazy"
-                    />
-                  </div>
-                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4">
-                    <ZoomIn className="h-5 w-5 text-white absolute top-3 right-3 animate-pulse" />
-                    <h4 className="text-sm font-bold text-white leading-tight">{img.title}</h4>
-                    <p className="text-[10px] text-slate-350 line-clamp-2 mt-1">{img.description}</p>
-                  </div>
-                </div>
-              </Reveal>
-            ))}
-          </div>
         </div>
       </section>
-
-      {/* Lightbox Modal */}
-      {lightbox && (
-        <div 
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4 sm:p-10 animate-fade-in"
-          onClick={() => setLightbox(null)}
-        >
-          <button 
-            onClick={() => setLightbox(null)}
-            className="absolute top-4 right-4 rounded-full bg-white/10 p-2 text-white hover:bg-white/20 transition-colors"
-            aria-label="Close lightbox"
-          >
-            <X className="h-6 w-6" />
-          </button>
-          
-          <div 
-            className="relative max-w-4xl w-full bg-zinc-950 rounded-2xl overflow-hidden border border-zinc-800 shadow-2xl animate-scale-in"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="aspect-[16/10] w-full overflow-hidden animate-pulse-soft">
-              <img 
-                src={lightbox.src} 
-                alt={lightbox.title} 
-                className="h-full w-full object-contain" 
-              />
-            </div>
-            <div className="bg-zinc-905 p-6 border-t border-zinc-800 space-y-1">
-              <h3 className="font-display text-lg font-bold text-white">{lightbox.title}</h3>
-              <p className="text-sm text-zinc-400 leading-relaxed">{lightbox.description}</p>
-            </div>
-          </div>
-        </div>
-      )}
     </Layout>
   );
 }

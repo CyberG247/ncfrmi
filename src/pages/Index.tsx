@@ -12,7 +12,6 @@ import heroEvent2 from "@/assets/hero-event2.jpg";
 import heroRabat1 from "@/assets/hero-rabat1.jpg";
 import heroRabat2 from "@/assets/hero-rabat2.jpg";
 import heroRabat3 from "@/assets/hero-rabat3.jpg";
-import heroRabat4 from "@/assets/hero-rabat4.jpg";
 import heroRabat5 from "@/assets/hero-rabat5.jpg";
 import logo from "@/assets/ncfrmi-logo.png";
 import commissioner from "@/assets/commissioner.jpg";
@@ -24,28 +23,19 @@ const heroSlides = [
     link: "/news#durable-solutions-nigeria"
   },
   {
-    image: heroEvent2,
-    title: "Restoring Hope, Protecting Dignity: NCFRMI Marks World Refugee Day 2026",
-    link: "/news#world-refugee-day-2026"
-  },
-  {
     image: heroRabat1,
     title: "Nigeria Seated at the United Nations: Advancing Regional Dialogues on Safe and Regular Migration",
-    link: "/news#rabat-process-abuja"
+    link: "/news#rabat-process-abuja",
+    position: "bottom"
   },
   {
     image: heroRabat2,
-    title: "Strengthening Euro-African Alliances: NCFRMI Solidifies Bilateral Cooperation on Reintegration Support",
-    link: "/news#bilateral-cooperation-migration"
+    title: "Rabat Process",
+    link: "/news#rabat-process-abuja"
   },
   {
     image: heroRabat3,
     title: "NCFRMI Convenes the High-Level Rabat Process Summit at the Bola Ahmed Tinubu Conference Centre",
-    link: "/news#rabat-process-abuja"
-  },
-  {
-    image: heroRabat4,
-    title: "Coordinating Cross-Border Migration Policies for Orderly and Humane Repatriation Frameworks",
     link: "/news#rabat-process-abuja"
   },
   {
@@ -119,7 +109,10 @@ export default function Index() {
             className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-700 ${
               i === slide ? "opacity-100 scale-100" : "opacity-0 scale-95"
             }`}
-            style={{ transform: `translate3d(0, ${scrollY * 0.18}px, 0)` }}
+            style={{ 
+              transform: `translate3d(0, ${scrollY * 0.18}px, 0)`,
+              objectPosition: (slideObj as any).position || "center"
+            }}
             width={1920}
             height={1080}
           />

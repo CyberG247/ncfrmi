@@ -17,9 +17,37 @@ const nav = [
       { to: "/about?tab=departments", label: "Departments & Units" },
     ]
   },
-  { to: "/our-pocs", label: "Our POCs" },
-  { to: "/our-work", label: "Our Work" },
-  { to: "/media", label: "Media" },
+  {
+    label: "Our POCs",
+    children: [
+      { to: "/our-pocs", label: "All POCs" },
+      { to: "/our-pocs?type=refugees", label: "Refugees" },
+      { to: "/our-pocs?type=idps", label: "Internally Displaced" },
+      { to: "/our-pocs?type=migrants", label: "Migrants" },
+      { to: "/our-pocs?type=asylum-seekers", label: "Asylum Seekers" },
+      { to: "/our-pocs?type=returnees", label: "Returnees" },
+      { to: "/our-pocs?type=stateless", label: "Stateless Persons" },
+    ]
+  },
+  {
+    label: "Our Work",
+    children: [
+      { to: "/our-work", label: "All Interventions" },
+      { to: "/our-work?program=refugee-protection", label: "Refugee Protection" },
+      { to: "/our-work?program=rehabilitation", label: "Emergency Relief" },
+      { to: "/our-work?program=migration-policy", label: "Migration Coordination" },
+      { to: "/our-work?program=livelihood", label: "Livelihood & Reintegration" },
+      { to: "/our-work?program=agriculture", label: "Agricultural Support" },
+      { to: "/our-work?program=resettlement", label: "Resettlement Solutions" },
+    ]
+  },
+  {
+    label: "Media",
+    children: [
+      { to: "/news", label: "News" },
+      { to: "/gallery", label: "Gallery" },
+    ]
+  },
   { to: "/resources", label: "Resources" },
   { to: "/contact", label: "Contact Us" },
 ];
