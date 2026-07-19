@@ -6,11 +6,11 @@ import { Badge } from "@/components/ui/badge";
 import { CalendarDays, MapPin, ZoomIn, X, ChevronLeft, ChevronRight } from "lucide-react";
 
 // Image imports
-import heroRabat1 from "@/assets/hero-rabat1.jpg";
-import heroRabat2 from "@/assets/hero-rabat2.jpg";
-import heroRabat3 from "@/assets/hero-rabat3.jpg";
+import galleryRabat1 from "@/assets/gallery-rabat1.jpg";
+import galleryRabat2 from "@/assets/gallery-rabat2.jpg";
+import galleryRabat3 from "@/assets/gallery-rabat3.jpg";
 import heroRabat4 from "@/assets/hero-rabat4.jpg";
-import heroRabat5 from "@/assets/hero-rabat5.jpg";
+import galleryRabat5 from "@/assets/gallery-rabat5.jpg";
 import galleryRabat6 from "@/assets/gallery-rabat6.png";
 
 import heroEvent2 from "@/assets/hero-event2.jpg";
@@ -35,11 +35,11 @@ const gallerySegments = [
     location: "Abuja, Nigeria",
     description: "The National Commission for Refugees, Migrants and Internally Displaced Persons (NCFRMI) hosted the high-level Euro-African Dialogue on Migration and Development (Rabat Process) in Abuja. The meeting gathered member state delegations, international organizations, and policy experts to address safe, orderly, and regular migration, refugee protection, and joint development initiatives.",
     images: [
-      { src: heroRabat1, title: "Nigeria Delegation at UN Rabat Dialogue", desc: "Delegates discussing multilateral migration governance at the summit." },
-      { src: heroRabat2, title: "Euro-African Alliance Address", desc: "Hon. Commissioner presenting the opening remarks at the dialogue." },
-      { src: heroRabat3, title: "Summit Policy Panel", desc: "Interactive session addressing regional security and migrant integration." },
+      { src: galleryRabat1, title: "Nigeria Delegation at UN Rabat Dialogue", desc: "Delegates discussing multilateral migration governance at the summit." },
+      { src: galleryRabat2, title: "Euro-African Alliance Address", desc: "Hon. Commissioner presenting the opening remarks at the dialogue." },
+      { src: galleryRabat3, title: "Summit Policy Panel", desc: "Interactive session addressing regional security and migrant integration." },
       { src: heroRabat4, title: "Diplomatic Exchange", desc: "Presentation of bilateral cooperation symbols for durable solutions." },
-      { src: heroRabat5, title: "Returnee Consultation Session", desc: "Bilateral strategy talks on humane, orderly return and reintegration." },
+      { src: galleryRabat5, title: "Returnee Consultation Session", desc: "Bilateral strategy talks on humane, orderly return and reintegration." },
       { src: galleryRabat6, title: "Closing Ceremony & Abuja Declaration", desc: "European and African partners celebrate the adoption of the joint declaration." }
     ]
   },
