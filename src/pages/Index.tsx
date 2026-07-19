@@ -26,7 +26,7 @@ const heroSlides = [
     image: heroRabat1,
     title: "Nigeria Seated at the United Nations: Advancing Regional Dialogues on Safe and Regular Migration",
     link: "/news#rabat-process-abuja",
-    position: "bottom"
+    position: "center 35%"
   },
   {
     image: heroRabat2,
