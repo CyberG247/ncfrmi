@@ -25,7 +25,7 @@ import hero1 from "@/assets/hero-1.png";
 import hero2 from "@/assets/hero-2.png";
 import hero3 from "@/assets/hero-3.png";
 import gallerySolutions5 from "@/assets/gallery-solutions5.png";
-import gallerySolutions6 from "@/assets/gallery-solutions6.png";
+import gallerySolutions6 from "@/assets/gallery-solutions6.jpg";
 
 const gallerySegments = [
   {

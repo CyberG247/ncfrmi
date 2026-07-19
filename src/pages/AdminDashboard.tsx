@@ -164,14 +164,24 @@ const CustomBarChart = ({ data, labels, color }: { data: number[]; labels: strin
   return (
     <div className="w-full h-24 mt-4 relative">
       <svg className="w-full h-full" viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none">
+        <defs>
+          <linearGradient id={`svgBarGrad-${color.replace('#', '')}`} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={color} stopOpacity={1} />
+            <stop offset="100%" stopColor={color} stopOpacity={0.35} />
+          </linearGradient>
+          <filter id="svgBarShadow" x="-15%" y="-15%" width="130%" height="130%">
+            <feDropShadow dx="0" dy="1.5" stdDeviation="1" floodColor="#000" floodOpacity="0.1" />
+          </filter>
+        </defs>
+
         {/* Background Grid Lines */}
         <line x1="0" y1={height / 2} x2={width} y2={height / 2} stroke="currentColor" className="text-muted/10" strokeWidth="0.5" strokeDasharray="3,3" />
         <line x1="0" y1={height - padding} x2={width} y2={height - padding} stroke="currentColor" className="text-muted/20" strokeWidth="0.5" />
 
         {data.map((val, idx) => {
           const scale = pulseScale[idx] || 1;
-          const rawHeight = (val / max) * (height - 2 * padding - 10);
-          const barHeight = Math.max(rawHeight * scale, 4); // ensure min height
+          const rawHeight = (val / max) * (height - 2 * padding - 14);
+          const barHeight = Math.max(rawHeight * scale, 5); // ensure min height
           
           // Center the bars horizontally
           const totalWidth = data.length * barWidth + (data.length - 1) * gap;
@@ -181,15 +191,26 @@ const CustomBarChart = ({ data, labels, color }: { data: number[]; labels: strin
 
           return (
             <g key={idx} className="group">
+              {/* Value label text that shows on hover */}
+              <text
+                x={x + barWidth / 2}
+                y={y - 3}
+                textAnchor="middle"
+                fontSize="6"
+                className="fill-slate-650 dark:fill-slate-350 font-bold opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none select-none"
+              >
+                {val >= 1000000 ? `${(val / 1000000).toFixed(1)}M` : val >= 1000 ? `${(val / 1000).toFixed(0)}k` : val}
+              </text>
               {/* Main Bar */}
               <rect
                 x={x}
                 y={y}
                 width={barWidth}
                 height={barHeight}
-                rx="3"
-                fill={color}
-                className="opacity-80 transition-all duration-1800 ease-in-out cursor-pointer group-hover:opacity-100 group-hover:brightness-110"
+                rx="4"
+                fill={`url(#svgBarGrad-${color.replace('#', '')})`}
+                filter="url(#svgBarShadow)"
+                className="transition-all duration-1800 ease-in-out cursor-pointer group-hover:brightness-110 group-hover:stroke-white/20 group-hover:stroke-[1px]"
               />
               {/* Glossy top highlights for premium look */}
               <rect
@@ -199,7 +220,7 @@ const CustomBarChart = ({ data, labels, color }: { data: number[]; labels: strin
                 height="2.5"
                 rx="1"
                 fill="#ffffff"
-                className="opacity-45 transition-all duration-1800 ease-in-out pointer-events-none"
+                className="opacity-35 transition-all duration-1800 ease-in-out pointer-events-none"
               />
             </g>
           );
@@ -561,6 +582,10 @@ export default function AdminDashboard() {
   // Interventions states
   const [interventions, setInterventions] = useState<Intervention[]>([]);
   const [interventionsLoading, setInterventionsLoading] = useState(true);
+
+  // Incidents states
+  const [incidents, setIncidents] = useState<any[]>([]);
+  const [incidentsLoading, setIncidentsLoading] = useState(true);
   
   // Create / Edit modal states for Interventions
   const [isLogInterventionOpen, setIsLogInterventionOpen] = useState(false);
@@ -885,11 +910,45 @@ export default function AdminDashboard() {
     setInterventionsLoading(false);
   };
 
+  const loadIncidents = async () => {
+    setIncidentsLoading(true);
+    let remoteIncidents: any[] = [];
+    try {
+      const { data, error } = await supabase
+        .from("incidents" as any)
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      remoteIncidents = data || [];
+    } catch (e) {
+      console.warn("Failed to fetch remote incidents: ", e);
+    }
+
+    // Merge with local storage fallback data
+    const merged = [...remoteIncidents];
+    try {
+      const local = JSON.parse(localStorage.getItem("ncfrmi_incidents") || "[]") as any[];
+      const remoteRefs = new Set(remoteIncidents.map((r) => r.reference));
+      local.forEach((item) => {
+        if (!remoteRefs.has(item.reference)) {
+          merged.push(item);
+        }
+      });
+    } catch (e) {
+      console.error("Failed to merge local incidents: ", e);
+    }
+
+    merged.sort((a, b) => new Date(b.incident_date).getTime() - new Date(a.incident_date).getTime());
+    setIncidents(merged);
+    setIncidentsLoading(false);
+  };
+
   useEffect(() => {
     loadData();
     loadInterventions();
+    loadIncidents();
 
-    // Subscribe to real-time changes to registrants table to reload dashboard instantly
+    // Subscribe to real-time changes to registrants & incidents tables to reload dashboard instantly
     const channel = supabase
       .channel("admin-dashboard-realtime")
       .on(
@@ -902,6 +961,18 @@ export default function AdminDashboard() {
         (payload) => {
           console.log("Real-time registry update received on admin dashboard:", payload);
           loadData();
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "incidents",
+        },
+        (payload) => {
+          console.log("Real-time incidents update received on admin dashboard:", payload);
+          loadIncidents();
         }
       )
       .subscribe();
@@ -1501,6 +1572,7 @@ export default function AdminDashboard() {
             { id: "camps", label: "Camps Directory", icon: Home },
             { id: "host_comm", label: "Host Comm", icon: Globe },
             { id: "interventions", label: "Interventions", icon: Activity },
+            { id: "incidents", label: "Incident Reports", icon: ShieldAlert },
             { id: "roles", label: "User Roles Manager", icon: UserCheck },
             { id: "report", label: "Audits & Reports", icon: FileText }
           ].map((tab) => {
@@ -1896,32 +1968,54 @@ export default function AdminDashboard() {
                   <div className="h-52 w-full mt-2 text-[9px] font-semibold">
                     <ResponsiveContainer width="100%" height="100%">
                       <RechartsBarChart data={asylumDemographicData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                        <defs>
+                          <linearGradient id="femaleGrad" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#10b981" stopOpacity={0.95}/>
+                            <stop offset="100%" stopColor="#0b663c" stopOpacity={0.5}/>
+                          </linearGradient>
+                          <linearGradient id="maleGrad" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#fbbf24" stopOpacity={0.95}/>
+                            <stop offset="100%" stopColor="#d97706" stopOpacity={0.5}/>
+                          </linearGradient>
+                        </defs>
                         <RechartsCartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                         <RechartsXAxis dataKey="age" tickLine={false} axisLine={false} tick={{ fill: '#64748b', fontSize: 8 }} />
                         <RechartsYAxis tickLine={false} axisLine={false} tickFormatter={(v) => `${v / 1000}K`} tick={{ fill: '#64748b', fontSize: 8 }} />
-                        <RechartsTooltip formatter={(v) => [`${Number(v).toLocaleString()} enrollees`]} contentStyle={{ fontSize: 10 }} />
+                        <RechartsTooltip 
+                          formatter={(v) => [`${Number(v).toLocaleString()} enrollees`]} 
+                          contentStyle={{ fontSize: 10, borderRadius: 8, border: "1px solid #e2e8f0", boxShadow: "0 4px 12px rgba(0,0,0,0.05)" }} 
+                        />
                         <RechartsLegend verticalAlign="top" height={28} iconType="circle" iconSize={6} wrapperStyle={{ fontSize: 9, fontWeight: "bold" }} />
-                        <RechartsBar dataKey="Female" fill="#0b663c" radius={[3, 3, 0, 0]} name="Female (57%)" />
-                        <RechartsBar dataKey="Male" fill="#c5a059" radius={[3, 3, 0, 0]} name="Male (43%)" />
+                        <RechartsBar dataKey="Female" fill="url(#femaleGrad)" radius={[4, 4, 0, 0]} name="Female (57%)" />
+                        <RechartsBar dataKey="Male" fill="url(#maleGrad)" radius={[4, 4, 0, 0]} name="Male (43%)" />
                       </RechartsBarChart>
                     </ResponsiveContainer>
                   </div>
                 </div>
-
+ 
                 {/* 3. Countries of Origin Horizontal Bar Chart */}
                 <div className="space-y-4 border p-4 rounded-xl bg-card flex flex-col justify-between">
                   <h4 className="font-bold text-xs text-emerald-800 border-b pb-1.5 uppercase tracking-wider">
                     Countries of Origin
                   </h4>
-
+ 
                   <div className="h-52 w-full mt-2 text-[9px] font-semibold">
                     <ResponsiveContainer width="100%" height="100%">
                       <RechartsBarChart data={asylumCountriesData} layout="vertical" margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+                        <defs>
+                          <linearGradient id="enrollGrad" x1="0" y1="0" x2="1" y2="0">
+                            <stop offset="0%" stopColor="#34d399" stopOpacity={0.95}/>
+                            <stop offset="100%" stopColor="#0b663c" stopOpacity={0.65}/>
+                          </linearGradient>
+                        </defs>
                         <RechartsCartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e2e8f0" />
                         <RechartsXAxis type="number" tickLine={false} axisLine={false} tickFormatter={(v) => v >= 1000 ? `${v / 1000}K` : v} tick={{ fill: '#64748b', fontSize: 8 }} />
-                        <RechartsYAxis type="category" dataKey="country" tickLine={false} axisLine={false} tick={{ fill: '#64748b', fontSize: 8, fontWeight: "bold" }} width={65} />
-                        <RechartsTooltip formatter={(v) => [`${Number(v).toLocaleString()} enrollees`]} contentStyle={{ fontSize: 10 }} />
-                        <RechartsBar dataKey="Enrollees" fill="#0b663c" radius={[0, 3, 3, 0]} barSize={10} name="Total Enrolled" />
+                        <RechartsYAxis type="category" dataKey="country" tickLine={false} axisLine={false} tick={{ fill: '#64748b', fontSize: 8, font_weight: "bold" }} width={65} />
+                        <RechartsTooltip 
+                          formatter={(v) => [`${Number(v).toLocaleString()} enrollees`]} 
+                          contentStyle={{ fontSize: 10, borderRadius: 8, border: "1px solid #e2e8f0", boxShadow: "0 4px 12px rgba(0,0,0,0.05)" }} 
+                        />
+                        <RechartsBar dataKey="Enrollees" fill="url(#enrollGrad)" radius={[0, 4, 4, 0]} barSize={12} name="Total Enrolled" />
                       </RechartsBarChart>
                     </ResponsiveContainer>
                   </div>
@@ -2625,6 +2719,124 @@ export default function AdminDashboard() {
                             </td>
                           </tr>
                         ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </Card>
+          </div>
+        )}
+
+        {activeTab === "incidents" && (
+          <div className="space-y-6 animate-fade-in">
+            {/* Stat cards for incidents */}
+            <div className="grid gap-4 md:grid-cols-4">
+              <Card className="p-4 shadow-sm border-border bg-card">
+                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Total Incident Reports</span>
+                <span className="text-2xl font-extrabold text-foreground mt-1 block">{incidents.length}</span>
+              </Card>
+              <Card className="p-4 shadow-sm border-border bg-card">
+                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Critical Severity Alerts</span>
+                <span className="text-2xl font-extrabold text-rose-600 mt-1 block">
+                  {incidents.filter(i => i.severity === "Critical").length}
+                </span>
+              </Card>
+              <Card className="p-4 shadow-sm border-border bg-card">
+                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Security Threats Logged</span>
+                <span className="text-2xl font-extrabold text-orange-600 mt-1 block">
+                  {incidents.filter(i => i.category.toLowerCase().includes("security")).length}
+                </span>
+              </Card>
+              <Card className="p-4 shadow-sm border-border bg-card">
+                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Device & Network Failures</span>
+                <span className="text-2xl font-extrabold text-indigo-650 mt-1 block">
+                  {incidents.filter(i => i.category.toLowerCase().includes("device") || i.category.toLowerCase().includes("connect")).length}
+                </span>
+              </Card>
+            </div>
+
+            {/* Filter and Table Panel */}
+            <Card className="p-6 shadow-card border-border bg-card">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b pb-4 mb-4">
+                <div>
+                  <h3 className="font-display font-bold text-foreground text-sm">Zonal Incident Reports</h3>
+                  <p className="text-[10px] text-muted-foreground">Monitor security threats, hardware issues, and field emergency logs submitted by Officers</p>
+                </div>
+              </div>
+
+              {incidentsLoading ? (
+                <div className="p-10 text-center text-xs text-muted-foreground flex flex-col items-center gap-2">
+                  <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                  Loading incident reports...
+                </div>
+              ) : incidents.length === 0 ? (
+                <div className="p-10 text-center text-xs text-muted-foreground">No incidents reported yet in the database.</div>
+              ) : (
+                <div className="overflow-x-auto border rounded-lg">
+                  <table className="w-full text-xs text-left">
+                    <thead className="bg-muted/40 uppercase tracking-wider text-muted-foreground border-b text-[10px]">
+                      <tr>
+                        <th className="p-3.5">Reference ID</th>
+                        <th className="p-3.5">Category</th>
+                        <th className="p-3.5">Severity</th>
+                        <th className="p-3.5">Camp / Location</th>
+                        <th className="p-3.5">Description</th>
+                        <th className="p-3.5">Action Taken</th>
+                        <th className="p-3.5">Logged By</th>
+                        <th className="p-3.5">Incident Date</th>
+                        <th className="p-3.5 text-center">Evidence</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y">
+                      {incidents.map((item) => {
+                        let severityClass = "bg-slate-100 text-slate-800";
+                        if (item.severity === "Medium") severityClass = "bg-amber-100 text-amber-800";
+                        else if (item.severity === "High") severityClass = "bg-orange-100 text-orange-850";
+                        else if (item.severity === "Critical") severityClass = "bg-rose-100 text-rose-850 font-bold animate-pulse";
+
+                        return (
+                          <tr key={item.id} className="hover:bg-muted/30 transition-colors">
+                            <td className="p-3.5 font-mono text-[10px] font-bold text-primary">
+                              {item.reference}
+                            </td>
+                            <td className="p-3.5 font-semibold text-foreground">{item.category}</td>
+                            <td className="p-3.5">
+                              <Badge className={`${severityClass} border-transparent text-[9px] font-bold uppercase`}>
+                                {item.severity}
+                              </Badge>
+                            </td>
+                            <td className="p-3.5 font-medium text-foreground">{item.location}</td>
+                            <td className="p-3.5 max-w-[200px] truncate" title={item.description}>
+                              {item.description}
+                            </td>
+                            <td className="p-3.5 max-w-[200px] truncate text-muted-foreground" title={item.action_taken}>
+                              {item.action_taken || "—"}
+                            </td>
+                            <td className="p-3.5 text-muted-foreground text-[10px] truncate max-w-[120px]" title={item.reported_by}>
+                              {item.reported_by || "system"}
+                            </td>
+                            <td className="p-3.5 text-muted-foreground text-[10px] whitespace-nowrap">
+                              {new Date(item.incident_date).toLocaleString()}
+                            </td>
+                            <td className="p-3.5 text-center">
+                              {item.photo_base64 ? (
+                                <div className="flex justify-center">
+                                  <img
+                                    src={item.photo_base64}
+                                    alt="Evidence"
+                                    className="h-8 w-12 object-cover rounded border border-border cursor-pointer shadow-sm hover:scale-125 transition-transform duration-200"
+                                    onClick={() => {
+                                      toast.info(`Viewing evidence for ${item.reference}`);
+                                    }}
+                                  />
+                                </div>
+                              ) : (
+                                <span className="text-[10px] text-muted-foreground">None</span>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>

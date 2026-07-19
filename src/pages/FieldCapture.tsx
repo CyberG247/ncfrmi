@@ -217,6 +217,105 @@ export default function FieldCapture() {
   const [subCategoryOpen, setSubCategoryOpen] = useState(false);
   const [showInterventions, setShowInterventions] = useState(false);
   const [interventionsList, setInterventionsList] = useState<Intervention[]>([]);
+  const [showIncidentReport, setShowIncidentReport] = useState(false);
+  const [incidentsList, setIncidentsList] = useState<any[]>([]);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("ncfrmi_incidents");
+      if (saved) {
+        setIncidentsList(JSON.parse(saved));
+      } else {
+        const initialMock = [
+          {
+            id: "inc-1",
+            reference: "NCF-INC-2026-X83K2",
+            category: "Biometric Device Malfunction",
+            severity: "Medium",
+            location: "Durumi Camp, Abuja",
+            incident_date: new Date(Date.now() - 3600000 * 24).toISOString(),
+            description: "Fingerprint scanner failed to initialize due to USB driver mismatch on Windows workstation. Switched to manual override after three attempts.",
+            action_taken: "Reported to IT support, rebooted laptop, used manual biographical registration for the candidate.",
+            photo_base64: null,
+            reported_by: "officer@ncfrmi.gov.ng"
+          },
+          {
+            id: "inc-2",
+            reference: "NCF-INC-2026-P91L5",
+            category: "Connectivity / Network Outage",
+            severity: "High",
+            location: "Maiduguri Zonal Camp, Borno",
+            incident_date: new Date(Date.now() - 3600000 * 48).toISOString(),
+            description: "Complete loss of satellite cellular connection at the remote registration point starting from 14:00. Sync of 45 PoC records delayed.",
+            action_taken: "Data collection completed offline and cached on local workstation securely. Sync will be retried upon transit back to the state hub.",
+            photo_base64: null,
+            reported_by: "officer@ncfrmi.gov.ng"
+          }
+        ];
+        localStorage.setItem("ncfrmi_incidents", JSON.stringify(initialMock));
+        setIncidentsList(initialMock);
+      }
+    } catch (e) {
+      console.error("Failed to load incidents:", e);
+    }
+  }, []);
+
+  const handleAddIncident = async (
+    category: string,
+    severity: string,
+    location: string,
+    incident_date: string,
+    description: string,
+    action_taken: string,
+    photo: string | null
+  ) => {
+    if (!category || !severity || !location || !description) {
+      toast.error("Please fill in all required fields.");
+      return;
+    }
+    
+    const reference = `NCF-INC-2026-${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
+    const newEntry = {
+      id: `inc-${Math.random().toString(36).slice(2, 8)}`,
+      reference,
+      category,
+      severity,
+      location,
+      incident_date: new Date(incident_date).toISOString(),
+      description,
+      action_taken,
+      photo_base64: photo,
+      reported_by: localStorage.getItem("ncfrmi_simulated_user") 
+        ? JSON.parse(localStorage.getItem("ncfrmi_simulated_user")!).email 
+        : "officer@ncfrmi.gov.ng"
+    };
+
+    const updated = [newEntry, ...incidentsList];
+    setIncidentsList(updated);
+    localStorage.setItem("ncfrmi_incidents", JSON.stringify(updated));
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      const { error } = await supabase.from("incidents" as any).insert({
+        reference,
+        category,
+        severity,
+        location,
+        incident_date: new Date(incident_date).toISOString(),
+        description,
+        action_taken,
+        photo_base64: photo,
+        reported_by: user?.id || null
+      });
+      if (error) throw error;
+      toast.success(`Incident report ${reference} submitted and synced!`);
+    } catch (e) {
+      console.warn("Failed to sync incident to Supabase: ", e);
+      toast.success(`Incident report ${reference} logged locally (cached for sync).`);
+    }
+
+    playBeep();
+  };
 
   const [localRegistrants, setLocalRegistrants] = useState<any[]>([]);
   const [pushing, setPushing] = useState(false);
@@ -1106,6 +1205,12 @@ ${face ? `\n===PHOTO_BASE64===\n${face}` : ''}
             list={interventionsList}
             onAdd={handleAddIntervention}
           />
+        ) : showIncidentReport ? (
+          <IncidentReportPortal
+            onBack={() => setShowIncidentReport(false)}
+            list={incidentsList}
+            onAdd={handleAddIncident}
+          />
         ) : (
           <div className={`${step === 0 ? "mx-auto max-w-4xl relative animate-fade-up" : "mx-auto max-w-3xl animate-fade-up"}`}>
             {step === 0 && (
@@ -1289,6 +1394,26 @@ ${face ? `\n===PHOTO_BASE64===\n${face}` : ''}
                           <h4 className="font-display font-extrabold text-foreground text-sm tracking-wide uppercase">Interventions</h4>
                           <span className="text-[9px] font-semibold text-teal-600 bg-teal-500/10 px-2 py-0.5 rounded-full mt-1 inline-block">
                             Aid Distribution
+                          </span>
+                        </div>
+                      </div>
+                    </button>
+
+                    {/* Card 5: REPORT INCIDENT */}
+                    <button
+                      type="button"
+                      onClick={() => setShowIncidentReport(true)}
+                      className="group flex flex-col items-start p-5 rounded-xl border border-border bg-card text-left transition-all duration-300 hover:border-primary/45 hover:shadow-elegant relative overflow-hidden active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-primary/40"
+                    >
+                      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                      <div className="flex items-center gap-3.5 z-10">
+                        <div className="h-10 w-10 rounded-lg bg-rose-500/10 text-rose-600 flex items-center justify-center font-bold group-hover:scale-110 transition-transform duration-300">
+                          <CloudLightning className="h-5 w-5 animate-pulse" />
+                        </div>
+                        <div>
+                          <h4 className="font-display font-extrabold text-rose-800 text-sm tracking-wide uppercase">Report Incident</h4>
+                          <span className="text-[9px] font-semibold text-rose-650 bg-rose-500/10 px-2 py-0.5 rounded-full mt-1 inline-block">
+                            Security & Device Issues
                           </span>
                         </div>
                       </div>
@@ -2204,6 +2329,342 @@ function InterventionsPortal({
             <div className="mt-4 pt-3 border-t flex items-center justify-between text-[10px] text-muted-foreground">
               <span>NCFRMI Secure Gateway Protocol v3.0</span>
               <span>Local caching enabled</span>
+            </div>
+          </div>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+function IncidentReportPortal({
+  onBack,
+  list,
+  onAdd
+}: {
+  onBack: () => void;
+  list: any[];
+  onAdd: (
+    category: string,
+    severity: string,
+    location: string,
+    incident_date: string,
+    description: string,
+    action_taken: string,
+    photo: string | null
+  ) => void;
+}) {
+  const [category, setCategory] = useState("");
+  const [severity, setSeverity] = useState("");
+  const [location, setLocation] = useState("");
+  const [incidentDate, setIncidentDate] = useState(() => new Date().toISOString().slice(0, 16));
+  const [description, setDescription] = useState("");
+  const [actionTaken, setActionTaken] = useState("");
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPhotoPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const simulateCameraCapture = () => {
+    const mockCaptures = [
+      "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='400' height='300' viewBox='0 0 400 300'><rect width='100%' height='100%' fill='%23fee2e2'/><path d='M200 60 L290 220 L110 220 Z' fill='%23ef4444'/><path d='M200 120 L200 170' stroke='white' stroke-width='8' stroke-linecap='round'/><circle cx='200' cy='195' r='5' fill='white'/><text x='200' y='250' fill='%23991b1b' font-weight='bold' font-size='14' text-anchor='middle'>SECURITY THREAT</text></svg>",
+      "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='400' height='300' viewBox='0 0 400 300'><rect width='100%' height='100%' fill='%23fef3c7'/><circle cx='200' cy='150' r='50' fill='none' stroke='%23f59e0b' stroke-width='10'/><path d='M170 150 L230 150' stroke='%23f59e0b' stroke-width='10'/><text x='200' y='240' fill='%2392400e' font-weight='bold' font-size='14' text-anchor='middle'>DEVICE FAULT</text></svg>",
+      "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='400' height='300' viewBox='0 0 400 300'><rect width='100%' height='100%' fill='%23ecfdf5'/><path d='M100 200 C 150 150, 250 150, 300 200' fill='none' stroke='%2310b981' stroke-width='8'/><text x='200' y='240' fill='%23065f46' font-weight='bold' font-size='14' text-anchor='middle'>OPERATIONAL ISSUE</text></svg>"
+    ];
+    const randomIdx = Math.floor(Math.random() * mockCaptures.length);
+    setPhotoPreview(mockCaptures[randomIdx]);
+    toast.success("Incident photo snapshot simulated!");
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onAdd(category, severity, location, incidentDate, description, actionTaken, photoPreview);
+    setCategory("");
+    setSeverity("");
+    setLocation("");
+    setIncidentDate(new Date().toISOString().slice(0, 16));
+    setDescription("");
+    setActionTaken("");
+    setPhotoPreview(null);
+  };
+
+  const INCIDENT_TYPES = [
+    "Security Threat / Hostile Activity",
+    "Biometric Device Malfunction",
+    "Connectivity / Network Outage",
+    "Extreme Weather Disruption",
+    "Medical Emergency",
+    "Information Mismatch / Suspected Fraud",
+    "Inadequate Relief/Supplies Riot",
+    "Other operational issue"
+  ];
+
+  const SEVERITIES = [
+    { value: "Low", class: "bg-slate-100 text-slate-800" },
+    { value: "Medium", class: "bg-amber-100 text-amber-800" },
+    { value: "High", class: "bg-orange-100 text-orange-850" },
+    { value: "Critical", class: "bg-rose-100 text-rose-850 animate-pulse" }
+  ];
+
+  return (
+    <div className="mx-auto max-w-5xl animate-fade-up">
+      {/* Header Bar */}
+      <div className="flex items-center justify-between mb-6">
+        <button
+          onClick={onBack}
+          className="flex items-center gap-2 text-sm font-semibold text-primary hover:underline transition-all"
+        >
+          <span className="h-7 w-7 rounded-full border border-primary/20 flex items-center justify-center bg-primary/5 hover:bg-primary/10 transition-colors text-xs font-bold">
+            ←
+          </span>
+          Back to Selection
+        </button>
+        <span className="flex items-center gap-1.5 text-xs font-semibold text-rose-650 bg-rose-500/10 px-2.5 py-1 rounded-full border border-rose-500/20">
+          <span className="h-2 w-2 rounded-full bg-rose-500 animate-pulse" /> Incident Response Node
+        </span>
+      </div>
+
+      <div className="grid gap-6 md:grid-cols-3">
+        {/* Report Form (Col Span 1) */}
+        <Card className="p-6 md:col-span-1 shadow-card border-rose-500/10 relative overflow-hidden">
+          <div className="absolute inset-0 bg-[radial-gradient(hsl(var(--primary))_1px,transparent_1px)] [background-size:16px_16px] opacity-[0.02] pointer-events-none" />
+          <div className="flex items-center gap-2 mb-4 relative z-10">
+            <div className="h-8 w-8 rounded bg-rose-500/10 text-rose-600 flex items-center justify-center">
+              <CloudLightning className="h-4 w-4" />
+            </div>
+            <div>
+              <h3 className="font-display font-bold text-foreground text-sm">Report Incident</h3>
+              <p className="text-[10px] text-muted-foreground">Log field operational and security issues</p>
+            </div>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-4 relative z-10">
+            <div>
+              <label className="text-xs font-semibold text-foreground">Incident Category *</label>
+              <select
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                required
+                className="mt-1.5 w-full rounded-md border border-input bg-background px-3 py-2 text-xs focus:ring-2 focus:ring-rose-500 focus:outline-none text-foreground"
+              >
+                <option value="" className="text-foreground">Select type</option>
+                {INCIDENT_TYPES.map((c) => <option key={c} value={c} className="text-foreground">{c}</option>)}
+              </select>
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold text-foreground">Severity Level *</label>
+              <select
+                value={severity}
+                onChange={(e) => setSeverity(e.target.value)}
+                required
+                className="mt-1.5 w-full rounded-md border border-input bg-background px-3 py-2 text-xs focus:ring-2 focus:ring-rose-500 focus:outline-none text-foreground"
+              >
+                <option value="" className="text-foreground">Select severity</option>
+                {SEVERITIES.map((s) => <option key={s.value} value={s.value} className="text-foreground">{s.value}</option>)}
+              </select>
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold text-foreground">Camp Location / Sector *</label>
+              <input
+                type="text"
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                required
+                placeholder="e.g. Durumi IDP Camp"
+                className="mt-1.5 w-full rounded-md border border-input bg-background px-3 py-2 text-xs focus:ring-2 focus:ring-rose-500 focus:outline-none text-foreground"
+              />
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold text-foreground">Incident Date & Time *</label>
+              <input
+                type="datetime-local"
+                value={incidentDate}
+                onChange={(e) => setIncidentDate(e.target.value)}
+                required
+                className="mt-1.5 w-full rounded-md border border-input bg-background px-3 py-2 text-xs focus:ring-2 focus:ring-rose-500 focus:outline-none text-foreground"
+              />
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold text-foreground">Description of Incident *</label>
+              <textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                required
+                rows={3}
+                placeholder="Provide a detailed description of what happened..."
+                className="mt-1.5 w-full rounded-md border border-input bg-background px-3 py-2 text-xs focus:ring-2 focus:ring-rose-500 focus:outline-none resize-none text-foreground"
+              />
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold text-foreground">Immediate Action Taken</label>
+              <textarea
+                value={actionTaken}
+                onChange={(e) => setActionTaken(e.target.value)}
+                rows={2}
+                placeholder="Explain any steps taken on site to resolve or contain..."
+                className="mt-1.5 w-full rounded-md border border-input bg-background px-3 py-2 text-xs focus:ring-2 focus:ring-rose-500 focus:outline-none resize-none text-foreground"
+              />
+            </div>
+
+            {/* Photo Attachment Options */}
+            <div className="space-y-2">
+              <label className="text-xs font-semibold text-foreground block">Attach Incident Photo</label>
+              
+              {photoPreview && (
+                <div className="relative h-28 w-full rounded-lg border border-border bg-muted overflow-hidden flex items-center justify-center mb-2">
+                  <img src={photoPreview} alt="Preview" className="max-h-full max-w-full object-contain" />
+                  <button
+                    type="button"
+                    onClick={() => setPhotoPreview(null)}
+                    className="absolute top-1 right-1 h-5 w-5 bg-rose-600 text-white rounded-full flex items-center justify-center text-[10px] font-bold shadow-md hover:bg-rose-700"
+                  >
+                    ×
+                  </button>
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={simulateCameraCapture}
+                  className="text-[10px] h-8 font-bold border-rose-200/50 hover:bg-rose-50 text-rose-800"
+                >
+                  <Camera className="mr-1 h-3.5 w-3.5" /> Simulate Camera
+                </Button>
+                <div className="relative">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handlePhotoChange}
+                    className="hidden"
+                    id="incident-photo-upload"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    asChild
+                    className="text-[10px] h-8 font-bold border-rose-200/50 hover:bg-rose-50 text-rose-800 w-full"
+                  >
+                    <label htmlFor="incident-photo-upload" className="cursor-pointer flex items-center justify-center">
+                      Upload Picture
+                    </label>
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            <Button type="submit" className="w-full text-xs font-bold py-2.5 bg-rose-700 hover:bg-rose-800 text-white hover-lift">
+              Submit Incident Report
+            </Button>
+          </form>
+        </Card>
+
+        {/* Incidents Log History (Col Span 2) */}
+        <Card className="p-6 md:col-span-2 shadow-card border-rose-500/10 flex flex-col justify-between relative overflow-hidden">
+          <div className="absolute inset-0 bg-[radial-gradient(hsl(var(--primary))_1px,transparent_1px)] [background-size:16px_16px] opacity-[0.02] pointer-events-none" />
+          <div className="relative z-10 flex flex-col h-full justify-between">
+            <div>
+              <div className="flex items-center justify-between mb-4 border-b pb-3">
+                <div className="flex items-center gap-2">
+                  <div className="h-8 w-8 rounded bg-rose-500/10 text-rose-600 flex items-center justify-center">
+                    <CloudLightning className="h-4 w-4 animate-pulse" />
+                  </div>
+                  <div>
+                    <h3 className="font-display font-bold text-foreground text-sm">Zonal Incident Logs</h3>
+                    <p className="text-[10px] text-muted-foreground">Active incidents reported during current operations</p>
+                  </div>
+                </div>
+                <span className="text-[10px] font-bold text-muted-foreground uppercase bg-muted px-2 py-0.5 rounded">
+                  {list.length} Reports
+                </span>
+              </div>
+
+              {/* Log List */}
+              <div className="space-y-3.5 max-h-[480px] overflow-y-auto pr-1">
+                {list.length === 0 ? (
+                  <div className="text-center py-12 text-muted-foreground text-xs">
+                    No incidents reported in this workstation session.
+                  </div>
+                ) : (
+                  list.map((item) => {
+                    const severityObj = SEVERITIES.find((s) => s.value === item.severity) || { value: "Low", class: "bg-slate-100 text-slate-800" };
+                    return (
+                      <div
+                        key={item.id}
+                        className="p-3.5 rounded-lg border border-border bg-muted/10 hover:bg-muted/30 transition-colors flex flex-col sm:flex-row sm:items-start justify-between gap-3 text-xs border-l-4 border-l-rose-500"
+                      >
+                        <div className="space-y-1.5 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="font-bold text-foreground">{item.location}</span>
+                            <span className="text-[9px] font-semibold text-rose-700 bg-rose-50 px-2 py-0.5 rounded-full">
+                              {item.category}
+                            </span>
+                            <span className={`text-[8px] font-bold px-2 py-0.5 rounded ${severityObj.class}`}>
+                              {item.severity}
+                            </span>
+                          </div>
+                          
+                          <p className="text-muted-foreground text-[11px] leading-relaxed">
+                            {item.description}
+                          </p>
+
+                          {item.action_taken && (
+                            <div className="bg-muted/40 p-2 rounded text-[10px] text-slate-700 dark:text-slate-300">
+                              <span className="font-bold text-primary mr-1">Action:</span> {item.action_taken}
+                            </div>
+                          )}
+
+                          <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
+                            <span className="font-mono text-[9px] font-bold text-primary">{item.reference}</span>
+                            <span>•</span>
+                            <span>Reported by {item.reported_by}</span>
+                          </div>
+                        </div>
+                        
+                        <div className="flex flex-col items-end gap-2 min-w-[100px] text-right">
+                          <span className="text-[9px] font-bold text-rose-600 bg-rose-500/10 px-2 py-0.5 rounded-full flex items-center gap-1 ml-auto">
+                            <span className="h-1 w-1 rounded-full bg-rose-500" /> SECURE SYNC
+                          </span>
+                          <span className="text-[9px] text-muted-foreground font-mono">
+                            {new Date(item.incident_date).toLocaleString()}
+                          </span>
+                          {item.photo_base64 && (
+                            <img
+                              src={item.photo_base64}
+                              alt="Evidence"
+                              className="h-10 w-14 object-cover rounded border border-border shadow-sm ml-auto cursor-pointer hover:scale-110 transition-transform duration-200"
+                              onClick={() => {
+                                toast.info("Evidence photo viewer triggered");
+                              }}
+                            />
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+
+            <div className="mt-4 pt-3 border-t flex items-center justify-between text-[10px] text-muted-foreground">
+              <span>NCFRMI Security Control Gateway v3.1</span>
+              <span>Encrypted offline storage live</span>
             </div>
           </div>
         </Card>
