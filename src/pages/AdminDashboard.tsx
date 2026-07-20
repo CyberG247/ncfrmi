@@ -1861,12 +1861,12 @@ export default function AdminDashboard() {
               </div>
             </Card>
 
-            {/* National Refugee & Asylum Statistical Profile Section */}
+            {/* Refugee & Asylum Data Section */}
             <Card className="p-6 shadow-card border-border bg-card">
               <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b pb-4 mb-6 gap-4">
                 <div>
                   <h3 className="font-display font-extrabold text-emerald-800 text-sm uppercase tracking-wide">
-                    National Asylum & Refugee Statistical Profile
+                    Refugee & Asylum Data
                   </h3>
                   <p className="text-[10px] text-muted-foreground mt-0.5">
                     Official demographic distributions, countries of origin, and geopolitical asylum movement flows.
