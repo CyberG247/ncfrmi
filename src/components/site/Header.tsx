@@ -6,6 +6,20 @@ import logo from "@/assets/ncfrmi-logo.png";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import NotificationBell from "./NotificationBell";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
+
+const LANGUAGES = [
+  { code: "en", label: "English" },
+  { code: "ha", label: "Hausa" },
+  { code: "ig", label: "Igbo" },
+  { code: "yo", label: "Yoruba" },
+  { code: "ff", label: "Fula" },
+  { code: "kr", label: "Kanuri" },
+  { code: "tr", label: "Turkish" },
+  { code: "ar", label: "Arabic" },
+  { code: "zh-CN", label: "Chinese" },
+  { code: "es", label: "Spanish" },
+];
 
 const nav = [
   { to: "/", label: "Home" },
@@ -134,11 +148,12 @@ export const Header = () => {
       document.cookie = `googtrans=/en/${langCode}; path=/; domain=${domain};`;
       document.cookie = `googtrans=/en/${langCode}; path=/; domain=.${domain};`;
 
-      // 2. Trigger the Google Translate dropdown in the DOM
+      // 2. Trigger the Google Translate dropdown in the DOM programmatically with bubbling events
       const selectEl = document.querySelector(".goog-te-combo") as HTMLSelectElement;
       if (selectEl) {
         selectEl.value = langCode;
-        selectEl.dispatchEvent(new Event("change"));
+        selectEl.dispatchEvent(new Event("change", { bubbles: true }));
+        selectEl.dispatchEvent(new Event("input", { bubbles: true }));
       } else {
         // Fallback: Reload the page to force Google Translate to read the cookie and translate
         window.location.reload();
@@ -262,25 +277,28 @@ export const Header = () => {
 
         <div className="hidden items-center gap-2 lg:flex">
           {/* Language Selector */}
-          <div className="relative flex items-center gap-1.5 rounded-full border bg-background/50 px-2.5 py-1 text-xs transition-colors hover:bg-background/80">
-            <Globe className="h-3.5 w-3.5 opacity-60" />
-            <select
-              value={currentLang}
-              onChange={(e) => changeLanguage(e.target.value)}
-              className="bg-transparent font-bold focus:outline-none cursor-pointer text-foreground uppercase text-[11px]"
-            >
-              <option value="en" className="bg-background text-foreground">EN</option>
-              <option value="ha" className="bg-background text-foreground">HA</option>
-              <option value="ig" className="bg-background text-foreground">IG</option>
-              <option value="yo" className="bg-background text-foreground">YO</option>
-              <option value="ff" className="bg-background text-foreground">FF</option>
-              <option value="kr" className="bg-background text-foreground">KR</option>
-              <option value="tr" className="bg-background text-foreground">TR</option>
-              <option value="ar" className="bg-background text-foreground">AR</option>
-              <option value="zh-CN" className="bg-background text-foreground">ZH</option>
-              <option value="es" className="bg-background text-foreground">ES</option>
-            </select>
-          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full border border-primary/20 bg-primary/5 text-primary hover:bg-primary/10 hover:text-primary focus-visible:ring-0">
+                <Globe className="h-4 w-4" />
+                <span className="sr-only">Select Language</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-40 z-50">
+              {LANGUAGES.map((lang) => (
+                <DropdownMenuItem
+                  key={lang.code}
+                  onClick={() => changeLanguage(lang.code)}
+                  className={`cursor-pointer justify-between text-xs py-1.5 ${
+                    currentLang === lang.code ? "bg-primary/10 text-primary font-bold" : "text-foreground"
+                  }`}
+                >
+                  {lang.label}
+                  {currentLang === lang.code && <span className="h-1.5 w-1.5 rounded-full bg-primary" />}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           {session && (
             <div className="flex items-center gap-2">
@@ -289,15 +307,6 @@ export const Header = () => {
                   <Link to="/super-admin">Super Admin Panel</Link>
                 </Button>
               )}
-              {role === "commissioner" && (
-                <Button asChild size="sm" className="hover-lift">
-                  <Link to="/admin/dashboard">Admin Dashboard</Link>
-                </Button>
-              )}
-<<<<<<< HEAD
-
-=======
->>>>>>> 5928c52e52d79c646792c5e04ab48f313db4fb79
             </div>
           )}
         </div>
@@ -305,25 +314,28 @@ export const Header = () => {
         <div className="flex items-center gap-2 lg:hidden">
 
           {/* Mobile Language Selector */}
-          <div className="relative flex items-center gap-1.5 rounded-full border bg-background/50 px-2 py-0.5 text-xs transition-colors hover:bg-background/80">
-            <Globe className="h-3 w-3 opacity-60" />
-            <select
-              value={currentLang}
-              onChange={(e) => changeLanguage(e.target.value)}
-              className="bg-transparent font-medium focus:outline-none cursor-pointer text-foreground max-w-[65px] text-[10px]"
-            >
-              <option value="en" className="bg-background text-foreground">EN</option>
-              <option value="ha" className="bg-background text-foreground">HA</option>
-              <option value="ig" className="bg-background text-foreground">IG</option>
-              <option value="yo" className="bg-background text-foreground">YO</option>
-              <option value="ff" className="bg-background text-foreground">FF</option>
-              <option value="kr" className="bg-background text-foreground">KR</option>
-              <option value="tr" className="bg-background text-foreground">TR</option>
-              <option value="ar" className="bg-background text-foreground">AR</option>
-              <option value="zh-CN" className="bg-background text-foreground">ZH</option>
-              <option value="es" className="bg-background text-foreground">ES</option>
-            </select>
-          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-7 w-7 rounded-full border border-primary/20 bg-primary/5 text-primary hover:bg-primary/10 hover:text-primary focus-visible:ring-0">
+                <Globe className="h-3.5 w-3.5" />
+                <span className="sr-only">Select Language</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-36 z-50">
+              {LANGUAGES.map((lang) => (
+                <DropdownMenuItem
+                  key={lang.code}
+                  onClick={() => changeLanguage(lang.code)}
+                  className={`cursor-pointer justify-between text-xs py-1.5 ${
+                    currentLang === lang.code ? "bg-primary/10 text-primary font-bold" : "text-foreground"
+                  }`}
+                >
+                  {lang.label}
+                  {currentLang === lang.code && <span className="h-1.5 w-1.5 rounded-full bg-primary" />}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           <button
             className="inline-flex items-center justify-center rounded-md p-2 transition-transform active:scale-90"
@@ -383,17 +395,11 @@ export const Header = () => {
               </NavLink>
             );
           })}
-          {session && (
+          {session && role === "superuser" && (
             <div className="mt-3 flex flex-col gap-2">
-              {role === "commissioner" && (
-                <Button asChild className="flex-1">
-                  <Link to="/admin/dashboard" onClick={() => setOpen(false)}>Admin Dashboard</Link>
-                </Button>
-              )}
-<<<<<<< HEAD
-
-=======
->>>>>>> 5928c52e52d79c646792c5e04ab48f313db4fb79
+              <Button asChild className="flex-1">
+                <Link to="/super-admin" onClick={() => setOpen(false)}>Super Admin Panel</Link>
+              </Button>
             </div>
           )}
         </div>

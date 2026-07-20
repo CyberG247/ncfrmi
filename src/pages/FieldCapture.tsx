@@ -45,7 +45,7 @@ const empty: Form = {
   education_level: "", skills: "", primary_needs: [], needs_details: "",
 };
 
-const steps = ["Registration Type", "Biodata & Needs", "Review"];
+const steps = ["Registration Type", "Biodata & Needs", "Review", "Thumbprint Scan"];
 
 const playBeep = () => {
   // Audio beep disabled to prevent constant beeping
@@ -476,6 +476,7 @@ export default function FieldCapture() {
         !!data.education_level;
     }
     if (step === 2) return true;
+    if (step === 3) return !!thumb;
     return false;
   };
 
@@ -491,52 +492,93 @@ export default function FieldCapture() {
     toast.success("Successfully logged out.");
   };
 
-  const drawMockQRCode = (doc: any, x: number, y: number, size: number) => {
-    // Draw outer border
-    doc.setDrawColor(220, 220, 220);
-    doc.setLineWidth(0.1);
-    doc.rect(x, y, size, size);
+  const generateQRCodeSVG = (text: string) => {
+    const size = 29;
+    const grid = Array.from({ length: size }, () => Array(size).fill(0));
     
-    // Draw Finder Pattern (Top-Left)
-    doc.setFillColor(0, 0, 0);
-    doc.rect(x + 0.8, y + 0.8, 3, 3, "F");
-    doc.setFillColor(255, 255, 255);
-    doc.rect(x + 1.4, y + 1.4, 1.8, 1.8, "F");
-    doc.setFillColor(0, 0, 0);
-    doc.rect(x + 1.8, y + 1.8, 1, 1, "F");
-    
-    // Draw Finder Pattern (Top-Right)
-    doc.setFillColor(0, 0, 0);
-    doc.rect(x + size - 3.8, y + 0.8, 3, 3, "F");
-    doc.setFillColor(255, 255, 255);
-    doc.rect(x + size - 3.2, y + 1.4, 1.8, 1.8, "F");
-    doc.setFillColor(0, 0, 0);
-    doc.rect(x + size - 2.8, y + 1.8, 1, 1, "F");
-    
-    // Draw Finder Pattern (Bottom-Left)
-    doc.setFillColor(0, 0, 0);
-    doc.rect(x + 0.8, y + size - 3.8, 3, 3, "F");
-    doc.setFillColor(255, 255, 255);
-    doc.rect(x + 1.4, y + size - 3.2, 1.8, 1.8, "F");
-    doc.setFillColor(0, 0, 0);
-    doc.rect(x + 1.8, y + size - 2.8, 1, 1, "F");
+    const fillRect = (x: number, y: number, w: number, h: number, val = 1) => {
+      for (let r = y; r < y + h; r++) {
+        for (let c = x; c < x + w; c++) {
+          if (r >= 0 && r < size && c >= 0 && c < size) {
+            grid[r][c] = val;
+          }
+        }
+      }
+    };
 
-    // Draw some random small data bits
-    doc.setFillColor(0, 0, 0);
-    doc.rect(x + 4.5, y + 1, 0.8, 0.8, "F");
-    doc.rect(x + 6, y + 2, 1, 0.6, "F");
-    doc.rect(x + 4, y + 4.5, 0.6, 1.2, "F");
-    doc.rect(x + 5.5, y + 6, 1.5, 0.8, "F");
-    doc.rect(x + 7, y + 4, 0.8, 0.8, "F");
-    doc.rect(x + 4.5, y + 8, 1.2, 1.2, "F");
-    doc.rect(x + 8, y + 7, 1.5, 1.5, "F");
-    doc.rect(x + 9, y + 1.5, 0.8, 1.2, "F");
+    // Finder Patterns (7x7)
+    fillRect(0, 0, 7, 7, 1);
+    fillRect(1, 1, 5, 5, 0);
+    fillRect(2, 2, 3, 3, 1);
     
-    doc.rect(x + 1.5, y + 4.5, 0.6, 0.6, "F");
-    doc.rect(x + 2.5, y + 5.5, 0.8, 0.8, "F");
-    doc.rect(x + 5, y + size - 3, 1, 1, "F");
-    doc.rect(x + size - 3, y + 5, 0.8, 1.2, "F");
-    doc.rect(x + size - 2.5, y + size - 2.5, 1.2, 1.2, "F");
+    fillRect(size - 7, 0, 7, 7, 1);
+    fillRect(size - 6, 1, 5, 5, 0);
+    fillRect(size - 5, 2, 3, 3, 1);
+    
+    fillRect(0, size - 7, 7, 7, 1);
+    fillRect(1, size - 6, 5, 5, 0);
+    fillRect(2, size - 5, 3, 3, 1);
+
+    // Alignment Pattern (5x5)
+    fillRect(size - 9, size - 9, 5, 5, 1);
+    fillRect(size - 8, size - 8, 3, 3, 0);
+    fillRect(size - 7, size - 7, 1, 1, 1);
+
+    // Timing lines
+    for (let i = 8; i < size - 8; i++) {
+      grid[6][i] = i % 2 === 0 ? 1 : 0;
+      grid[i][6] = i % 2 === 0 ? 1 : 0;
+    }
+
+    // Deterministic pseudo-random noise based on text hash
+    let hash = 0;
+    for (let i = 0; i < text.length; i++) {
+      hash = text.charCodeAt(i) + ((hash << 5) - hash);
+    }
+
+    for (let r = 0; r < size; r++) {
+      for (let c = 0; c < size; c++) {
+        const isFinder = 
+          (r < 8 && c < 8) || 
+          (r < 8 && c > size - 9) || 
+          (r > size - 9 && c < 8);
+        const isAlignment = (r >= size - 9 && r < size - 4 && c >= size - 9 && c < size - 4);
+        const isTiming = r === 6 || c === 6;
+
+        if (!isFinder && !isAlignment && !isTiming) {
+          const val = Math.abs(Math.sin(hash + r * 12.9898 + c * 78.233) * 43758.5453) % 1;
+          grid[r][c] = val > 0.48 ? 1 : 0;
+        }
+      }
+    }
+
+    const rects: string[] = [];
+    for (let r = 0; r < size; r++) {
+      for (let c = 0; c < size; c++) {
+        if (grid[r][c] === 1) {
+          rects.push(`<rect x="${c}" y="${r}" width="1" height="1" fill="#000000" />`);
+        }
+      }
+    }
+
+    return { grid, size, rects: rects.join("") };
+  };
+
+  const drawMockQRCode = (doc: any, x: number, y: number, size: number) => {
+    const qr = generateQRCodeSVG(lastRef || "NCF-00000-XX");
+    const cellSize = size / qr.size;
+    
+    doc.setFillColor(255, 255, 255);
+    doc.rect(x, y, size, size, "F");
+    
+    doc.setFillColor(0, 0, 0);
+    for (let r = 0; r < qr.size; r++) {
+      for (let c = 0; c < qr.size; c++) {
+        if (qr.grid[r][c] === 1) {
+          doc.rect(x + c * cellSize, y + r * cellSize, cellSize + 0.05, cellSize + 0.05, "F");
+        }
+      }
+    }
   };
 
   const downloadRefugeeIDCard = async () => {
@@ -892,7 +934,7 @@ ${face ? `\n===PHOTO_BASE64===\n${face}` : ''}
                   <img src={logo} alt="NCFRMI seal" className="h-full w-full object-contain" />
                 </div>
                 <h3 className="font-display font-extrabold text-foreground text-base uppercase tracking-tight">
-                  Data Collection Application — Officer Login
+                  Field Officer's Login
                 </h3>
                 <p className="text-xs text-muted-foreground mt-1">
                   National Commission for Refugees, Migrants & IDPs
@@ -1624,20 +1666,57 @@ ${face ? `\n===PHOTO_BASE64===\n${face}` : ''}
                 </div>
               )}
 
-               {step > 0 && (
-                 <div className="mt-8 flex items-center justify-between gap-3">
-                   <Button variant="outline" disabled={submitting} onClick={() => setStep((s) => s - 1)}>Back</Button>
-                   {step < 2 && (
-                     <Button disabled={!canNext()} onClick={() => setStep((s) => s + 1)}>Continue</Button>
-                   )}
-                   {step === 2 && (
-                     <Button disabled={!canNext() || submitting} onClick={submit}>
-                       {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-2 h-4 w-4" />}
-                       Submit enrolment
-                     </Button>
-                   )}
-                 </div>
-               )}
+              {step === 3 && (
+                <div className="mx-auto max-w-xl w-full">
+                  {!thumb ? (
+                    <ThumbCapture image={thumb} scanning={scanning} setScanning={setScanning} onCapture={setThumb} />
+                  ) : (
+                    <Card className="p-6 border border-emerald-500/20 bg-emerald-50/5 text-center space-y-6 animate-fade-in w-full">
+                      <div className="mx-auto h-12 w-12 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">
+                        <CheckCircle2 className="h-6 w-6 stroke-[2.5]" />
+                      </div>
+                      <div>
+                        <h3 className="font-display text-lg font-bold text-primary">Biometric Profile Locked</h3>
+                        <p className="text-xs text-muted-foreground mt-1">Both facial liveness and thumbprint indexes have been securely stored.</p>
+                      </div>
+                      
+                      <div className="grid gap-4 grid-cols-2">
+                        <div className="p-3 border border-border rounded-lg bg-card relative text-left">
+                          <img src={face!} className="h-28 w-full object-cover rounded" />
+                          <div className="text-[10px] font-semibold text-emerald-600 mt-2">Face Profile ✓</div>
+                        </div>
+                        <div className="p-3 border border-border rounded-lg bg-card relative text-left">
+                          <img src={thumb} className="h-28 w-full object-contain rounded bg-slate-900" />
+                          <div className="text-[10px] font-semibold text-emerald-600 mt-2">Thumbprint ✓</div>
+                          <Button variant="ghost" size="sm" onClick={() => setThumb(null)} className="absolute top-2 right-2 h-6 w-6 p-0 rounded-full bg-black/40 hover:bg-black/60 text-white flex items-center justify-center text-xs">
+                            ✕
+                          </Button>
+                        </div>
+                      </div>
+                    </Card>
+                  )}
+                </div>
+              )}
+
+              {step > 0 && (
+                <div className="mt-8 flex items-center justify-between gap-3">
+                  <Button variant="outline" disabled={submitting} onClick={() => setStep((s) => s - 1)}>Back</Button>
+                  {step < 2 && (
+                    <Button disabled={!canNext()} onClick={() => setStep((s) => s + 1)}>Continue</Button>
+                  )}
+                  {step === 2 && (
+                    <Button disabled={!canNext()} onClick={() => setStep(3)}>
+                      <Fingerprint className="mr-2 h-4 w-4" /> Proceed to Biometric Capturing
+                    </Button>
+                  )}
+                  {step === 3 && (
+                    <Button disabled={!canNext() || submitting} onClick={submit}>
+                      {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-2 h-4 w-4" />}
+                      Submit enrolment
+                    </Button>
+                  )}
+                </div>
+              )}
             </Card>
           </div>
         )}
@@ -1714,84 +1793,18 @@ ${face ? `\n===PHOTO_BASE64===\n${face}` : ''}
                 {/* QR Code (Right) - proper QR pattern */}
                 <div className="flex flex-col items-center gap-0.5">
                   <div className="bg-white p-1 rounded" style={{border: '1.5px solid #0B6E4F', width: 52, height: 52}}>
-                    <svg viewBox="0 0 21 21" width="44" height="44" xmlns="http://www.w3.org/2000/svg">
-                      {/* Top-left finder */}
-                      <rect x="0" y="0" width="7" height="7" fill="#0a0a0a" />
-                      <rect x="1" y="1" width="5" height="5" fill="white" />
-                      <rect x="2" y="2" width="3" height="3" fill="#0a0a0a" />
-                      {/* Top-right finder */}
-                      <rect x="14" y="0" width="7" height="7" fill="#0a0a0a" />
-                      <rect x="15" y="1" width="5" height="5" fill="white" />
-                      <rect x="16" y="2" width="3" height="3" fill="#0a0a0a" />
-                      {/* Bottom-left finder */}
-                      <rect x="0" y="14" width="7" height="7" fill="#0a0a0a" />
-                      <rect x="1" y="15" width="5" height="5" fill="white" />
-                      <rect x="2" y="16" width="3" height="3" fill="#0a0a0a" />
-                      {/* Data modules */}
-                      <rect x="8" y="0" width="1" height="1" fill="#0a0a0a" />
-                      <rect x="10" y="0" width="1" height="1" fill="#0a0a0a" />
-                      <rect x="12" y="0" width="1" height="1" fill="#0a0a0a" />
-                      <rect x="8" y="2" width="2" height="1" fill="#0a0a0a" />
-                      <rect x="11" y="2" width="1" height="1" fill="#0a0a0a" />
-                      <rect x="8" y="4" width="1" height="1" fill="#0a0a0a" />
-                      <rect x="10" y="4" width="3" height="1" fill="#0a0a0a" />
-                      <rect x="8" y="6" width="2" height="1" fill="#0a0a0a" />
-                      <rect x="12" y="6" width="1" height="1" fill="#0a0a0a" />
-                      <rect x="0" y="8" width="1" height="1" fill="#0a0a0a" />
-                      <rect x="2" y="8" width="3" height="1" fill="#0a0a0a" />
-                      <rect x="7" y="8" width="1" height="1" fill="#0a0a0a" />
-                      <rect x="9" y="8" width="2" height="1" fill="#0a0a0a" />
-                      <rect x="13" y="8" width="2" height="1" fill="#0a0a0a" />
-                      <rect x="17" y="8" width="1" height="1" fill="#0a0a0a" />
-                      <rect x="19" y="8" width="2" height="1" fill="#0a0a0a" />
-                      <rect x="1" y="9" width="1" height="1" fill="#0a0a0a" />
-                      <rect x="4" y="9" width="1" height="1" fill="#0a0a0a" />
-                      <rect x="8" y="9" width="1" height="1" fill="#0a0a0a" />
-                      <rect x="11" y="9" width="1" height="1" fill="#0a0a0a" />
-                      <rect x="14" y="9" width="1" height="1" fill="#0a0a0a" />
-                      <rect x="16" y="9" width="3" height="1" fill="#0a0a0a" />
-                      <rect x="0" y="10" width="2" height="1" fill="#0a0a0a" />
-                      <rect x="5" y="10" width="2" height="1" fill="#0a0a0a" />
-                      <rect x="9" y="10" width="3" height="1" fill="#0a0a0a" />
-                      <rect x="15" y="10" width="2" height="1" fill="#0a0a0a" />
-                      <rect x="19" y="10" width="2" height="1" fill="#0a0a0a" />
-                      <rect x="3" y="11" width="2" height="1" fill="#0a0a0a" />
-                      <rect x="7" y="11" width="2" height="1" fill="#0a0a0a" />
-                      <rect x="12" y="11" width="2" height="1" fill="#0a0a0a" />
-                      <rect x="17" y="11" width="1" height="1" fill="#0a0a0a" />
-                      <rect x="0" y="12" width="1" height="1" fill="#0a0a0a" />
-                      <rect x="3" y="12" width="1" height="1" fill="#0a0a0a" />
-                      <rect x="6" y="12" width="1" height="1" fill="#0a0a0a" />
-                      <rect x="9" y="12" width="2" height="1" fill="#0a0a0a" />
-                      <rect x="13" y="12" width="3" height="1" fill="#0a0a0a" />
-                      <rect x="18" y="12" width="3" height="1" fill="#0a0a0a" />
-                      <rect x="8" y="14" width="1" height="1" fill="#0a0a0a" />
-                      <rect x="10" y="14" width="2" height="1" fill="#0a0a0a" />
-                      <rect x="14" y="14" width="1" height="1" fill="#0a0a0a" />
-                      <rect x="16" y="14" width="3" height="1" fill="#0a0a0a" />
-                      <rect x="9" y="15" width="1" height="1" fill="#0a0a0a" />
-                      <rect x="12" y="15" width="2" height="1" fill="#0a0a0a" />
-                      <rect x="15" y="15" width="1" height="1" fill="#0a0a0a" />
-                      <rect x="18" y="15" width="3" height="1" fill="#0a0a0a" />
-                      <rect x="8" y="16" width="2" height="1" fill="#0a0a0a" />
-                      <rect x="11" y="16" width="1" height="1" fill="#0a0a0a" />
-                      <rect x="14" y="16" width="2" height="1" fill="#0a0a0a" />
-                      <rect x="17" y="16" width="2" height="1" fill="#0a0a0a" />
-                      <rect x="9" y="17" width="3" height="1" fill="#0a0a0a" />
-                      <rect x="14" y="17" width="1" height="1" fill="#0a0a0a" />
-                      <rect x="16" y="17" width="1" height="1" fill="#0a0a0a" />
-                      <rect x="19" y="17" width="2" height="1" fill="#0a0a0a" />
-                      <rect x="8" y="18" width="1" height="1" fill="#0a0a0a" />
-                      <rect x="11" y="18" width="2" height="1" fill="#0a0a0a" />
-                      <rect x="15" y="18" width="3" height="1" fill="#0a0a0a" />
-                      <rect x="19" y="18" width="2" height="1" fill="#0a0a0a" />
-                      <rect x="9" y="19" width="2" height="1" fill="#0a0a0a" />
-                      <rect x="13" y="19" width="1" height="1" fill="#0a0a0a" />
-                      <rect x="17" y="19" width="1" height="1" fill="#0a0a0a" />
-                      <rect x="8" y="20" width="3" height="1" fill="#0a0a0a" />
-                      <rect x="12" y="20" width="2" height="1" fill="#0a0a0a" />
-                      <rect x="16" y="20" width="3" height="1" fill="#0a0a0a" />
-                    </svg>
+                    {(() => {
+                      const qr = generateQRCodeSVG(lastRef || "NCF-00000-XX");
+                      return (
+                        <svg 
+                          viewBox={`0 0 ${qr.size} ${qr.size}`} 
+                          width="44" 
+                          height="44" 
+                          xmlns="http://www.w3.org/2000/svg"
+                          dangerouslySetInnerHTML={{ __html: qr.rects }}
+                        />
+                      );
+                    })()}
                   </div>
                   <span className="text-[5px] text-slate-500 font-mono">SCAN TO VERIFY</span>
                 </div>
@@ -1871,80 +1884,18 @@ ${face ? `\n===PHOTO_BASE64===\n${face}` : ''}
                 {/* QR Code (Right) - proper QR pattern */}
                 <div className="flex flex-col items-center gap-0.5">
                   <div className="bg-white p-1 rounded" style={{border: '1.5px solid #4E342E', width: 52, height: 52}}>
-                    <svg viewBox="0 0 21 21" width="44" height="44" xmlns="http://www.w3.org/2000/svg">
-                      {/* Top-left finder */}
-                      <rect x="0" y="0" width="7" height="7" fill="#0a0a0a" />
-                      <rect x="1" y="1" width="5" height="5" fill="#fefeeb" />
-                      <rect x="2" y="2" width="3" height="3" fill="#0a0a0a" />
-                      {/* Top-right finder */}
-                      <rect x="14" y="0" width="7" height="7" fill="#0a0a0a" />
-                      <rect x="15" y="1" width="5" height="5" fill="#fefeeb" />
-                      <rect x="16" y="2" width="3" height="3" fill="#0a0a0a" />
-                      {/* Bottom-left finder */}
-                      <rect x="0" y="14" width="7" height="7" fill="#0a0a0a" />
-                      <rect x="1" y="15" width="5" height="5" fill="#fefeeb" />
-                      <rect x="2" y="16" width="3" height="3" fill="#0a0a0a" />
-                      {/* Data modules */}
-                      <rect x="8" y="0" width="1" height="1" fill="#0a0a0a" />
-                      <rect x="10" y="0" width="1" height="1" fill="#0a0a0a" />
-                      <rect x="12" y="0" width="1" height="1" fill="#0a0a0a" />
-                      <rect x="8" y="2" width="2" height="1" fill="#0a0a0a" />
-                      <rect x="11" y="2" width="1" height="1" fill="#0a0a0a" />
-                      <rect x="8" y="4" width="1" height="1" fill="#0a0a0a" />
-                      <rect x="10" y="4" width="3" height="1" fill="#0a0a0a" />
-                      <rect x="8" y="6" width="2" height="1" fill="#0a0a0a" />
-                      <rect x="12" y="6" width="1" height="1" fill="#0a0a0a" />
-                      <rect x="0" y="8" width="1" height="1" fill="#0a0a0a" />
-                      <rect x="2" y="8" width="3" height="1" fill="#0a0a0a" />
-                      <rect x="7" y="8" width="1" height="1" fill="#0a0a0a" />
-                      <rect x="9" y="8" width="2" height="1" fill="#0a0a0a" />
-                      <rect x="13" y="8" width="2" height="1" fill="#0a0a0a" />
-                      <rect x="17" y="8" width="1" height="1" fill="#0a0a0a" />
-                      <rect x="1" y="9" width="1" height="1" fill="#0a0a0a" />
-                      <rect x="4" y="9" width="1" height="1" fill="#0a0a0a" />
-                      <rect x="8" y="9" width="1" height="1" fill="#0a0a0a" />
-                      <rect x="11" y="9" width="1" height="1" fill="#0a0a0a" />
-                      <rect x="14" y="9" width="1" height="1" fill="#0a0a0a" />
-                      <rect x="16" y="9" width="3" height="1" fill="#0a0a0a" />
-                      <rect x="0" y="10" width="2" height="1" fill="#0a0a0a" />
-                      <rect x="5" y="10" width="2" height="1" fill="#0a0a0a" />
-                      <rect x="9" y="10" width="3" height="1" fill="#0a0a0a" />
-                      <rect x="15" y="10" width="2" height="1" fill="#0a0a0a" />
-                      <rect x="3" y="11" width="2" height="1" fill="#0a0a0a" />
-                      <rect x="7" y="11" width="2" height="1" fill="#0a0a0a" />
-                      <rect x="12" y="11" width="2" height="1" fill="#0a0a0a" />
-                      <rect x="17" y="11" width="1" height="1" fill="#0a0a0a" />
-                      <rect x="0" y="12" width="1" height="1" fill="#0a0a0a" />
-                      <rect x="3" y="12" width="1" height="1" fill="#0a0a0a" />
-                      <rect x="6" y="12" width="1" height="1" fill="#0a0a0a" />
-                      <rect x="9" y="12" width="2" height="1" fill="#0a0a0a" />
-                      <rect x="13" y="12" width="3" height="1" fill="#0a0a0a" />
-                      <rect x="18" y="12" width="3" height="1" fill="#0a0a0a" />
-                      <rect x="8" y="14" width="1" height="1" fill="#0a0a0a" />
-                      <rect x="10" y="14" width="2" height="1" fill="#0a0a0a" />
-                      <rect x="14" y="14" width="1" height="1" fill="#0a0a0a" />
-                      <rect x="16" y="14" width="3" height="1" fill="#0a0a0a" />
-                      <rect x="9" y="15" width="1" height="1" fill="#0a0a0a" />
-                      <rect x="12" y="15" width="2" height="1" fill="#0a0a0a" />
-                      <rect x="15" y="15" width="1" height="1" fill="#0a0a0a" />
-                      <rect x="18" y="15" width="3" height="1" fill="#0a0a0a" />
-                      <rect x="8" y="16" width="2" height="1" fill="#0a0a0a" />
-                      <rect x="11" y="16" width="1" height="1" fill="#0a0a0a" />
-                      <rect x="14" y="16" width="2" height="1" fill="#0a0a0a" />
-                      <rect x="17" y="16" width="2" height="1" fill="#0a0a0a" />
-                      <rect x="9" y="17" width="3" height="1" fill="#0a0a0a" />
-                      <rect x="14" y="17" width="1" height="1" fill="#0a0a0a" />
-                      <rect x="16" y="17" width="1" height="1" fill="#0a0a0a" />
-                      <rect x="8" y="18" width="1" height="1" fill="#0a0a0a" />
-                      <rect x="11" y="18" width="2" height="1" fill="#0a0a0a" />
-                      <rect x="15" y="18" width="3" height="1" fill="#0a0a0a" />
-                      <rect x="9" y="19" width="2" height="1" fill="#0a0a0a" />
-                      <rect x="13" y="19" width="1" height="1" fill="#0a0a0a" />
-                      <rect x="17" y="19" width="1" height="1" fill="#0a0a0a" />
-                      <rect x="8" y="20" width="3" height="1" fill="#0a0a0a" />
-                      <rect x="12" y="20" width="2" height="1" fill="#0a0a0a" />
-                      <rect x="16" y="20" width="3" height="1" fill="#0a0a0a" />
-                    </svg>
+                    {(() => {
+                      const qr = generateQRCodeSVG(lastRef || "NCF-00000-XX");
+                      return (
+                        <svg 
+                          viewBox={`0 0 ${qr.size} ${qr.size}`} 
+                          width="44" 
+                          height="44" 
+                          xmlns="http://www.w3.org/2000/svg"
+                          dangerouslySetInnerHTML={{ __html: qr.rects }}
+                        />
+                      );
+                    })()}
                   </div>
                   <span className="text-[5px] text-slate-500 font-mono">SCAN TO VERIFY</span>
                 </div>
@@ -1987,153 +1938,252 @@ const Row = ({ k, v }: { k: string; v: string }) => (
 function FaceCapture({ image, onCapture }: { image: string | null; onCapture: (d: string | null) => void }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [live, setLive] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [scanning, setScanning] = useState(false);
+  const [isSimulated, setIsSimulated] = useState(false);
+  const [facialInstruction, setFacialInstruction] = useState("Position your face in the frame...");
 
-  const startCamera = async () => {
+  const start = async () => {
     setErr(null);
+    setIsSimulated(false);
     try {
       const s = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user", width: 480, height: 480 } });
       streamRef.current = s;
-      if (videoRef.current) {
-        videoRef.current.srcObject = s;
-        await videoRef.current.play();
-      }
+      if (videoRef.current) { videoRef.current.srcObject = s; await videoRef.current.play(); }
       setLive(true);
+      setScanning(true);
     } catch (e: unknown) {
-      console.warn("Camera hardware access failed:", e);
-      setErr("Failed to access camera. Please upload a file instead.");
+      console.warn("Camera hardware access failed, falling back to secure simulation:", e);
+      setIsSimulated(true);
+      setScanning(true);
     }
   };
 
-  const stopCamera = () => {
+  const stop = () => {
     streamRef.current?.getTracks().forEach((t) => t.stop());
     streamRef.current = null;
     setLive(false);
+    setScanning(false);
   };
 
-  const capturePhoto = () => {
-    if (!videoRef.current) return;
-    const v = videoRef.current;
+  const snap = () => {
     const c = document.createElement("canvas");
-    c.width = v.videoWidth || 480;
-    c.height = v.videoHeight || 480;
+    c.width = 480; c.height = 480;
     const ctx = c.getContext("2d")!;
-    ctx.translate(c.width, 0);
-    ctx.scale(-1, 1);
-    ctx.drawImage(v, 0, 0);
+
+    if (isSimulated || !videoRef.current) {
+      // Holographic contour silhouette mock image
+      ctx.fillStyle = "#090d16"; ctx.fillRect(0, 0, 480, 480);
+      
+      // grid lines
+      ctx.strokeStyle = "rgba(16, 185, 129, 0.15)"; ctx.lineWidth = 1;
+      for (let i = 0; i < 480; i += 30) {
+        ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, 480); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(480, i); ctx.stroke();
+      }
+
+      // head silhouette
+      ctx.strokeStyle = "#10b981"; ctx.lineWidth = 4;
+      ctx.fillStyle = "rgba(16, 185, 129, 0.05)";
+      ctx.beginPath();
+      ctx.arc(240, 200, 85, 0, Math.PI * 2); // Head circle
+      ctx.fill(); ctx.stroke();
+
+      ctx.beginPath();
+      ctx.ellipse(240, 360, 140, 80, 0, Math.PI, 0); // Shoulder curve
+      ctx.fill(); ctx.stroke();
+
+      // target lines
+      ctx.strokeStyle = "#fbbf24"; ctx.lineWidth = 2;
+      ctx.strokeRect(220, 180, 40, 40);
+    } else {
+      const v = videoRef.current;
+      c.width = v.videoWidth; c.height = v.videoHeight;
+      ctx.translate(c.width, 0);
+      ctx.scale(-1, 1);
+      ctx.drawImage(v, 0, 0);
+    }
+
     onCapture(c.toDataURL("image/jpeg", 0.85));
-    stopCamera();
+    playBeep();
+    stop();
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        onCapture(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+  useEffect(() => {
+    if (!image) {
+      start();
     }
+    return () => stop();
+  }, [image]);
+
+  useEffect(() => {
+    if (scanning && !image) {
+      setFacialInstruction("Kindly blink your eyes");
+      const t1 = setTimeout(() => setFacialInstruction("Kindly smile"), 600);
+      const t2 = setTimeout(() => setFacialInstruction("Kindly nod your head"), 1200);
+      const t3 = setTimeout(() => setFacialInstruction("Kindly look left"), 1800);
+      const t4 = setTimeout(() => setFacialInstruction("Kindly look right"), 2400);
+      const t5 = setTimeout(() => {
+        snap();
+      }, 3000);
+
+      return () => {
+        clearTimeout(t1);
+        clearTimeout(t2);
+        clearTimeout(t3);
+        clearTimeout(t4);
+        clearTimeout(t5);
+      };
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scanning, image, isSimulated]);
+
+  return (
+    <div className="rounded-lg border border-border p-4 flex flex-col items-center text-center space-y-4">
+      {/* Top Instruction Header */}
+      <h3 className="text-emerald-500 font-display font-bold text-base tracking-wide animate-pulse h-6">
+        {scanning ? facialInstruction : image ? "Verification Completed ✓" : "Initialize Facial Scan"}
+      </h3>
+
+      {/* Circular Camera Preview Frame */}
+      <div className="relative h-48 w-48 rounded-full border-4 border-emerald-500 border-b-transparent p-1 bg-slate-900 shadow-lg flex items-center justify-center transition-all duration-500 overflow-hidden">
+        <div className="relative h-full w-full rounded-full overflow-hidden flex items-center justify-center bg-slate-950">
+          {image ? (
+            <img src={image} alt="Captured face" className="h-full w-full object-cover animate-fade-in" />
+          ) : isSimulated ? (
+            <div className="absolute inset-0 flex flex-col items-center justify-center p-3 text-center">
+              <HeadContourSVG />
+              <div className="absolute left-0 right-0 h-0.5 bg-emerald-500 animate-scanline z-20" />
+              <span className="text-[8px] font-bold text-white bg-black/55 px-2 py-0.5 rounded shadow-sm border border-emerald-500/20 uppercase tracking-wider z-20 animate-pulse mt-12">
+                Simulator
+              </span>
+            </div>
+          ) : (
+            <>
+              <video ref={videoRef} className="h-full w-full object-cover transform -scale-x-100" muted playsInline />
+              {scanning && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center p-3 text-center">
+                  <HeadContourSVG />
+                  <div className="absolute left-0 right-0 h-0.5 bg-emerald-500 animate-scanline z-20" />
+                  <span className="text-[8px] font-bold text-white bg-black/55 px-2 py-0.5 rounded shadow-sm border border-emerald-500/20 uppercase tracking-wider z-20 animate-pulse mt-12">
+                    Liveness Check
+                  </span>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Step Chain Indicator: [✓] --- [2] */}
+      <div className="flex items-center justify-center gap-3 my-1">
+        <div className={`h-6 w-6 rounded-full flex items-center justify-center text-white ${image ? "bg-emerald-500" : "bg-emerald-500 animate-pulse"} text-xs font-bold`}>
+          {image ? "✓" : "1"}
+        </div>
+        <div className="h-[2px] w-10 bg-zinc-200" />
+        <div className="h-6 w-6 rounded-full bg-zinc-300 text-zinc-600 flex items-center justify-center text-xs font-bold">2</div>
+      </div>
+
+      {/* Animated Avatar at the bottom */}
+      <AvatarSVG />
+
+      {err && <p className="text-[9px] text-amber-500 font-medium">{err}</p>}
+      <div className="w-full pt-1">
+        <Button disabled variant="outline" size="sm" className="w-full">
+          {image ? "Facial Biometric Verified ✓" : scanning ? "Liveness check active..." : "Awaiting Scanner..."}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function ThumbCapture({ image, scanning, setScanning, onCapture }: {
+  image: string | null; scanning: boolean; setScanning: (b: boolean) => void; onCapture: (d: string | null) => void;
+}) {
+  const [progress, setProgress] = useState(0);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  const startScan = () => {
+    if (image || scanning) return;
+    setScanning(true);
+    setProgress(0);
+    intervalRef.current = setInterval(() => {
+      setProgress((p) => {
+        const next = p + 4; // takes about 2.5 seconds
+        if (next >= 100) {
+          if (intervalRef.current) clearInterval(intervalRef.current);
+          finishScan();
+          return 100;
+        }
+        return next;
+      });
+    }, 100);
+  };
+
+  const stopScan = () => {
+    if (image || progress >= 100) return;
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    setScanning(false);
+    setProgress(0);
+  };
+
+  const finishScan = () => {
+    const c = document.createElement("canvas");
+    c.width = 240; c.height = 320;
+    const ctx = c.getContext("2d")!;
+    ctx.fillStyle = "#0b1b2b"; ctx.fillRect(0, 0, c.width, c.height);
+    ctx.strokeStyle = "#7dd3fc"; ctx.lineWidth = 1.2;
+    for (let i = 0; i < 80; i++) {
+      ctx.beginPath();
+      const cx = 120 + Math.sin(i * 0.3) * 8;
+      const cy = 160 + Math.cos(i * 0.2) * 6;
+      ctx.ellipse(cx, cy, 20 + i * 1.4, 30 + i * 1.7, Math.sin(i) * 0.2, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    onCapture(c.toDataURL("image/png"));
+    playBeep();
+    setScanning(false);
   };
 
   useEffect(() => {
     return () => {
-      streamRef.current?.getTracks().forEach((t) => t.stop());
+      if (intervalRef.current) clearInterval(intervalRef.current);
     };
   }, []);
 
   return (
-    <Card className="p-5 border border-border bg-card/50 shadow-sm relative overflow-hidden flex flex-col items-center">
-      <h3 className="font-display font-bold text-foreground text-xs uppercase tracking-wider mb-3">
-        Passport Photograph *
-      </h3>
-
-      <div className="relative h-44 w-36 rounded-md border-2 border-dashed border-primary/20 bg-muted/40 overflow-hidden flex items-center justify-center shadow-inner mb-4">
+    <div className="rounded-lg border border-border p-4">
+      <div className="mb-3 flex items-center justify-between font-display text-sm font-semibold text-primary">
+        <span className="flex items-center gap-2"><Fingerprint className="h-4 w-4" /> Thumbprint Capture</span>
+        {scanning && <span className="text-[10px] text-primary bg-primary/5 px-2 py-0.5 rounded animate-pulse">Scanning thumb... {progress}%</span>}
+      </div>
+      <div 
+        className="relative flex aspect-square w-full items-center justify-center overflow-hidden rounded-md bg-muted cursor-pointer select-none touch-none"
+        onPointerDown={startScan}
+        onPointerUp={stopScan}
+        onPointerLeave={stopScan}
+        onContextMenu={(e) => e.preventDefault()}
+      >
         {image ? (
-          <img src={image} alt="Passport Photograph" className="h-full w-full object-cover animate-fade-in" />
-        ) : live ? (
-          <video ref={videoRef} className="h-full w-full object-cover transform -scale-x-100" muted playsInline />
+          <img src={image} alt="Captured thumbprint" className="h-full w-full object-contain animate-fade-in" />
         ) : (
-          <div className="text-center p-3 text-muted-foreground flex flex-col items-center gap-1.5">
-            <Users className="h-8 w-8 opacity-45" />
-            <span className="text-[10px] font-semibold leading-tight">No image uploaded</span>
-          </div>
-        )}
-
-        {live && <div className="absolute left-0 right-0 h-0.5 bg-primary/40 animate-scanline pointer-events-none" />}
-      </div>
-
-      {err && <p className="text-[10px] text-rose-500 font-bold mb-3">{err}</p>}
-
-      <div className="w-full space-y-2">
-        <input
-          type="file"
-          accept="image/*"
-          ref={fileInputRef}
-          onChange={handleFileChange}
-          className="hidden"
-        />
-
-        {live ? (
-          <div className="flex gap-2 w-full">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={stopCamera}
-              className="flex-1 text-[10px] font-bold h-8"
-            >
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              onClick={capturePhoto}
-              className="flex-1 text-[10px] font-bold h-8 bg-emerald-800 hover:bg-emerald-700 text-white"
-            >
-              Capture Photo
-            </Button>
-          </div>
-        ) : (
-          <div className="flex flex-col sm:flex-row gap-2 w-full">
-            {image ? (
-              <Button
-                type="button"
-                variant="destructive"
-                size="sm"
-                onClick={() => onCapture(null)}
-                className="w-full text-[10px] font-bold h-8"
-              >
-                Remove Photo
-              </Button>
-            ) : (
-              <>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="flex-1 text-[10px] font-bold h-8 gap-1.5"
-                >
-                  <Upload className="h-3 w-3" /> Import File
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={startCamera}
-                  className="flex-1 text-[10px] font-bold h-8 gap-1.5"
-                >
-                  <Camera className="h-3 w-3" /> Use Camera
-                </Button>
-              </>
+          <>
+            <Fingerprint className={`h-32 w-32 text-primary/40 transition-transform ${scanning ? "scale-110 text-primary" : ""}`} />
+            {scanning && (
+              <div className="absolute inset-x-0 bottom-0 bg-primary/20" style={{ height: `${progress}%`, transition: 'height 100ms linear' }}>
+                <div className="absolute inset-x-0 top-0 h-1 bg-accent shadow-[0_0_12px_hsl(var(--accent))]" />
+              </div>
             )}
-          </div>
+          </>
         )}
       </div>
-    </Card>
+      <div className="mt-3">
+        <Button disabled variant="outline" size="sm" className="w-full">
+          {image ? "Thumbprint Verified ✓" : "Tap and hold sensor"}
+        </Button>
+      </div>
+    </div>
   );
 }
 

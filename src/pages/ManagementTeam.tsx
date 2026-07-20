@@ -1,60 +1,68 @@
 import Layout from "@/components/site/Layout";
 import PageHero from "@/components/site/PageHero";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import commissioner from "@/assets/commissioner.jpg";
 import Reveal from "@/components/site/Reveal";
 
+const commissionerStaff = {
+  name: "Hon. Dr. Aliyu Tijani Ahmed",
+  designation: "Federal Commissioner / CEO",
+  image: commissioner,
+  isHfc: true
+};
+
 const managementTeam = [
   {
-    name: "Hon. Dr. Aliyu Tijani Ahmed",
-    designation: "Federal Commissioner / CEO",
-    image: commissioner,
-    bio: "Leads the Commission's reform and digital transformation agenda, bringing decades of public service experience to advance humanitarian relief and durable solutions across Nigeria.",
-    isHfc: true
+    name: "Catherine Udida MNI",
+    designation: "Director, Migrant Affairs Department",
+    fallback: "CU"
   },
   {
-    name: "Mr. Bello Alhassan",
-    designation: "Director, Refugee Affairs",
-    bio: "Coordinates Refugee Status Determination (RSD), asylum seeker registration, and international protection frameworks in collaboration with UNHCR.",
-    fallback: "BA"
-  },
-  {
-    name: "Mrs. Margaret Ngozi",
-    designation: "Director, Internally Displaced Persons (IDPs)",
-    bio: "Manages IDP camps coordination, emergency relief logistics, and the implementation of resettlement and reintegration programs.",
-    fallback: "MN"
-  },
-  {
-    name: "Mr. Charles Odemwingie",
-    designation: "Director, Migration Affairs",
-    bio: "Supervises the national migration policy, returnee repatriation coordination, and rehabilitation programs for survivors of trafficking.",
-    fallback: "CO"
-  },
-  {
-    name: "Alhaji Muhammad Musa",
+    name: "Bello M. Bello",
     designation: "Director, Human Resource Management",
-    bio: "Oversees personnel recruitment, training, staff welfare, administrative compliance, and organizational development.",
-    fallback: "MM"
+    fallback: "BB"
   },
   {
-    name: "Mrs. Zainab Gwandu",
-    designation: "Director, Finance & Accounts",
-    bio: "Manages financial planning, budget execution, audits, and international funding compliance for humanitarian projects.",
-    fallback: "ZG"
+    name: "Musa Muhammed Kangiwa",
+    designation: "Director, Special Duties Department",
+    fallback: "MK"
   },
   {
-    name: "Dr. Jude Nwosu",
-    designation: "Director, Planning, Research & Statistics",
-    bio: "Drives data-centric analytics, biometric registry architectures, field mapping surveys, and monitoring & evaluation (M&E).",
-    fallback: "JN"
+    name: "Saadatu Baba Shettima",
+    designation: "Director, Planning, Research & Documentation",
+    fallback: "SS"
   },
   {
-    name: "Barr. Halima Ibrahim",
-    designation: "Legal Adviser / Head of Legal Unit",
-    bio: "Provides legal counsel on domestic and international refugee laws, treaty compliance, and operational contracts.",
-    fallback: "HI"
+    name: "Fatima M.D",
+    designation: "Director, Internally Displaced Persons Department",
+    fallback: "FD"
+  },
+  {
+    name: "Titus Murdakai",
+    designation: "Director, Refugee Affairs Department",
+    fallback: "TM"
+  },
+  {
+    name: "Funmilayo Bara",
+    designation: "Director, Procurement Department",
+    fallback: "FB"
+  },
+  {
+    name: "Habibu Labaran",
+    designation: "Director, Legal Unit",
+    fallback: "HL"
+  },
+  {
+    name: "Vacant",
+    designation: "Director, Finance & Account Department",
+    fallback: "FA"
+  },
+  {
+    name: "Vacant",
+    designation: "Director, Strategic Communication Department",
+    fallback: "SC"
   }
 ];
 
@@ -64,48 +72,70 @@ export default function ManagementTeam() {
       <PageHero
         eyebrow="Leadership"
         title="Management Team"
-        description="Meet the executive leadership guiding NCFRMI's operations, research, policy enforcement, and humanitarian programs."
+        description="Executive leadership and heads of departments steering the Commission's humanitarian programs and operations."
       />
 
-      <section className="container-page py-16">
-        <Reveal>
-          <div className="text-xs font-semibold uppercase tracking-[0.2em] text-primary mb-2">Our Leaders</div>
-          <h2 className="font-display text-2xl md:text-3xl font-bold mb-10">Commission Leadership &amp; Board Directors</h2>
-        </Reveal>
-        
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {managementTeam.map((staff, idx) => (
-            <Reveal key={staff.name} delay={idx * 50} variant="scale">
-              <Card className={`h-full overflow-hidden border-border/70 transition-all duration-300 hover-lift hover-glow flex flex-col ${staff.isHfc ? 'ring-2 ring-primary/45 bg-primary/5 dark:bg-primary-deep/5 md:col-span-2 lg:col-span-2' : ''}`}>
-                <div className="p-6 flex flex-col justify-between flex-1">
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-4">
-                      <Avatar className={`border border-border shadow-md ${staff.isHfc ? 'h-20 w-20' : 'h-16 w-16'}`}>
-                        {staff.image ? (
-                          <AvatarImage src={staff.image} alt={staff.name} className="object-cover" />
-                        ) : null}
-                        <AvatarFallback className="bg-primary/10 text-primary font-bold text-lg">{staff.fallback}</AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <h3 className={`font-display font-extrabold ${staff.isHfc ? 'text-lg sm:text-xl text-primary' : 'text-sm sm:text-base text-foreground'}`}>
-                          {staff.name}
-                        </h3>
-                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mt-0.5">{staff.designation}</p>
-                        {staff.isHfc && (
-                          <Badge className="mt-1.5 bg-emerald-650 hover:bg-emerald-700 text-white font-bold text-[9px] uppercase tracking-wider px-2 py-0.5">
-                            HFC / CEO
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
-                    <p className="text-xs text-muted-foreground leading-relaxed pt-2">
-                      {staff.bio}
-                    </p>
-                  </div>
+      <section className="container-page py-16 space-y-16">
+        {/* Federal Commissioner Section at the Top */}
+        <div className="flex flex-col items-center">
+          <Reveal>
+            <div className="text-center space-y-4">
+              <div className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Executive Head</div>
+              <h2 className="font-display text-2xl md:text-3xl font-bold mb-8 text-red-600">The Honorable Federal Commissioner</h2>
+            </div>
+          </Reveal>
+
+          <div className="w-full max-w-md mt-8">
+            <Reveal variant="scale">
+              <Card className="overflow-hidden border border-primary/20 bg-primary/5 dark:bg-primary-deep/5 shadow-elegant p-8 flex flex-col items-center text-center space-y-4 hover:shadow-glow transition-all duration-300">
+                <Avatar className="h-32 w-32 border-4 border-primary shadow-lg">
+                  <AvatarImage src={commissionerStaff.image} alt={commissionerStaff.name} className="object-cover" />
+                  <AvatarFallback className="bg-primary/10 text-primary font-bold text-2xl">FC</AvatarFallback>
+                </Avatar>
+                
+                <div className="space-y-1.5">
+                  <h3 className="font-display font-extrabold text-xl text-primary">
+                    {commissionerStaff.name}
+                  </h3>
+                  <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{commissionerStaff.designation}</p>
+                  <Badge className="bg-emerald-650 hover:bg-emerald-700 text-white font-bold text-[9px] uppercase tracking-wider px-2 py-0.5 mt-2">
+                    HFC / CEO
+                  </Badge>
                 </div>
               </Card>
             </Reveal>
-          ))}
+          </div>
+        </div>
+
+        {/* Separator / Section Title */}
+        <div className="border-t border-border pt-12">
+          <Reveal>
+            <div className="text-center space-y-2 mb-10">
+              <div className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Management</div>
+              <h3 className="font-display text-xl md:text-2xl font-bold">Directors of Departments &amp; Units</h3>
+            </div>
+          </Reveal>
+
+          {/* Management / Directors Grid below the HFC */}
+          <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+            {managementTeam.map((staff, idx) => (
+              <Reveal key={staff.name + idx} delay={idx * 40} variant="scale">
+                <Card className="h-full overflow-hidden border border-border/70 p-6 flex flex-col items-center text-center space-y-4 hover-lift hover-glow transition-all duration-300">
+                  <Avatar className="h-20 w-20 border border-border shadow-md">
+                    <AvatarFallback className="bg-primary/10 text-primary font-bold text-lg">{staff.fallback}</AvatarFallback>
+                  </Avatar>
+                  <div className="space-y-1.5 flex-1 flex flex-col justify-center">
+                    <h4 className={`font-display font-bold text-sm ${staff.name === "Vacant" ? "text-muted-foreground italic" : "text-foreground"}`}>
+                      {staff.name}
+                    </h4>
+                    <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mt-0.5">
+                      {staff.designation}
+                    </p>
+                  </div>
+                </Card>
+              </Reveal>
+            ))}
+          </div>
         </div>
       </section>
     </Layout>

@@ -99,11 +99,7 @@ export default function Index() {
           </div>
         );
       })()}
-<<<<<<< HEAD
-      <section className="relative overflow-hidden h-[540px] sm:h-[600px] lg:h-[640px] flex items-end justify-center pb-8 sm:pb-10 lg:pb-12">
-=======
       <section className="relative overflow-hidden h-[540px] sm:h-[600px] lg:h-[640px] flex items-end justify-center pb-12 sm:pb-14 lg:pb-16">
->>>>>>> 5928c52e52d79c646792c5e04ab48f313db4fb79
         {heroSlides.map((slideObj, i) => (
           <img
             key={i}
@@ -132,17 +128,10 @@ export default function Index() {
         </div>
 
         <div className="relative z-20 w-full">
-<<<<<<< HEAD
           <div className="container-page py-4 text-center">
             <div className="max-w-4xl mx-auto flex flex-col items-center justify-end">
               <div key={slide} className="animate-fade-in flex flex-col items-center space-y-4">
                 <h1 className="font-display text-lg sm:text-2xl lg:text-3xl font-light tracking-wide text-white leading-snug max-w-3xl drop-shadow-md">
-=======
-          <div className="container-page pt-20 pb-4 text-center">
-            <div className="max-w-4xl mx-auto flex flex-col items-center justify-center">
-              <div key={slide} className="animate-fade-in flex flex-col items-center space-y-6">
-                <h1 className="font-display text-xl sm:text-3xl lg:text-4xl font-light tracking-wide text-white leading-snug max-w-3xl drop-shadow-md">
->>>>>>> 5928c52e52d79c646792c5e04ab48f313db4fb79
                   {heroSlides[slide].title}
                 </h1>
                 <div>
