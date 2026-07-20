@@ -210,7 +210,7 @@ export const Header = () => {
           <div className="leading-tight">
             <div className="font-display text-base font-bold text-primary">{portalTitle}</div>
             <div className="hidden text-[11px] text-muted-foreground sm:block">
-              National Commission for Refugees, Migrants & IDPs
+              National Commission for Refugees, Migrants & Internally Displaced Persons
             </div>
           </div>
         </Link>
@@ -291,11 +291,7 @@ export const Header = () => {
                   <Link to="/admin/dashboard">Admin Dashboard</Link>
                 </Button>
               )}
-              {role === "officer" && (
-                <Button asChild size="sm" className="hover-lift">
-                  <Link to="/registrants">Registrants Directory</Link>
-                </Button>
-              )}
+
             </div>
           )}
         </div>
@@ -385,11 +381,7 @@ export const Header = () => {
                   <Link to="/admin/dashboard" onClick={() => setOpen(false)}>Admin Dashboard</Link>
                 </Button>
               )}
-              {role === "officer" && (
-                <Button asChild className="flex-1">
-                  <Link to="/registrants" onClick={() => setOpen(false)}>Registrants Directory</Link>
-                </Button>
-              )}
+
             </div>
           )}
         </div>

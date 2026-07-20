@@ -26,7 +26,7 @@ const heroSlides = [
     image: heroRabat1,
     title: "Nigeria Seated at the United Nations: Advancing Regional Dialogues on Safe and Regular Migration",
     link: "/news#rabat-process-abuja",
-    position: "center 35%"
+    position: "center 72%"
   },
   {
     image: heroRabat2,
@@ -100,7 +100,7 @@ export default function Index() {
           </div>
         );
       })()}
-      <section className="relative overflow-hidden h-[540px] sm:h-[600px] lg:h-[640px] flex items-end justify-center pb-20 sm:pb-24 lg:pb-28">
+      <section className="relative overflow-hidden h-[540px] sm:h-[600px] lg:h-[640px] flex items-end justify-center pb-8 sm:pb-10 lg:pb-12">
         {heroSlides.map((slideObj, i) => (
           <img
             key={i}
@@ -129,14 +129,14 @@ export default function Index() {
         </div>
 
         <div className="relative z-20 w-full">
-          <div className="container-page py-20 text-center">
-            <div className="max-w-4xl mx-auto flex flex-col items-center justify-center">
-              <div key={slide} className="animate-fade-in flex flex-col items-center space-y-6">
-                <h1 className="font-display text-xl sm:text-3xl lg:text-4xl font-light tracking-wide text-white leading-snug max-w-3xl drop-shadow-md">
+          <div className="container-page py-4 text-center">
+            <div className="max-w-4xl mx-auto flex flex-col items-center justify-end">
+              <div key={slide} className="animate-fade-in flex flex-col items-center space-y-4">
+                <h1 className="font-display text-lg sm:text-2xl lg:text-3xl font-light tracking-wide text-white leading-snug max-w-3xl drop-shadow-md">
                   {heroSlides[slide].title}
                 </h1>
                 <div>
-                  <Button asChild variant="outline" className="border border-white bg-black/20 hover:bg-white text-white hover:text-slate-900 transition-all duration-300 px-10 py-6 text-base font-normal tracking-wide rounded-sm">
+                  <Button asChild variant="outline" className="border border-white bg-black/20 hover:bg-white text-white hover:text-slate-900 transition-all duration-300 px-8 py-4 text-sm font-normal tracking-wide rounded-sm">
                     <Link to={heroSlides[slide].link}>Read More</Link>
                   </Button>
                 </div>
@@ -268,7 +268,7 @@ export default function Index() {
         <div className="container-page">
           <Reveal className="mx-auto max-w-2xl text-center mb-12">
             <div className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Field Operations</div>
-            <h2 className="mt-3 font-display text-3xl sm:text-4xl">Field Officer Capture Station</h2>
+            <h2 className="mt-3 font-display text-3xl sm:text-4xl">Data Collection Application</h2>
             <p className="mt-4 text-muted-foreground">Digital gateway for secure biometric collection, verification, and database synchronisation in real time.</p>
           </Reveal>
           

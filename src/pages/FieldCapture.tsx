@@ -868,7 +868,7 @@ ${face ? `\n===PHOTO_BASE64===\n${face}` : ''}
     <Layout>
       <PageHero
         eyebrow="Field Operations"
-        title="Field Officer — Data Capture"
+        title="Data Collection Application"
         description="Secure on-site enrolment of Migrants, Returnees, Refugees and IDPs with biometric verification."
       />
       <section className="container-page py-10">
@@ -882,7 +882,7 @@ ${face ? `\n===PHOTO_BASE64===\n${face}` : ''}
                   <img src={logo} alt="NCFRMI seal" className="h-full w-full object-contain" />
                 </div>
                 <h3 className="font-display font-extrabold text-foreground text-base uppercase tracking-tight">
-                  Field Officer's Login
+                  Data Collection Application — Officer Login
                 </h3>
                 <p className="text-xs text-muted-foreground mt-1">
                   National Commission for Refugees, Migrants & IDPs
@@ -1686,12 +1686,12 @@ ${face ? `\n===PHOTO_BASE64===\n${face}` : ''}
 
           {/* Refugee ID Card Preview */}
           {data.type === "refugee" && (
-            <div className="my-4 border border-slate-200 rounded-2xl overflow-hidden bg-white shadow-xl mx-auto w-full max-w-[420px] flex flex-col justify-between min-h-[250px]">
+            <div className="my-4 rounded-2xl overflow-hidden bg-white shadow-xl mx-auto w-full max-w-[420px] flex flex-col justify-between min-h-[250px]" style={{border: '3px solid #0B6E4F', boxShadow: '0 0 0 6px #e6f4ee, 0 4px 24px rgba(11,110,79,0.18)'}}>
               {/* Header section (Centered logo + text) */}
-              <div className="flex flex-col items-center pt-3 px-3 text-center">
+              <div className="flex flex-col items-center pt-3 px-3 text-center" style={{borderBottom: '2px solid #0B6E4F'}}>
                 <img src={logo} alt="NCFRMI seal" className="h-9 w-9 object-contain" />
                 <div className="text-[7.5px] font-bold text-[#4E342E] uppercase mt-1 tracking-tight">
-                  NATIONAL COMMISSION FOR REFUGEES, MIGRANTS & IDPs
+                  NATIONAL COMMISSION FOR REFUGEES, MIGRANTS &amp; IDPs
                 </div>
                 <div className="text-[9.5px] font-extrabold text-[#0B6E4F] tracking-wide mt-0.5">
                   REFUGEE IDENTITY CARD
@@ -1702,7 +1702,7 @@ ${face ? `\n===PHOTO_BASE64===\n${face}` : ''}
               <div className="px-4 py-2.5 flex gap-3 items-start text-left">
                 {/* Photo (Left) */}
                 <div className="flex flex-col items-center">
-                  <div className="h-24 w-18 border border-slate-200 rounded bg-white overflow-hidden shadow-inner flex items-center justify-center relative">
+                  <div className="h-24 w-18 rounded bg-white overflow-hidden shadow-inner flex items-center justify-center relative" style={{border: '2px solid #0B6E4F'}}>
                     {face ? (
                       <img src={face} className="h-full w-full object-cover" />
                     ) : (
@@ -1715,7 +1715,7 @@ ${face ? `\n===PHOTO_BASE64===\n${face}` : ''}
                 </div>
 
                 {/* Info List (Middle) */}
-                <div className="flex-1 space-y-1 text-[9px] text-slate-800 font-medium">
+                <div className="flex-1 space-y-1 text-[9px] text-slate-800 font-medium" style={{borderLeft: '1.5px solid #e2e8f0', paddingLeft: '10px'}}>
                   <div>
                     <span className="text-[7.5px] font-bold text-slate-400 block uppercase leading-none">Full Name</span>
                     <span className="font-extrabold text-slate-900 leading-tight block">{data.full_name.toUpperCase()}</span>
@@ -1738,20 +1738,89 @@ ${face ? `\n===PHOTO_BASE64===\n${face}` : ''}
                   </div>
                 </div>
 
-                {/* QR Code (Right) */}
-                <div className="h-13 w-13 bg-white border border-slate-200 p-0.5 rounded flex flex-col justify-between">
-                  <div className="grid grid-cols-5 gap-[1px] w-full h-full">
-                    {Array.from({ length: 25 }).map((_, i) => (
-                      <div 
-                        key={i} 
-                        className={`${
-                          (i % 3 === 0 || i % 7 === 0 || i < 5 || i > 20 || (i % 5 === 0 && i < 15)) && i !== 12
-                            ? "bg-slate-950" 
-                            : "bg-transparent"
-                        } rounded-[0.5px]`} 
-                      />
-                    ))}
+                {/* QR Code (Right) - proper QR pattern */}
+                <div className="flex flex-col items-center gap-0.5">
+                  <div className="bg-white p-1 rounded" style={{border: '1.5px solid #0B6E4F', width: 52, height: 52}}>
+                    <svg viewBox="0 0 21 21" width="44" height="44" xmlns="http://www.w3.org/2000/svg">
+                      {/* Top-left finder */}
+                      <rect x="0" y="0" width="7" height="7" fill="#0a0a0a" />
+                      <rect x="1" y="1" width="5" height="5" fill="white" />
+                      <rect x="2" y="2" width="3" height="3" fill="#0a0a0a" />
+                      {/* Top-right finder */}
+                      <rect x="14" y="0" width="7" height="7" fill="#0a0a0a" />
+                      <rect x="15" y="1" width="5" height="5" fill="white" />
+                      <rect x="16" y="2" width="3" height="3" fill="#0a0a0a" />
+                      {/* Bottom-left finder */}
+                      <rect x="0" y="14" width="7" height="7" fill="#0a0a0a" />
+                      <rect x="1" y="15" width="5" height="5" fill="white" />
+                      <rect x="2" y="16" width="3" height="3" fill="#0a0a0a" />
+                      {/* Data modules */}
+                      <rect x="8" y="0" width="1" height="1" fill="#0a0a0a" />
+                      <rect x="10" y="0" width="1" height="1" fill="#0a0a0a" />
+                      <rect x="12" y="0" width="1" height="1" fill="#0a0a0a" />
+                      <rect x="8" y="2" width="2" height="1" fill="#0a0a0a" />
+                      <rect x="11" y="2" width="1" height="1" fill="#0a0a0a" />
+                      <rect x="8" y="4" width="1" height="1" fill="#0a0a0a" />
+                      <rect x="10" y="4" width="3" height="1" fill="#0a0a0a" />
+                      <rect x="8" y="6" width="2" height="1" fill="#0a0a0a" />
+                      <rect x="12" y="6" width="1" height="1" fill="#0a0a0a" />
+                      <rect x="0" y="8" width="1" height="1" fill="#0a0a0a" />
+                      <rect x="2" y="8" width="3" height="1" fill="#0a0a0a" />
+                      <rect x="7" y="8" width="1" height="1" fill="#0a0a0a" />
+                      <rect x="9" y="8" width="2" height="1" fill="#0a0a0a" />
+                      <rect x="13" y="8" width="2" height="1" fill="#0a0a0a" />
+                      <rect x="17" y="8" width="1" height="1" fill="#0a0a0a" />
+                      <rect x="19" y="8" width="2" height="1" fill="#0a0a0a" />
+                      <rect x="1" y="9" width="1" height="1" fill="#0a0a0a" />
+                      <rect x="4" y="9" width="1" height="1" fill="#0a0a0a" />
+                      <rect x="8" y="9" width="1" height="1" fill="#0a0a0a" />
+                      <rect x="11" y="9" width="1" height="1" fill="#0a0a0a" />
+                      <rect x="14" y="9" width="1" height="1" fill="#0a0a0a" />
+                      <rect x="16" y="9" width="3" height="1" fill="#0a0a0a" />
+                      <rect x="0" y="10" width="2" height="1" fill="#0a0a0a" />
+                      <rect x="5" y="10" width="2" height="1" fill="#0a0a0a" />
+                      <rect x="9" y="10" width="3" height="1" fill="#0a0a0a" />
+                      <rect x="15" y="10" width="2" height="1" fill="#0a0a0a" />
+                      <rect x="19" y="10" width="2" height="1" fill="#0a0a0a" />
+                      <rect x="3" y="11" width="2" height="1" fill="#0a0a0a" />
+                      <rect x="7" y="11" width="2" height="1" fill="#0a0a0a" />
+                      <rect x="12" y="11" width="2" height="1" fill="#0a0a0a" />
+                      <rect x="17" y="11" width="1" height="1" fill="#0a0a0a" />
+                      <rect x="0" y="12" width="1" height="1" fill="#0a0a0a" />
+                      <rect x="3" y="12" width="1" height="1" fill="#0a0a0a" />
+                      <rect x="6" y="12" width="1" height="1" fill="#0a0a0a" />
+                      <rect x="9" y="12" width="2" height="1" fill="#0a0a0a" />
+                      <rect x="13" y="12" width="3" height="1" fill="#0a0a0a" />
+                      <rect x="18" y="12" width="3" height="1" fill="#0a0a0a" />
+                      <rect x="8" y="14" width="1" height="1" fill="#0a0a0a" />
+                      <rect x="10" y="14" width="2" height="1" fill="#0a0a0a" />
+                      <rect x="14" y="14" width="1" height="1" fill="#0a0a0a" />
+                      <rect x="16" y="14" width="3" height="1" fill="#0a0a0a" />
+                      <rect x="9" y="15" width="1" height="1" fill="#0a0a0a" />
+                      <rect x="12" y="15" width="2" height="1" fill="#0a0a0a" />
+                      <rect x="15" y="15" width="1" height="1" fill="#0a0a0a" />
+                      <rect x="18" y="15" width="3" height="1" fill="#0a0a0a" />
+                      <rect x="8" y="16" width="2" height="1" fill="#0a0a0a" />
+                      <rect x="11" y="16" width="1" height="1" fill="#0a0a0a" />
+                      <rect x="14" y="16" width="2" height="1" fill="#0a0a0a" />
+                      <rect x="17" y="16" width="2" height="1" fill="#0a0a0a" />
+                      <rect x="9" y="17" width="3" height="1" fill="#0a0a0a" />
+                      <rect x="14" y="17" width="1" height="1" fill="#0a0a0a" />
+                      <rect x="16" y="17" width="1" height="1" fill="#0a0a0a" />
+                      <rect x="19" y="17" width="2" height="1" fill="#0a0a0a" />
+                      <rect x="8" y="18" width="1" height="1" fill="#0a0a0a" />
+                      <rect x="11" y="18" width="2" height="1" fill="#0a0a0a" />
+                      <rect x="15" y="18" width="3" height="1" fill="#0a0a0a" />
+                      <rect x="19" y="18" width="2" height="1" fill="#0a0a0a" />
+                      <rect x="9" y="19" width="2" height="1" fill="#0a0a0a" />
+                      <rect x="13" y="19" width="1" height="1" fill="#0a0a0a" />
+                      <rect x="17" y="19" width="1" height="1" fill="#0a0a0a" />
+                      <rect x="8" y="20" width="3" height="1" fill="#0a0a0a" />
+                      <rect x="12" y="20" width="2" height="1" fill="#0a0a0a" />
+                      <rect x="16" y="20" width="3" height="1" fill="#0a0a0a" />
+                    </svg>
                   </div>
+                  <span className="text-[5px] text-slate-500 font-mono">SCAN TO VERIFY</span>
                 </div>
               </div>
 
@@ -1767,12 +1836,12 @@ ${face ? `\n===PHOTO_BASE64===\n${face}` : ''}
 
           {/* IDP ID Card Preview */}
           {data.type === "idp" && (
-            <div className="my-4 border border-slate-200 rounded-2xl overflow-hidden bg-[#fefeeb] shadow-xl mx-auto w-full max-w-[420px] flex flex-col justify-between min-h-[250px]">
+            <div className="my-4 rounded-2xl overflow-hidden bg-[#fefeeb] shadow-xl mx-auto w-full max-w-[420px] flex flex-col justify-between min-h-[250px]" style={{border: '3px solid #4E342E', boxShadow: '0 0 0 6px #fdf6e3, 0 4px 24px rgba(78,52,46,0.18)'}}>
               {/* Top Brown Header Bar */}
               <div className="bg-[#4E342E] text-white p-2.5 flex items-center gap-2 relative text-left">
                 <img src={logo} alt="NCFRMI seal" className="h-8 w-8 object-contain" />
                 <div className="leading-tight">
-                  <div className="text-[7px] font-bold tracking-tight">NATIONAL COMMISSION FOR REFUGEES, MIGRANTS & IDPs</div>
+                  <div className="text-[7px] font-bold tracking-tight">NATIONAL COMMISSION FOR REFUGEES, MIGRANTS &amp; IDPs</div>
                   <div className="text-[9px] font-extrabold tracking-wider uppercase mt-0.5 text-amber-100">INTERNALLY DISPLACED PERSON (IDP) SECURE ID</div>
                 </div>
               </div>
@@ -1781,7 +1850,7 @@ ${face ? `\n===PHOTO_BASE64===\n${face}` : ''}
               <div className="px-4 py-2.5 flex gap-3 items-start text-left mt-1">
                 {/* Photo (Left) */}
                 <div className="flex flex-col items-center">
-                  <div className="h-24 w-18 border border-slate-200 rounded bg-white overflow-hidden shadow-inner flex items-center justify-center relative">
+                  <div className="h-24 w-18 rounded bg-white overflow-hidden shadow-inner flex items-center justify-center relative" style={{border: '2px solid #4E342E'}}>
                     {face ? (
                       <img src={face} className="h-full w-full object-cover" />
                     ) : (
@@ -1794,7 +1863,7 @@ ${face ? `\n===PHOTO_BASE64===\n${face}` : ''}
                 </div>
 
                 {/* Info List (Middle) */}
-                <div className="flex-1 space-y-1 text-[9px] text-slate-800 font-medium">
+                <div className="flex-1 space-y-1 text-[9px] text-slate-800 font-medium" style={{borderLeft: '1.5px solid #d4af37', paddingLeft: '10px'}}>
                   <div>
                     <span className="text-[7.5px] font-bold text-slate-400 block uppercase leading-none">Full Name</span>
                     <span className="font-extrabold text-slate-900 leading-tight block">{data.full_name.toUpperCase()}</span>
@@ -1826,20 +1895,85 @@ ${face ? `\n===PHOTO_BASE64===\n${face}` : ''}
                   </div>
                 </div>
 
-                {/* QR Code (Right) */}
-                <div className="h-13 w-13 bg-white border border-slate-200 p-0.5 rounded flex flex-col justify-between">
-                  <div className="grid grid-cols-5 gap-[1px] w-full h-full">
-                    {Array.from({ length: 25 }).map((_, i) => (
-                      <div 
-                        key={i} 
-                        className={`${
-                          (i % 3 === 0 || i % 7 === 0 || i < 5 || i > 20 || (i % 5 === 0 && i < 15)) && i !== 12
-                            ? "bg-slate-950" 
-                            : "bg-transparent"
-                        } rounded-[0.5px]`} 
-                      />
-                    ))}
+                {/* QR Code (Right) - proper QR pattern */}
+                <div className="flex flex-col items-center gap-0.5">
+                  <div className="bg-white p-1 rounded" style={{border: '1.5px solid #4E342E', width: 52, height: 52}}>
+                    <svg viewBox="0 0 21 21" width="44" height="44" xmlns="http://www.w3.org/2000/svg">
+                      {/* Top-left finder */}
+                      <rect x="0" y="0" width="7" height="7" fill="#0a0a0a" />
+                      <rect x="1" y="1" width="5" height="5" fill="#fefeeb" />
+                      <rect x="2" y="2" width="3" height="3" fill="#0a0a0a" />
+                      {/* Top-right finder */}
+                      <rect x="14" y="0" width="7" height="7" fill="#0a0a0a" />
+                      <rect x="15" y="1" width="5" height="5" fill="#fefeeb" />
+                      <rect x="16" y="2" width="3" height="3" fill="#0a0a0a" />
+                      {/* Bottom-left finder */}
+                      <rect x="0" y="14" width="7" height="7" fill="#0a0a0a" />
+                      <rect x="1" y="15" width="5" height="5" fill="#fefeeb" />
+                      <rect x="2" y="16" width="3" height="3" fill="#0a0a0a" />
+                      {/* Data modules */}
+                      <rect x="8" y="0" width="1" height="1" fill="#0a0a0a" />
+                      <rect x="10" y="0" width="1" height="1" fill="#0a0a0a" />
+                      <rect x="12" y="0" width="1" height="1" fill="#0a0a0a" />
+                      <rect x="8" y="2" width="2" height="1" fill="#0a0a0a" />
+                      <rect x="11" y="2" width="1" height="1" fill="#0a0a0a" />
+                      <rect x="8" y="4" width="1" height="1" fill="#0a0a0a" />
+                      <rect x="10" y="4" width="3" height="1" fill="#0a0a0a" />
+                      <rect x="8" y="6" width="2" height="1" fill="#0a0a0a" />
+                      <rect x="12" y="6" width="1" height="1" fill="#0a0a0a" />
+                      <rect x="0" y="8" width="1" height="1" fill="#0a0a0a" />
+                      <rect x="2" y="8" width="3" height="1" fill="#0a0a0a" />
+                      <rect x="7" y="8" width="1" height="1" fill="#0a0a0a" />
+                      <rect x="9" y="8" width="2" height="1" fill="#0a0a0a" />
+                      <rect x="13" y="8" width="2" height="1" fill="#0a0a0a" />
+                      <rect x="17" y="8" width="1" height="1" fill="#0a0a0a" />
+                      <rect x="1" y="9" width="1" height="1" fill="#0a0a0a" />
+                      <rect x="4" y="9" width="1" height="1" fill="#0a0a0a" />
+                      <rect x="8" y="9" width="1" height="1" fill="#0a0a0a" />
+                      <rect x="11" y="9" width="1" height="1" fill="#0a0a0a" />
+                      <rect x="14" y="9" width="1" height="1" fill="#0a0a0a" />
+                      <rect x="16" y="9" width="3" height="1" fill="#0a0a0a" />
+                      <rect x="0" y="10" width="2" height="1" fill="#0a0a0a" />
+                      <rect x="5" y="10" width="2" height="1" fill="#0a0a0a" />
+                      <rect x="9" y="10" width="3" height="1" fill="#0a0a0a" />
+                      <rect x="15" y="10" width="2" height="1" fill="#0a0a0a" />
+                      <rect x="3" y="11" width="2" height="1" fill="#0a0a0a" />
+                      <rect x="7" y="11" width="2" height="1" fill="#0a0a0a" />
+                      <rect x="12" y="11" width="2" height="1" fill="#0a0a0a" />
+                      <rect x="17" y="11" width="1" height="1" fill="#0a0a0a" />
+                      <rect x="0" y="12" width="1" height="1" fill="#0a0a0a" />
+                      <rect x="3" y="12" width="1" height="1" fill="#0a0a0a" />
+                      <rect x="6" y="12" width="1" height="1" fill="#0a0a0a" />
+                      <rect x="9" y="12" width="2" height="1" fill="#0a0a0a" />
+                      <rect x="13" y="12" width="3" height="1" fill="#0a0a0a" />
+                      <rect x="18" y="12" width="3" height="1" fill="#0a0a0a" />
+                      <rect x="8" y="14" width="1" height="1" fill="#0a0a0a" />
+                      <rect x="10" y="14" width="2" height="1" fill="#0a0a0a" />
+                      <rect x="14" y="14" width="1" height="1" fill="#0a0a0a" />
+                      <rect x="16" y="14" width="3" height="1" fill="#0a0a0a" />
+                      <rect x="9" y="15" width="1" height="1" fill="#0a0a0a" />
+                      <rect x="12" y="15" width="2" height="1" fill="#0a0a0a" />
+                      <rect x="15" y="15" width="1" height="1" fill="#0a0a0a" />
+                      <rect x="18" y="15" width="3" height="1" fill="#0a0a0a" />
+                      <rect x="8" y="16" width="2" height="1" fill="#0a0a0a" />
+                      <rect x="11" y="16" width="1" height="1" fill="#0a0a0a" />
+                      <rect x="14" y="16" width="2" height="1" fill="#0a0a0a" />
+                      <rect x="17" y="16" width="2" height="1" fill="#0a0a0a" />
+                      <rect x="9" y="17" width="3" height="1" fill="#0a0a0a" />
+                      <rect x="14" y="17" width="1" height="1" fill="#0a0a0a" />
+                      <rect x="16" y="17" width="1" height="1" fill="#0a0a0a" />
+                      <rect x="8" y="18" width="1" height="1" fill="#0a0a0a" />
+                      <rect x="11" y="18" width="2" height="1" fill="#0a0a0a" />
+                      <rect x="15" y="18" width="3" height="1" fill="#0a0a0a" />
+                      <rect x="9" y="19" width="2" height="1" fill="#0a0a0a" />
+                      <rect x="13" y="19" width="1" height="1" fill="#0a0a0a" />
+                      <rect x="17" y="19" width="1" height="1" fill="#0a0a0a" />
+                      <rect x="8" y="20" width="3" height="1" fill="#0a0a0a" />
+                      <rect x="12" y="20" width="2" height="1" fill="#0a0a0a" />
+                      <rect x="16" y="20" width="3" height="1" fill="#0a0a0a" />
+                    </svg>
                   </div>
+                  <span className="text-[5px] text-slate-500 font-mono">SCAN TO VERIFY</span>
                 </div>
               </div>
 

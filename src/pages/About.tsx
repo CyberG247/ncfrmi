@@ -265,29 +265,66 @@ export default function About() {
 
             {/* TAB CONTENT: MANAGEMENT */}
             <TabsContent value="management" className="animate-in fade-in-50 duration-300">
+              {/* Federal Commissioner — Featured at top */}
+              <Reveal variant="scale">
+                <Card className="mb-8 overflow-hidden border-2 border-primary/40 bg-gradient-to-br from-primary/5 via-card to-emerald-50/30 dark:to-emerald-950/10 shadow-elegant">
+                  <CardContent className="p-0">
+                    <div className="flex flex-col md:flex-row items-center md:items-stretch gap-0">
+                      {/* Photo side */}
+                      <div className="md:w-64 flex-shrink-0 bg-primary/8 flex items-center justify-center p-8 border-b md:border-b-0 md:border-r border-primary/15">
+                        <div className="relative">
+                          <Avatar className="h-44 w-44 border-4 border-primary/30 shadow-elegant ring-4 ring-background">
+                            <AvatarImage src={commissioner} alt="Hon. Dr. Aliyu Tijani Ahmed" className="object-cover" />
+                            <AvatarFallback className="bg-primary/10 text-primary font-bold text-3xl">ATA</AvatarFallback>
+                          </Avatar>
+                          <div className="absolute -bottom-2 left-1/2 -translate-x-1/2">
+                            <Badge className="bg-primary text-primary-foreground font-bold text-[9px] uppercase tracking-wider px-3 py-1 shadow-md whitespace-nowrap">
+                              HFC / CEO
+                            </Badge>
+                          </div>
+                        </div>
+                      </div>
+                      {/* Info side */}
+                      <div className="flex-1 p-8 flex flex-col justify-center">
+                        <div className="text-xs font-bold uppercase tracking-[0.2em] text-primary mb-2">Federal Commissioner & Chief Executive Officer</div>
+                        <h3 className="font-display text-2xl sm:text-3xl font-extrabold text-foreground mb-3">
+                          Hon. Dr. Aliyu Tijani Ahmed
+                        </h3>
+                        <div className="h-1 w-16 bg-primary rounded-full mb-4" />
+                        <p className="text-sm leading-relaxed text-muted-foreground max-w-xl">
+                          Leads the Commission's reform and digital transformation agenda, bringing decades of public service experience to advance humanitarian relief and durable solutions across Nigeria.
+                        </p>
+                        <div className="mt-5 flex flex-wrap gap-2">
+                          {["Policy & Strategy", "Digital Transformation", "International Partnerships", "Humanitarian Leadership"].map(tag => (
+                            <span key={tag} className="text-[10px] font-semibold bg-primary/10 text-primary px-2.5 py-1 rounded-full border border-primary/20">{tag}</span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </Reveal>
+
+              {/* Other Management Staff */}
+              <div className="mb-4">
+                <div className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground mb-1">Management Team</div>
+                <h4 className="font-display text-lg font-bold text-foreground">Senior Directors & Advisers</h4>
+              </div>
               <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-                {managementTeam.map((staff, idx) => (
+                {managementTeam.slice(1).map((staff, idx) => (
                   <Reveal key={staff.name} delay={idx * 50} variant="scale">
-                    <Card className={`h-full overflow-hidden border-border/70 transition-all duration-300 hover-lift hover-glow flex flex-col ${staff.isHfc ? 'ring-2 ring-primary/45 bg-primary/5 dark:bg-primary-deep/5 md:col-span-2 lg:col-span-2' : ''}`}>
+                    <Card className="h-full overflow-hidden border-border/70 transition-all duration-300 hover-lift hover-glow flex flex-col">
                       <div className="p-6 flex flex-col justify-between flex-1">
                         <div className="space-y-4">
                           <div className="flex items-center gap-4">
-                            <Avatar className={`border border-border shadow-md ${staff.isHfc ? 'h-20 w-20' : 'h-16 w-16'}`}>
-                              {staff.image ? (
-                                <AvatarImage src={staff.image} alt={staff.name} className="object-cover" />
-                              ) : null}
+                            <Avatar className="h-16 w-16 border border-border shadow-md">
                               <AvatarFallback className="bg-primary/10 text-primary font-bold text-lg">{staff.fallback}</AvatarFallback>
                             </Avatar>
                             <div>
-                              <h3 className={`font-display font-extrabold ${staff.isHfc ? 'text-lg sm:text-xl text-primary' : 'text-sm sm:text-base text-foreground'}`}>
+                              <h3 className="font-display font-extrabold text-sm sm:text-base text-foreground">
                                 {staff.name}
                               </h3>
                               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mt-0.5">{staff.designation}</p>
-                              {staff.isHfc && (
-                                <Badge className="mt-1.5 bg-emerald-650 hover:bg-emerald-700 text-white font-bold text-[9px] uppercase tracking-wider px-2 py-0.5">
-                                  HFC / CEO
-                                </Badge>
-                              )}
                             </div>
                           </div>
                           <p className="text-xs text-muted-foreground leading-relaxed pt-2">
