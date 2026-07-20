@@ -169,6 +169,10 @@ const CustomBarChart = ({ data, labels, color }: { data: number[]; labels: strin
             <stop offset="0%" stopColor={color} stopOpacity={1} />
             <stop offset="100%" stopColor={color} stopOpacity={0.35} />
           </linearGradient>
+          <linearGradient id="bornoGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#f43f5e" />
+            <stop offset="100%" stopColor="#be123c" />
+          </linearGradient>
           <filter id="svgBarShadow" x="-15%" y="-15%" width="130%" height="130%">
             <feDropShadow dx="0" dy="1.5" stdDeviation="1" floodColor="#000" floodOpacity="0.1" />
           </filter>
@@ -182,6 +186,7 @@ const CustomBarChart = ({ data, labels, color }: { data: number[]; labels: strin
           const scale = pulseScale[idx] || 1;
           const rawHeight = (val / max) * (height - 2 * padding - 14);
           const barHeight = Math.max(rawHeight * scale, 5); // ensure min height
+          const isBorno = (labels[idx] || "").toLowerCase() === "borno";
           
           // Center the bars horizontally
           const totalWidth = data.length * barWidth + (data.length - 1) * gap;
@@ -208,7 +213,7 @@ const CustomBarChart = ({ data, labels, color }: { data: number[]; labels: strin
                 width={barWidth}
                 height={barHeight}
                 rx="4"
-                fill={`url(#svgBarGrad-${color.replace('#', '')})`}
+                fill={isBorno ? "url(#bornoGrad)" : `url(#svgBarGrad-${color.replace('#', '')})`}
                 filter="url(#svgBarShadow)"
                 className="transition-all duration-1800 ease-in-out cursor-pointer group-hover:brightness-110 group-hover:stroke-white/20 group-hover:stroke-[1px]"
               />
@@ -227,9 +232,14 @@ const CustomBarChart = ({ data, labels, color }: { data: number[]; labels: strin
         })}
       </svg>
       <div className="flex justify-between text-[8px] text-muted-foreground mt-1 px-1 font-extrabold uppercase tracking-tight gap-1 w-full overflow-hidden">
-        {labels.map((lbl, idx) => (
-          <span key={idx} className="truncate w-8 text-center" title={lbl}>{lbl}</span>
-        ))}
+        {labels.map((lbl, idx) => {
+          const isBorno = lbl.toLowerCase() === "borno";
+          return (
+            <span key={idx} className={`truncate w-8 text-center ${isBorno ? "text-rose-500 font-extrabold" : ""}`} title={lbl}>
+              {lbl}
+            </span>
+          );
+        })}
       </div>
     </div>
   );
@@ -1448,7 +1458,7 @@ export default function AdminDashboard() {
                   <img src={logo} alt="NCFRMI seal" className="h-full w-full object-contain" />
                 </div>
                 <h3 className="font-display font-extrabold text-foreground text-base uppercase tracking-tight">
-                  Commissioner Node Authentication
+                  HFC's Panel
                 </h3>
                 <p className="text-xs text-muted-foreground mt-1">
                   National Commission for Refugees, Migrants & IDPs
@@ -1499,7 +1509,7 @@ export default function AdminDashboard() {
                 <Button type="submit" disabled={loginLoading} className="w-full hover-lift font-bold uppercase tracking-wider text-xs">
                   {loginLoading ? (
                     <span className="flex items-center gap-1.5"><Loader2 className="h-3.5 w-3.5 animate-spin" /> Authorizing...</span>
-                  ) : "Establish Commissioner Session"}
+                  ) : "Login to HFC's Panel"}
                 </Button>
               </form>
 
@@ -1567,13 +1577,11 @@ export default function AdminDashboard() {
           {[
             { id: "summary", label: "Exc. Summary", icon: Database },
             { id: "query", label: "Query Console", icon: Search },
-            { id: "state", label: "Regional States", icon: MapPin },
-            { id: "poc", label: "PoCs Intake", icon: Users },
+            { id: "poc", label: "POCs", icon: Users },
             { id: "camps", label: "Camps Directory", icon: Home },
             { id: "host_comm", label: "Host Comm", icon: Globe },
             { id: "interventions", label: "Interventions", icon: Activity },
             { id: "incidents", label: "Incident Reports", icon: ShieldAlert },
-            { id: "roles", label: "User Roles Manager", icon: UserCheck },
             { id: "report", label: "Audits & Reports", icon: FileText }
           ].map((tab) => {
             const isActive = activeTab === tab.id;
@@ -1720,11 +1728,11 @@ export default function AdminDashboard() {
             <div className="grid gap-6 md:grid-cols-4">
               <Card className="p-4 shadow-card border-border bg-card flex items-center gap-4">
                 <div className="h-10 w-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
-                  <Users className="h-5 w-5" />
+                  <Globe className="h-5 w-5" />
                 </div>
                 <div>
-                  <div className="text-[10px] font-semibold text-muted-foreground uppercase">Total Registrants</div>
-                  <div className="text-xl font-bold font-display">{totalCount}</div>
+                  <div className="text-[10px] font-semibold text-muted-foreground uppercase">Total Number of Refugees</div>
+                  <div className="text-xl font-bold font-display">{refugeeCount}</div>
                 </div>
               </Card>
 
@@ -1733,30 +1741,28 @@ export default function AdminDashboard() {
                   <TrendingUp className="h-5 w-5" />
                 </div>
                 <div>
-                  <div className="text-[10px] font-semibold text-muted-foreground uppercase">Local (Pending Sync)</div>
-                  <div className="text-xl font-bold font-display">{localCount}</div>
+                  <div className="text-[10px] font-semibold text-muted-foreground uppercase">Total Number of Migrants</div>
+                  <div className="text-xl font-bold font-display">{migrantCount}</div>
                 </div>
               </Card>
 
               <Card className="p-4 shadow-card border-border bg-card flex items-center gap-4">
                 <div className="h-10 w-10 rounded-lg bg-amber-500/10 text-amber-600 flex items-center justify-center">
-                  <Wifi className="h-5 w-5 animate-pulse" />
+                  <Home className="h-5 w-5" />
                 </div>
                 <div>
-                  <div className="text-[10px] font-semibold text-muted-foreground uppercase">Gateways Active</div>
-                  <div className="text-xl font-bold font-display">3 Zonal Nodes</div>
+                  <div className="text-[10px] font-semibold text-muted-foreground uppercase">Total Number of IDPs</div>
+                  <div className="text-xl font-bold font-display">{idpCount}</div>
                 </div>
               </Card>
 
               <Card className="p-4 shadow-card border-border bg-card flex items-center gap-4">
                 <div className="h-10 w-10 rounded-lg bg-indigo-500/10 text-indigo-650 flex items-center justify-center">
-                  <Laptop className="h-5 w-5" />
+                  <RotateCcw className="h-5 w-5" />
                 </div>
                 <div>
-                  <div className="text-[10px] font-semibold text-muted-foreground uppercase">System Status</div>
-                  <div className="text-sm font-bold text-emerald-650 flex items-center gap-1.5 mt-0.5">
-                    <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" /> Operational
-                  </div>
+                  <div className="text-[10px] font-semibold text-muted-foreground uppercase">Total Number of Returnees</div>
+                  <div className="text-xl font-bold font-display">{returneeCount}</div>
                 </div>
               </Card>
             </div>
@@ -2194,17 +2200,23 @@ export default function AdminDashboard() {
                   {sortedStates.map(([state, count]) => {
                     const maxVal = Math.max(...sortedStates.map((s) => s[1]));
                     const ht = maxVal > 0 ? (count / maxVal) * 130 : 0;
+                    const isBorno = state.toLowerCase() === "borno";
                     return (
-                      <div key={state} className="flex flex-col items-center flex-1 group">
-                        <div className="text-[10px] font-bold text-primary mb-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div key={state} className="flex flex-col items-center flex-1 group relative">
+                        {isBorno && (
+                          <span className="absolute -top-5 text-[8px] bg-rose-500 text-white font-extrabold px-1.5 py-0.5 rounded shadow-sm scale-90 tracking-wide animate-pulse">
+                            HIGHEST
+                          </span>
+                        )}
+                        <div className={`text-[10px] font-bold text-primary mb-1 ${isBorno ? "opacity-100 text-rose-600" : "opacity-0 group-hover:opacity-100"} transition-opacity`}>
                           {count}
                         </div>
                         <div
-                          className="w-10 bg-primary rounded-t transition-all duration-1000 hover:bg-primary/85"
+                          className={`w-10 rounded-t transition-all duration-1000 ${isBorno ? "bg-gradient-to-t from-rose-700 to-rose-500 hover:brightness-110 shadow-md" : "bg-primary hover:bg-primary/85"}`}
                           style={{ height: `${Math.max(ht, 12)}px` }}
                         />
-                        <span className="text-[9px] font-bold text-muted-foreground mt-2 truncate w-14 text-center uppercase">
-                          {state.slice(0, 8)}
+                        <span className={`text-[9px] font-bold mt-2 truncate w-14 text-center uppercase ${isBorno ? "text-rose-600 font-extrabold" : "text-muted-foreground"}`}>
+                          {state}
                         </span>
                       </div>
                     );
@@ -2575,11 +2587,11 @@ export default function AdminDashboard() {
             {/* Stat cards for interventions */}
             <div className="grid gap-4 md:grid-cols-4">
               <Card className="p-4 shadow-sm border-border bg-card">
-                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Total Distribution Events</span>
+                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Total number of Empowerment made</span>
                 <span className="text-2xl font-extrabold text-foreground mt-1 block">{interventions.length}</span>
               </Card>
               <Card className="p-4 shadow-sm border-border bg-card">
-                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Total Resources / Persons Reached</span>
+                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Total Beneficiaries</span>
                 <span className="text-2xl font-extrabold text-indigo-600 mt-1 block">
                   {interventions.reduce((sum, item) => sum + (item.count || 0), 0).toLocaleString()}
                 </span>
@@ -2591,7 +2603,7 @@ export default function AdminDashboard() {
                 </span>
               </Card>
               <Card className="p-4 shadow-sm border-border bg-card">
-                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Medical & Healthcare Events</span>
+                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Total Skills Acquisation program</span>
                 <span className="text-2xl font-extrabold text-emerald-600 mt-1 block">
                   {interventions.filter(i => i.category === "Medical & Healthcare").length}
                 </span>
@@ -2678,7 +2690,7 @@ export default function AdminDashboard() {
                             <td className="p-3.5 font-semibold text-foreground">{item.camp}</td>
                             <td className="p-3.5">
                               <Badge className="bg-slate-100 text-slate-900 border-slate-200 font-semibold text-[9px] uppercase">
-                                {item.category}
+                                {item.category === "Medical & Healthcare" ? "Skills Acquisition program" : item.category === "Cash Assistance" ? "Empowerment program" : item.category}
                               </Badge>
                             </td>
                             <td className="p-3.5 max-w-[250px] truncate" title={item.details}>
@@ -3083,8 +3095,8 @@ export default function AdminDashboard() {
       <Dialog open={isLogInterventionOpen} onOpenChange={setIsLogInterventionOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Log Distribution/Intervention Event</DialogTitle>
-            <DialogDescription>Record relief resource deliveries and support distributions.</DialogDescription>
+            <DialogTitle>Log Empowerment/Intervention Event</DialogTitle>
+            <DialogDescription>Record empowerment programs, skills acquisition, and support distributions.</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleCreateIntervention} className="space-y-4 py-3">
             <div>
@@ -3107,7 +3119,7 @@ export default function AdminDashboard() {
               </select>
             </div>
             <div>
-              <label className="text-xs font-semibold text-muted-foreground">Resource Category</label>
+              <label className="text-xs font-semibold text-muted-foreground">Empowerment / Skill Category</label>
               <select
                 required
                 value={interventionCategory}
@@ -3116,15 +3128,15 @@ export default function AdminDashboard() {
               >
                 <option value="" disabled>-- Select category --</option>
                 <option value="Food & Nutrition">Food & Nutrition</option>
-                <option value="Medical & Healthcare">Medical & Healthcare</option>
+                <option value="Medical & Healthcare">Skills Acquisition program</option>
                 <option value="Shelter & WAsH">Shelter & WAsH</option>
                 <option value="Education & Training">Education & Training</option>
-                <option value="Cash Assistance">Cash Assistance</option>
+                <option value="Cash Assistance">Empowerment program</option>
                 <option value="Legal Aid & Security">Legal Aid & Security</option>
               </select>
             </div>
             <div>
-              <label className="text-xs font-semibold text-muted-foreground">Quantity / Count Reached</label>
+              <label className="text-xs font-semibold text-muted-foreground">Number of Beneficiaries</label>
               <Input
                 type="number"
                 required
@@ -3135,7 +3147,7 @@ export default function AdminDashboard() {
               />
             </div>
             <div>
-              <label className="text-xs font-semibold text-muted-foreground">Distribution Details</label>
+              <label className="text-xs font-semibold text-muted-foreground">Empowerment / Distribution Details</label>
               <Textarea
                 required
                 value={interventionDetails}
@@ -3157,8 +3169,8 @@ export default function AdminDashboard() {
       <Dialog open={!!editingIntervention} onOpenChange={(o) => { if (!o) setEditingIntervention(null); }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Edit Intervention Event</DialogTitle>
-            <DialogDescription>Modify resource distribution records.</DialogDescription>
+            <DialogTitle>Edit Empowerment/Intervention Event</DialogTitle>
+            <DialogDescription>Modify empowerment programs, skills acquisition, and support distribution records.</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleUpdateIntervention} className="space-y-4 py-3">
             <div>
@@ -3180,7 +3192,7 @@ export default function AdminDashboard() {
               </select>
             </div>
             <div>
-              <label className="text-xs font-semibold text-muted-foreground">Resource Category</label>
+              <label className="text-xs font-semibold text-muted-foreground">Empowerment / Skill Category</label>
               <select
                 required
                 value={interventionCategory}
@@ -3188,15 +3200,15 @@ export default function AdminDashboard() {
                 className="mt-1 block w-full rounded-md border border-border bg-background px-3 py-2 text-xs font-medium focus:border-primary focus:ring-primary focus:outline-none"
               >
                 <option value="Food & Nutrition">Food & Nutrition</option>
-                <option value="Medical & Healthcare">Medical & Healthcare</option>
+                <option value="Medical & Healthcare">Skills Acquisition program</option>
                 <option value="Shelter & WAsH">Shelter & WAsH</option>
                 <option value="Education & Training">Education & Training</option>
-                <option value="Cash Assistance">Cash Assistance</option>
+                <option value="Cash Assistance">Empowerment program</option>
                 <option value="Legal Aid & Security">Legal Aid & Security</option>
               </select>
             </div>
             <div>
-              <label className="text-xs font-semibold text-muted-foreground">Quantity / Count Reached</label>
+              <label className="text-xs font-semibold text-muted-foreground">Number of Beneficiaries</label>
               <Input
                 type="number"
                 required
@@ -3207,7 +3219,7 @@ export default function AdminDashboard() {
               />
             </div>
             <div>
-              <label className="text-xs font-semibold text-muted-foreground">Distribution Details</label>
+              <label className="text-xs font-semibold text-muted-foreground">Empowerment / Distribution Details</label>
               <Textarea
                 required
                 value={interventionDetails}

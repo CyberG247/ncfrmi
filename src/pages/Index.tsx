@@ -7,24 +7,23 @@ import { Card, CardContent } from "@/components/ui/card";
 import Layout from "@/components/site/Layout";
 import Reveal from "@/components/site/Reveal";
 import CountUp from "@/components/site/CountUp";
-import heroEvent1 from "@/assets/hero-event1.jpg";
-import heroEvent2 from "@/assets/hero-event2.jpg";
+import heroRefugeeDay from "@/assets/hero-refugeeday-2026.jpg";
 import heroRabat1 from "@/assets/hero-rabat1.jpg";
 import heroRabat2 from "@/assets/hero-rabat2.jpg";
 import heroRabat3 from "@/assets/hero-rabat3.jpg";
-import heroRabat5 from "@/assets/hero-rabat5.jpg";
+import heroTurkiye from "@/assets/hero-turkiye.jpg";
 import logo from "@/assets/ncfrmi-logo.png";
 import commissioner from "@/assets/commissioner.jpg";
 
 const heroSlides = [
   {
-    image: heroEvent1,
-    title: "A Landmark Day for Durable Solutions in Nigeria: NCFRMI Validates National Strategy and Inaugurates Technical Working Group",
-    link: "/news#durable-solutions-nigeria"
+    image: heroRefugeeDay,
+    title: "World Refugee Day 2026",
+    link: "/news#world-refugee-day-2026"
   },
   {
     image: heroRabat1,
-    title: "Nigeria Seated at the United Nations: Advancing Regional Dialogues on Safe and Regular Migration",
+    title: "International Migration Review Forum 2026",
     link: "/news#rabat-process-abuja",
     position: "center 72%"
   },
@@ -35,13 +34,13 @@ const heroSlides = [
   },
   {
     image: heroRabat3,
-    title: "NCFRMI Convenes the High-Level Rabat Process Summit at the Bola Ahmed Tinubu Conference Centre",
+    title: "Rabat Process Summit at the Bola Ahmed Tinubu Conference Centre",
     link: "/news#rabat-process-abuja"
   },
   {
-    image: heroRabat5,
-    title: "United in Commitment: Regional Delegations Reaffirm Support for Refugee Human Rights and Dignity",
-    link: "/news#rabat-process-abuja"
+    image: heroTurkiye,
+    title: "High-Level Delegation from the Republic of Turkiye",
+    link: "/news"
   }
 ];
 
@@ -100,7 +99,11 @@ export default function Index() {
           </div>
         );
       })()}
+<<<<<<< HEAD
       <section className="relative overflow-hidden h-[540px] sm:h-[600px] lg:h-[640px] flex items-end justify-center pb-8 sm:pb-10 lg:pb-12">
+=======
+      <section className="relative overflow-hidden h-[540px] sm:h-[600px] lg:h-[640px] flex items-end justify-center pb-12 sm:pb-14 lg:pb-16">
+>>>>>>> 5928c52e52d79c646792c5e04ab48f313db4fb79
         {heroSlides.map((slideObj, i) => (
           <img
             key={i}
@@ -129,10 +132,17 @@ export default function Index() {
         </div>
 
         <div className="relative z-20 w-full">
+<<<<<<< HEAD
           <div className="container-page py-4 text-center">
             <div className="max-w-4xl mx-auto flex flex-col items-center justify-end">
               <div key={slide} className="animate-fade-in flex flex-col items-center space-y-4">
                 <h1 className="font-display text-lg sm:text-2xl lg:text-3xl font-light tracking-wide text-white leading-snug max-w-3xl drop-shadow-md">
+=======
+          <div className="container-page pt-20 pb-4 text-center">
+            <div className="max-w-4xl mx-auto flex flex-col items-center justify-center">
+              <div key={slide} className="animate-fade-in flex flex-col items-center space-y-6">
+                <h1 className="font-display text-xl sm:text-3xl lg:text-4xl font-light tracking-wide text-white leading-snug max-w-3xl drop-shadow-md">
+>>>>>>> 5928c52e52d79c646792c5e04ab48f313db4fb79
                   {heroSlides[slide].title}
                 </h1>
                 <div>
@@ -229,7 +239,7 @@ export default function Index() {
             </p>
             <div className="mt-7 flex flex-wrap gap-4 items-center justify-center lg:justify-start">
               <Button asChild variant="outline" className="hover-lift">
-                <Link to="/about">Read more about NCFRMI <ArrowRight className="ml-1 h-4 w-4" /></Link>
+                <Link to="/who-we-are">Read more about NCFRMI <ArrowRight className="ml-1 h-4 w-4" /></Link>
               </Button>
               <Button asChild className="bg-emerald-700 hover:bg-emerald-800 text-white hover-lift font-bold">
                 <Link to="/apply">Apply for Asylum Status <ShieldCheck className="ml-1.5 h-4 w-4" /></Link>

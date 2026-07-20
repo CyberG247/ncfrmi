@@ -10,7 +10,10 @@ import SplashScreen from "@/components/site/SplashScreen";
 import { supabase } from "@/integrations/supabase/client";
 import Index from "./pages/Index.tsx";
 import NotFound from "./pages/NotFound.tsx";
-import About from "./pages/About.tsx";
+import WhoWeAre from "./pages/WhoWeAre.tsx";
+import Mandate from "./pages/Mandate.tsx";
+import ManagementTeam from "./pages/ManagementTeam.tsx";
+import Organogram from "./pages/Organogram.tsx";
 import Services from "./pages/Services.tsx";
 import OurPocs from "./pages/OurPocs.tsx";
 import OurWork from "./pages/OurWork.tsx";
@@ -71,7 +74,11 @@ const App = () => {
         <AuthProvider>
           <Routes>
             <Route path="/" element={<Index />} />
-            <Route path="/about" element={<About />} />
+            <Route path="/about" element={<Navigate to="/who-we-are" replace />} />
+            <Route path="/who-we-are" element={<WhoWeAre />} />
+            <Route path="/mandate" element={<Mandate />} />
+            <Route path="/management-team" element={<ManagementTeam />} />
+            <Route path="/organogram" element={<Organogram />} />
             <Route path="/services" element={<Services />} />
             <Route path="/our-pocs" element={<OurPocs />} />
             <Route path="/our-work" element={<OurWork />} />
