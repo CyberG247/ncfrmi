@@ -203,7 +203,7 @@ export const Header = () => {
                 animation-play-state: paused;
               }
             `}</style>
-            <div className="animate-marquee font-medium cursor-pointer text-[11px] tracking-wide select-none">
+            <div className="animate-marquee font-semibold cursor-pointer text-sm tracking-wide select-none">
               {tickerNews.length > 0 ? tickerNews.join("   •   ") : "Loading latest updates..."}
             </div>
           </div>

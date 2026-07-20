@@ -14,6 +14,7 @@ const commissionerStaff = {
 };
 
 const managementTeam = [
+  // Directors
   {
     name: "Catherine Udida MNI",
     designation: "Director, Migrant Affairs Department",
@@ -23,11 +24,6 @@ const managementTeam = [
     name: "Bello M. Bello",
     designation: "Director, Human Resource Management",
     fallback: "BB"
-  },
-  {
-    name: "Musa Muhammed Kangiwa",
-    designation: "Director, Special Duties Department",
-    fallback: "MK"
   },
   {
     name: "Saadatu Baba Shettima",
@@ -40,31 +36,43 @@ const managementTeam = [
     fallback: "FD"
   },
   {
-    name: "Titus Murdakai",
-    designation: "Director, Refugee Affairs Department",
-    fallback: "TM"
-  },
-  {
     name: "Funmilayo Bara",
     designation: "Director, Procurement Department",
     fallback: "FB"
   },
   {
+    name: "Asoka Margaret Maryamu",
+    designation: "Director, Strategic Communication Department",
+    fallback: "SC"
+  },
+  // Deputy Directors
+  {
+    name: "Jummai Ngarama Modu",
+    designation: "Deputy Director, Special Duties Department",
+    fallback: "JM"
+  },
+  {
+    name: "Titus Murdakai",
+    designation: "Deputy Director, Refugee Affairs Department",
+    fallback: "TM"
+  },
+  {
     name: "Habibu Labaran",
-    designation: "Director, Legal Unit",
+    designation: "Deputy Director, Legal",
     fallback: "HL"
   },
   {
-    name: "Vacant",
-    designation: "Director, Finance & Account Department",
+    name: "Abdullahi Yakubu",
+    designation: "Deputy Director, Finance & Account Department",
     fallback: "FA"
   },
   {
-    name: "Vacant",
-    designation: "Director, Strategic Communication Department",
-    fallback: "SC"
+    name: "John Naanmang Dama",
+    designation: "Deputy Director, Audit Unit",
+    fallback: "JD"
   }
 ];
+
 
 export default function ManagementTeam() {
   return (
@@ -80,7 +88,6 @@ export default function ManagementTeam() {
         <div className="flex flex-col items-center">
           <Reveal>
             <div className="text-center space-y-4">
-              <div className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Executive Head</div>
               <h2 className="font-display text-2xl md:text-3xl font-bold mb-8 text-red-600">The Honorable Federal Commissioner</h2>
             </div>
           </Reveal>
