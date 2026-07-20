@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Card } from "@/components/ui/card";
-import { Camera, Fingerprint, CheckCircle2, Loader2, RotateCcw, ShieldCheck, UserPlus, Download, Globe, Home, Activity, Eye, EyeOff, Users, CloudLightning } from "lucide-react";
+import { Camera, Upload, Fingerprint, CheckCircle2, Loader2, RotateCcw, ShieldCheck, UserPlus, Download, Globe, Home, Activity, Eye, EyeOff, Users, CloudLightning } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import logo from "@/assets/ncfrmi-logo.png";
@@ -45,7 +45,7 @@ const empty: Form = {
   education_level: "", skills: "", primary_needs: [], needs_details: "",
 };
 
-const steps = ["Registration Type", "Biodata & Needs", "Review", "Thumbprint Scan"];
+const steps = ["Registration Type", "Biodata & Needs", "Review"];
 
 const playBeep = () => {
   // Audio beep disabled to prevent constant beeping
@@ -207,6 +207,9 @@ export default function FieldCapture() {
   const [appComingSoon, setAppComingSoon] = useState(false);
   const [lastRef, setLastRef] = useState("");
   const [enabledCategories, setEnabledCategories] = useState<string[]>(["refugee", "idp", "migrant", "returnee"]);
+  const [activeSection, setActiveSection] = useState<"enrolment" | "interventions" | "incidents" | "profile" | "reset">("enrolment");
+  const [officerName, setOfficerName] = useState(() => localStorage.getItem("ncfrmi_officer_name") || "Muhammad");
+  const [officerPicture, setOfficerPicture] = useState<string | null>(() => localStorage.getItem("ncfrmi_officer_picture") || null);
 
   useEffect(() => {
     const cats = localStorage.getItem("ncfrmi_enabled_categories");
@@ -473,12 +476,19 @@ export default function FieldCapture() {
         !!data.education_level;
     }
     if (step === 2) return true;
-    if (step === 3) return !!thumb;
     return false;
   };
 
   const reset = () => {
     setStep(0); setData(empty); setFace(null); setThumb(null); setSuccess(false); setLastRef("");
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("ncfrmi_simulated_user");
+    setIsLoggedIn(false);
+    reset();
+    setActiveSection("enrolment");
+    toast.success("Successfully logged out.");
   };
 
   const drawMockQRCode = (doc: any, x: number, y: number, size: number) => {
@@ -1614,57 +1624,20 @@ ${face ? `\n===PHOTO_BASE64===\n${face}` : ''}
                 </div>
               )}
 
-              {step === 3 && (
-                <div className="mx-auto max-w-xl w-full">
-                  {!thumb ? (
-                    <ThumbCapture image={thumb} scanning={scanning} setScanning={setScanning} onCapture={setThumb} />
-                  ) : (
-                    <Card className="p-6 border border-emerald-500/20 bg-emerald-50/5 text-center space-y-6 animate-fade-in w-full">
-                      <div className="mx-auto h-12 w-12 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">
-                        <CheckCircle2 className="h-6 w-6 stroke-[2.5]" />
-                      </div>
-                      <div>
-                        <h3 className="font-display text-lg font-bold text-primary">Biometric Profile Locked</h3>
-                        <p className="text-xs text-muted-foreground mt-1">Both facial liveness and thumbprint indexes have been securely stored.</p>
-                      </div>
-                      
-                      <div className="grid gap-4 grid-cols-2">
-                        <div className="p-3 border border-border rounded-lg bg-card relative">
-                          <img src={face!} className="h-28 w-full object-cover rounded" />
-                          <div className="text-[10px] font-semibold text-emerald-600 mt-2">Face Profile ✓</div>
-                        </div>
-                        <div className="p-3 border border-border rounded-lg bg-card relative">
-                          <img src={thumb} className="h-28 w-full object-contain rounded bg-slate-900" />
-                          <div className="text-[10px] font-semibold text-emerald-600 mt-2">Thumbprint ✓</div>
-                          <Button variant="ghost" size="sm" onClick={() => setThumb(null)} className="absolute top-2 right-2 h-6 w-6 p-0 rounded-full bg-black/40 hover:bg-black/60 text-white flex items-center justify-center text-xs">
-                            ✕
-                          </Button>
-                        </div>
-                      </div>
-                    </Card>
-                  )}
-                </div>
-              )}
-
-              {step > 0 && (
-                <div className="mt-8 flex items-center justify-between gap-3">
-                  <Button variant="outline" disabled={submitting} onClick={() => setStep((s) => s - 1)}>Back</Button>
-                  {step < 2 && (
-                    <Button disabled={!canNext()} onClick={() => setStep((s) => s + 1)}>Continue</Button>
-                  )}
-                  {step === 2 && (
-                    <Button disabled={!canNext()} onClick={() => setStep(3)}>
-                      <Fingerprint className="mr-2 h-4 w-4" /> Proceed to Biometric Capturing
-                    </Button>
-                  )}
-                  {step === 3 && (
-                    <Button disabled={!canNext() || submitting} onClick={submit}>
-                      {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-2 h-4 w-4" />}
-                      Submit enrolment
-                    </Button>
-                  )}
-                </div>
-              )}
+               {step > 0 && (
+                 <div className="mt-8 flex items-center justify-between gap-3">
+                   <Button variant="outline" disabled={submitting} onClick={() => setStep((s) => s - 1)}>Back</Button>
+                   {step < 2 && (
+                     <Button disabled={!canNext()} onClick={() => setStep((s) => s + 1)}>Continue</Button>
+                   )}
+                   {step === 2 && (
+                     <Button disabled={!canNext() || submitting} onClick={submit}>
+                       {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-2 h-4 w-4" />}
+                       Submit enrolment
+                     </Button>
+                   )}
+                 </div>
+               )}
             </Card>
           </div>
         )}
@@ -1880,253 +1853,153 @@ const Row = ({ k, v }: { k: string; v: string }) => (
 function FaceCapture({ image, onCapture }: { image: string | null; onCapture: (d: string | null) => void }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [live, setLive] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-  const [scanning, setScanning] = useState(false);
-  const [isSimulated, setIsSimulated] = useState(false);
-  const [facialInstruction, setFacialInstruction] = useState("Position your face in the frame...");
 
-  const start = async () => {
+  const startCamera = async () => {
     setErr(null);
-    setIsSimulated(false);
     try {
       const s = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user", width: 480, height: 480 } });
       streamRef.current = s;
-      if (videoRef.current) { videoRef.current.srcObject = s; await videoRef.current.play(); }
+      if (videoRef.current) {
+        videoRef.current.srcObject = s;
+        await videoRef.current.play();
+      }
       setLive(true);
-      setScanning(true);
     } catch (e: unknown) {
-      console.warn("Camera hardware access failed, falling back to secure simulation:", e);
-      setIsSimulated(true);
-      setScanning(true);
+      console.warn("Camera hardware access failed:", e);
+      setErr("Failed to access camera. Please upload a file instead.");
     }
   };
 
-  const stop = () => {
+  const stopCamera = () => {
     streamRef.current?.getTracks().forEach((t) => t.stop());
     streamRef.current = null;
     setLive(false);
-    setScanning(false);
   };
 
-  const snap = () => {
+  const capturePhoto = () => {
+    if (!videoRef.current) return;
+    const v = videoRef.current;
     const c = document.createElement("canvas");
-    c.width = 480; c.height = 480;
+    c.width = v.videoWidth || 480;
+    c.height = v.videoHeight || 480;
     const ctx = c.getContext("2d")!;
-
-    if (isSimulated || !videoRef.current) {
-      // Holographic contour silhouette mock image
-      ctx.fillStyle = "#090d16"; ctx.fillRect(0, 0, 480, 480);
-      
-      // grid lines
-      ctx.strokeStyle = "rgba(16, 185, 129, 0.15)"; ctx.lineWidth = 1;
-      for (let i = 0; i < 480; i += 30) {
-        ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, 480); ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(480, i); ctx.stroke();
-      }
-
-      // head silhouette
-      ctx.strokeStyle = "#10b981"; ctx.lineWidth = 4;
-      ctx.fillStyle = "rgba(16, 185, 129, 0.05)";
-      ctx.beginPath();
-      ctx.arc(240, 200, 85, 0, Math.PI * 2); // Head circle
-      ctx.fill(); ctx.stroke();
-
-      ctx.beginPath();
-      ctx.ellipse(240, 360, 140, 80, 0, Math.PI, 0); // Shoulder curve
-      ctx.fill(); ctx.stroke();
-
-      // target lines
-      ctx.strokeStyle = "#fbbf24"; ctx.lineWidth = 2;
-      ctx.strokeRect(220, 180, 40, 40);
-    } else {
-      const v = videoRef.current;
-      c.width = v.videoWidth; c.height = v.videoHeight;
-      // Mirror the output canvas drawing as well to match the preview mirror!
-      ctx.translate(c.width, 0);
-      ctx.scale(-1, 1);
-      ctx.drawImage(v, 0, 0);
-    }
-
+    ctx.translate(c.width, 0);
+    ctx.scale(-1, 1);
+    ctx.drawImage(v, 0, 0);
     onCapture(c.toDataURL("image/jpeg", 0.85));
-    playBeep();
-    stop();
+    stopCamera();
   };
 
-  useEffect(() => {
-    if (!image) {
-      start();
-    }
-    return () => stop();
-  }, [image]);
-
-  useEffect(() => {
-    if (scanning && !image) {
-      setFacialInstruction("Kindly blink your eyes");
-      const t1 = setTimeout(() => setFacialInstruction("Kindly smile"), 600);
-      const t2 = setTimeout(() => setFacialInstruction("Kindly nod your head"), 1200);
-      const t3 = setTimeout(() => setFacialInstruction("Kindly look left"), 1800);
-      const t4 = setTimeout(() => setFacialInstruction("Kindly look right"), 2400);
-      const t5 = setTimeout(() => {
-        snap();
-      }, 3000);
-
-      return () => {
-        clearTimeout(t1);
-        clearTimeout(t2);
-        clearTimeout(t3);
-        clearTimeout(t4);
-        clearTimeout(t5);
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        onCapture(reader.result as string);
       };
+      reader.readAsDataURL(file);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scanning, image, isSimulated]);
-
-  return (
-    <div className="rounded-lg border border-border p-4 flex flex-col items-center text-center space-y-4">
-      {/* Top Instruction Header */}
-      <h3 className="text-emerald-500 font-display font-bold text-base tracking-wide animate-pulse h-6">
-        {scanning ? facialInstruction : image ? "Verification Completed ✓" : "Initialize Facial Scan"}
-      </h3>
-
-      {/* Circular Camera Preview Frame */}
-      <div className="relative h-48 w-48 rounded-full border-4 border-emerald-500 border-b-transparent p-1 bg-slate-900 shadow-lg flex items-center justify-center transition-all duration-500 overflow-hidden">
-        <div className="relative h-full w-full rounded-full overflow-hidden flex items-center justify-center bg-slate-950">
-          {image ? (
-            <img src={image} alt="Captured face" className="h-full w-full object-cover animate-fade-in" />
-          ) : isSimulated ? (
-            <div className="absolute inset-0 flex flex-col items-center justify-center p-3 text-center">
-              <HeadContourSVG />
-              <div className="absolute left-0 right-0 h-0.5 bg-emerald-500 animate-scanline z-20" />
-              <span className="text-[8px] font-bold text-white bg-black/55 px-2 py-0.5 rounded shadow-sm border border-emerald-500/20 uppercase tracking-wider z-20 animate-pulse mt-12">
-                Simulator
-              </span>
-            </div>
-          ) : (
-            <>
-              <video ref={videoRef} className="h-full w-full object-cover transform -scale-x-100" muted playsInline />
-              {scanning && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center p-3 text-center">
-                  <HeadContourSVG />
-                  <div className="absolute left-0 right-0 h-0.5 bg-emerald-500 animate-scanline z-20" />
-                  <span className="text-[8px] font-bold text-white bg-black/55 px-2 py-0.5 rounded shadow-sm border border-emerald-500/20 uppercase tracking-wider z-20 animate-pulse mt-12">
-                    Liveness Check
-                  </span>
-                </div>
-              )}
-            </>
-          )}
-        </div>
-      </div>
-
-      {/* Step Chain Indicator: [✔] --- [2] */}
-      <div className="flex items-center justify-center gap-3 my-1">
-        <div className={`h-6 w-6 rounded-full flex items-center justify-center text-white ${image ? "bg-emerald-500" : "bg-emerald-500 animate-pulse"} text-xs font-bold`}>
-          {image ? "✓" : "1"}
-        </div>
-        <div className="h-[2px] w-10 bg-zinc-200" />
-        <div className="h-6 w-6 rounded-full bg-zinc-300 text-zinc-600 flex items-center justify-center text-xs font-bold">2</div>
-      </div>
-
-      {/* Animated Avatar at the bottom */}
-      <AvatarSVG />
-
-      {err && <p className="text-[9px] text-amber-500 font-medium">{err}</p>}
-      <div className="w-full pt-1">
-        <Button disabled variant="outline" size="sm" className="w-full">
-          {image ? "Facial Biometric Verified ✓" : scanning ? "Liveness check active..." : "Awaiting Scanner..."}
-        </Button>
-      </div>
-    </div>
-  );
-}
-
-function ThumbCapture({ image, scanning, setScanning, onCapture }: {
-  image: string | null; scanning: boolean; setScanning: (b: boolean) => void; onCapture: (d: string | null) => void;
-}) {
-  const [progress, setProgress] = useState(0);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
-
-  const startScan = () => {
-    if (image || scanning) return;
-    setScanning(true);
-    setProgress(0);
-    intervalRef.current = setInterval(() => {
-      setProgress((p) => {
-        const next = p + 4; // takes about 2.5 seconds
-        if (next >= 100) {
-          if (intervalRef.current) clearInterval(intervalRef.current);
-          finishScan();
-          return 100;
-        }
-        return next;
-      });
-    }, 100);
-  };
-
-  const stopScan = () => {
-    if (image || progress >= 100) return;
-    if (intervalRef.current) clearInterval(intervalRef.current);
-    setScanning(false);
-    setProgress(0);
-  };
-
-  const finishScan = () => {
-    const c = document.createElement("canvas");
-    c.width = 240; c.height = 320;
-    const ctx = c.getContext("2d")!;
-    ctx.fillStyle = "#0b1b2b"; ctx.fillRect(0, 0, c.width, c.height);
-    ctx.strokeStyle = "#7dd3fc"; ctx.lineWidth = 1.2;
-    for (let i = 0; i < 80; i++) {
-      ctx.beginPath();
-      const cx = 120 + Math.sin(i * 0.3) * 8;
-      const cy = 160 + Math.cos(i * 0.2) * 6;
-      ctx.ellipse(cx, cy, 20 + i * 1.4, 30 + i * 1.7, Math.sin(i) * 0.2, 0, Math.PI * 2);
-      ctx.stroke();
-    }
-    onCapture(c.toDataURL("image/png"));
-    playBeep();
-    setScanning(false);
   };
 
   useEffect(() => {
     return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
+      streamRef.current?.getTracks().forEach((t) => t.stop());
     };
   }, []);
 
   return (
-    <div className="rounded-lg border border-border p-4">
-      <div className="mb-3 flex items-center justify-between font-display text-sm font-semibold text-primary">
-        <span className="flex items-center gap-2"><Fingerprint className="h-4 w-4" /> Thumbprint Capture</span>
-        {scanning && <span className="text-[10px] text-primary bg-primary/5 px-2 py-0.5 rounded animate-pulse">Scanning thumb... {progress}%</span>}
-      </div>
-      <div 
-        className="relative flex aspect-square w-full items-center justify-center overflow-hidden rounded-md bg-muted cursor-pointer select-none touch-none"
-        onPointerDown={startScan}
-        onPointerUp={stopScan}
-        onPointerLeave={stopScan}
-        onContextMenu={(e) => e.preventDefault()}
-      >
+    <Card className="p-5 border border-border bg-card/50 shadow-sm relative overflow-hidden flex flex-col items-center">
+      <h3 className="font-display font-bold text-foreground text-xs uppercase tracking-wider mb-3">
+        Passport Photograph *
+      </h3>
+
+      <div className="relative h-44 w-36 rounded-md border-2 border-dashed border-primary/20 bg-muted/40 overflow-hidden flex items-center justify-center shadow-inner mb-4">
         {image ? (
-          <img src={image} alt="Captured thumbprint" className="h-full w-full object-contain animate-fade-in" />
+          <img src={image} alt="Passport Photograph" className="h-full w-full object-cover animate-fade-in" />
+        ) : live ? (
+          <video ref={videoRef} className="h-full w-full object-cover transform -scale-x-100" muted playsInline />
         ) : (
-          <>
-            <Fingerprint className={`h-32 w-32 text-primary/40 transition-transform ${scanning ? "scale-110 text-primary" : ""}`} />
-            {scanning && (
-              <div className="absolute inset-x-0 bottom-0 bg-primary/20" style={{ height: `${progress}%`, transition: 'height 100ms linear' }}>
-                <div className="absolute inset-x-0 top-0 h-1 bg-accent shadow-[0_0_12px_hsl(var(--accent))]" />
-              </div>
+          <div className="text-center p-3 text-muted-foreground flex flex-col items-center gap-1.5">
+            <Users className="h-8 w-8 opacity-45" />
+            <span className="text-[10px] font-semibold leading-tight">No image uploaded</span>
+          </div>
+        )}
+
+        {live && <div className="absolute left-0 right-0 h-0.5 bg-primary/40 animate-scanline pointer-events-none" />}
+      </div>
+
+      {err && <p className="text-[10px] text-rose-500 font-bold mb-3">{err}</p>}
+
+      <div className="w-full space-y-2">
+        <input
+          type="file"
+          accept="image/*"
+          ref={fileInputRef}
+          onChange={handleFileChange}
+          className="hidden"
+        />
+
+        {live ? (
+          <div className="flex gap-2 w-full">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={stopCamera}
+              className="flex-1 text-[10px] font-bold h-8"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              onClick={capturePhoto}
+              className="flex-1 text-[10px] font-bold h-8 bg-emerald-800 hover:bg-emerald-700 text-white"
+            >
+              Capture Photo
+            </Button>
+          </div>
+        ) : (
+          <div className="flex flex-col sm:flex-row gap-2 w-full">
+            {image ? (
+              <Button
+                type="button"
+                variant="destructive"
+                size="sm"
+                onClick={() => onCapture(null)}
+                className="w-full text-[10px] font-bold h-8"
+              >
+                Remove Photo
+              </Button>
+            ) : (
+              <>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="flex-1 text-[10px] font-bold h-8 gap-1.5"
+                >
+                  <Upload className="h-3 w-3" /> Import File
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={startCamera}
+                  className="flex-1 text-[10px] font-bold h-8 gap-1.5"
+                >
+                  <Camera className="h-3 w-3" /> Use Camera
+                </Button>
+              </>
             )}
-          </>
+          </div>
         )}
       </div>
-      <div className="mt-3">
-        <Button disabled variant="outline" size="sm" className="w-full">
-          {image ? "Thumbprint Verified ✓" : "Tap and hold sensor"}
-        </Button>
-      </div>
-    </div>
+    </Card>
   );
 }
 
@@ -2198,8 +2071,8 @@ function InterventionsPortal({
               <ShieldCheck className="h-4 w-4" />
             </div>
             <div>
-              <h3 className="font-display font-bold text-foreground text-sm">Log Distribution</h3>
-              <p className="text-[10px] text-muted-foreground">Register resource delivery events</p>
+              <h3 className="font-display font-bold text-foreground text-sm">Log Empowerment/Intervention</h3>
+              <p className="text-[10px] text-muted-foreground">Register empowerment and skills acquisition events</p>
             </div>
           </div>
 
@@ -2218,7 +2091,7 @@ function InterventionsPortal({
             </div>
 
             <div>
-              <label className="text-xs font-semibold text-foreground">Intervention Type</label>
+              <label className="text-xs font-semibold text-foreground">Empowerment / Skill Category</label>
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
@@ -2226,7 +2099,12 @@ function InterventionsPortal({
                 className="mt-1.5 w-full rounded-md border border-input bg-background px-3 py-2 text-xs focus:ring-2 focus:ring-primary focus:outline-none text-foreground"
               >
                 <option value="" className="text-foreground">Select type</option>
-                {MOCK_CATEGORIES.map((c) => <option key={c} value={c} className="text-foreground">{c}</option>)}
+                {MOCK_CATEGORIES.map((c) => {
+                  let label = c;
+                  if (c === "Medical & Healthcare") label = "Skills Acquisition program";
+                  else if (c === "Cash Assistance") label = "Empowerment program";
+                  return <option key={c} value={c} className="text-foreground">{label}</option>;
+                })}
               </select>
             </div>
 
@@ -2244,7 +2122,7 @@ function InterventionsPortal({
             </div>
 
             <div>
-              <label className="text-xs font-semibold text-foreground">Distribution & Action Details</label>
+              <label className="text-xs font-semibold text-foreground">Empowerment & Distribution Details</label>
               <textarea
                 value={details}
                 onChange={(e) => setDetails(e.target.value)}
@@ -2297,7 +2175,7 @@ function InterventionsPortal({
                         <div className="flex flex-wrap items-center gap-2">
                           <span className="font-bold text-foreground">{item.camp}</span>
                           <span className="text-[9px] font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
-                            {item.category}
+                            {item.category === "Medical & Healthcare" ? "Skills Acquisition program" : item.category === "Cash Assistance" ? "Empowerment program" : item.category}
                           </span>
                         </div>
                         <p className="text-muted-foreground text-[11px] leading-relaxed">
@@ -2672,3 +2550,198 @@ function IncidentReportPortal({
     </div>
   );
 }
+
+function ProfileSettingsView({
+  officerName,
+  setOfficerName,
+  officerPicture,
+  setOfficerPicture,
+}: {
+  officerName: string;
+  setOfficerName: (s: string) => void;
+  officerPicture: string | null;
+  setOfficerPicture: (s: string | null) => void;
+}) {
+  const [name, setName] = useState(officerName);
+  const [image, setImage] = useState(officerPicture);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleSave = () => {
+    setOfficerName(name);
+    setOfficerPicture(image);
+    localStorage.setItem("ncfrmi_officer_name", name);
+    if (image) {
+      localStorage.setItem("ncfrmi_officer_picture", image);
+    } else {
+      localStorage.removeItem("ncfrmi_officer_picture");
+    }
+    toast.success("Profile updated successfully!");
+  };
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImage(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  return (
+    <Card className="p-6 max-w-xl mx-auto shadow-card relative overflow-hidden border border-primary/10">
+      <div className="absolute inset-0 bg-[radial-gradient(hsl(var(--primary))_1px,transparent_1px)] [background-size:16px_16px] opacity-[0.02] pointer-events-none" />
+      <div className="relative z-10 space-y-6">
+        <div>
+          <h3 className="font-display font-extrabold text-sm text-foreground uppercase tracking-wide">Update Officer Profile</h3>
+          <p className="text-xs text-muted-foreground mt-0.5">Manage your identity and picture for logs and ID generation</p>
+        </div>
+
+        {/* Profile Picture Upload Section */}
+        <div className="flex flex-col items-center sm:flex-row gap-5 border-b pb-6">
+          <div className="relative h-24 w-24 rounded-full border-2 border-primary/20 bg-muted overflow-hidden flex items-center justify-center shadow-inner shrink-0">
+            {image ? (
+              <img src={image} className="h-full w-full object-cover animate-fade-in" />
+            ) : (
+              <Users className="h-10 w-10 text-muted-foreground" />
+            )}
+          </div>
+          <div className="space-y-2 flex-1 text-center sm:text-left">
+            <h4 className="text-xs font-extrabold uppercase text-foreground">Officer Photo</h4>
+            <p className="text-[10px] text-muted-foreground leading-normal">
+              Accepts PNG, JPG or WEBP formats. Your photo will be stamped onto audit documents and logs.
+            </p>
+            <div className="flex justify-center sm:justify-start gap-2 pt-1">
+              <input
+                type="file"
+                accept="image/*"
+                ref={fileInputRef}
+                onChange={handleImageChange}
+                className="hidden"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => fileInputRef.current?.click()}
+                className="text-[10px] font-bold h-8 hover-lift"
+              >
+                Upload New Image
+              </Button>
+              {image && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setImage(null)}
+                  className="text-[10px] font-bold h-8 text-rose-500 hover:text-rose-600 hover:bg-rose-50"
+                >
+                  Remove Picture
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Name input */}
+        <div className="space-y-1.5">
+          <label className="text-xs font-semibold text-muted-foreground">Officer Full Name</label>
+          <Input
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="e.g. Muhammad Bello"
+            className="text-xs font-medium"
+          />
+        </div>
+
+        <Button onClick={handleSave} className="w-full text-xs font-bold hover-lift">
+          Save Settings
+        </Button>
+      </div>
+    </Card>
+  );
+}
+
+function ResetPasswordView() {
+  const [email] = useState("officer@ncfrmi.gov.ng");
+  const [newPass, setNewPass] = useState("");
+  const [confirmPass, setConfirmPass] = useState("");
+  const [requested, setRequested] = useState(false);
+
+  const handleResetRequest = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newPass || !confirmPass) {
+      toast.error("Please fill in all password fields.");
+      return;
+    }
+    if (newPass !== confirmPass) {
+      toast.error("Passwords do not match!");
+      return;
+    }
+    setRequested(true);
+    toast.success("Password reset request submitted successfully to the administrator node.");
+  };
+
+  return (
+    <Card className="p-6 max-w-xl mx-auto shadow-card relative overflow-hidden border border-primary/10">
+      <div className="absolute inset-0 bg-[radial-gradient(hsl(var(--primary))_1px,transparent_1px)] [background-size:16px_16px] opacity-[0.02] pointer-events-none" />
+      <div className="relative z-10 space-y-6">
+        <div>
+          <h3 className="font-display font-extrabold text-sm text-foreground uppercase tracking-wide">Request Login Details Reset</h3>
+          <p className="text-xs text-muted-foreground mt-0.5">Submit request to the central administrator to reset your node key</p>
+        </div>
+
+        {requested ? (
+          <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-250 text-center space-y-2.5 animate-fade-in">
+            <CheckCircle2 className="h-8 w-8 text-emerald-600 mx-auto animate-bounce-soft" />
+            <h4 className="text-xs font-extrabold text-emerald-800 uppercase tracking-wider">Request Pending Approval</h4>
+            <p className="text-[11px] text-slate-700 leading-normal">
+              Your request to change credentials for <b>{email}</b> has been queued for Super Administrator approval under security token <b>NCF-RST-{Math.random().toString(36).slice(2, 6).toUpperCase()}</b>.
+            </p>
+          </div>
+        ) : (
+          <form onSubmit={handleResetRequest} className="space-y-4">
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-muted-foreground">Officer Email</label>
+              <Input
+                type="email"
+                disabled
+                value={email}
+                className="text-xs font-medium bg-muted"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-muted-foreground">Proposed New Password</label>
+              <Input
+                type="password"
+                required
+                value={newPass}
+                onChange={(e) => setNewPass(e.target.value)}
+                placeholder="••••••••"
+                className="text-xs font-medium"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-muted-foreground">Confirm New Password</label>
+              <Input
+                type="password"
+                required
+                value={confirmPass}
+                onChange={(e) => setConfirmPass(e.target.value)}
+                placeholder="••••••••"
+                className="text-xs font-medium"
+              />
+            </div>
+
+            <Button type="submit" className="w-full text-xs font-bold hover-lift">
+              Submit Reset Request
+            </Button>
+          </form>
+        )}
+      </div>
+    </Card>
+  );
+}
+

@@ -27,7 +27,7 @@ export const Footer = () => {
           <h4 className="font-display text-sm font-bold uppercase tracking-wider">Quick Links</h4>
           <ul className="mt-4 space-y-2 text-sm text-secondary-foreground/80">
             {[
-              ["About Us", "/about"],
+              ["Who We Are", "/who-we-are"],
               ["Online Application", "/apply"],
               ["Zonal & State Offices", "/offices"],
               ["Media & Updates", "/media"],

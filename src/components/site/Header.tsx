@@ -12,9 +12,10 @@ const nav = [
   {
     label: "About Us",
     children: [
-      { to: "/about", label: "Who We Are & Mandate" },
-      { to: "/about?tab=management", label: "Management Team" },
-      { to: "/about?tab=departments", label: "Departments & Units" },
+      { to: "/who-we-are", label: "Who We Are" },
+      { to: "/mandate", label: "Mandate" },
+      { to: "/management-team", label: "Management Team" },
+      { to: "/organogram", label: "Organogram" },
     ]
   },
   {
@@ -115,7 +116,7 @@ export const Header = () => {
   useEffect(() => {
     // Read the active language from the googtrans cookie on load
     try {
-      const match = document.cookie.match(/googtrans=\/en\/([a-z]{2})/);
+      const match = document.cookie.match(/googtrans=\/en\/([a-zA-Z\-]{2,5})/);
       if (match && match[1]) {
         setCurrentLang(match[1]);
       }
@@ -266,18 +267,20 @@ export const Header = () => {
             <select
               value={currentLang}
               onChange={(e) => changeLanguage(e.target.value)}
-              className="bg-transparent font-medium focus:outline-none cursor-pointer text-foreground"
+              className="bg-transparent font-bold focus:outline-none cursor-pointer text-foreground uppercase text-[11px]"
             >
-              <option value="en" className="bg-background text-foreground">English</option>
-              <option value="ha" className="bg-background text-foreground">Hausa</option>
-              <option value="ig" className="bg-background text-foreground">Igbo</option>
-              <option value="yo" className="bg-background text-foreground">Yoruba</option>
-              <option value="ff" className="bg-background text-foreground">Fulani</option>
-              <option value="kr" className="bg-background text-foreground">Kanuri</option>
+              <option value="en" className="bg-background text-foreground">EN</option>
+              <option value="ha" className="bg-background text-foreground">HA</option>
+              <option value="ig" className="bg-background text-foreground">IG</option>
+              <option value="yo" className="bg-background text-foreground">YO</option>
+              <option value="ff" className="bg-background text-foreground">FF</option>
+              <option value="kr" className="bg-background text-foreground">KR</option>
+              <option value="tr" className="bg-background text-foreground">TR</option>
+              <option value="ar" className="bg-background text-foreground">AR</option>
+              <option value="zh-CN" className="bg-background text-foreground">ZH</option>
+              <option value="es" className="bg-background text-foreground">ES</option>
             </select>
           </div>
-
-
 
           {session && (
             <div className="flex items-center gap-2">
@@ -291,17 +294,11 @@ export const Header = () => {
                   <Link to="/admin/dashboard">Admin Dashboard</Link>
                 </Button>
               )}
-              {role === "officer" && (
-                <Button asChild size="sm" className="hover-lift">
-                  <Link to="/registrants">Registrants Directory</Link>
-                </Button>
-              )}
             </div>
           )}
         </div>
 
         <div className="flex items-center gap-2 lg:hidden">
-
 
           {/* Mobile Language Selector */}
           <div className="relative flex items-center gap-1.5 rounded-full border bg-background/50 px-2 py-0.5 text-xs transition-colors hover:bg-background/80">
@@ -317,6 +314,10 @@ export const Header = () => {
               <option value="yo" className="bg-background text-foreground">YO</option>
               <option value="ff" className="bg-background text-foreground">FF</option>
               <option value="kr" className="bg-background text-foreground">KR</option>
+              <option value="tr" className="bg-background text-foreground">TR</option>
+              <option value="ar" className="bg-background text-foreground">AR</option>
+              <option value="zh-CN" className="bg-background text-foreground">ZH</option>
+              <option value="es" className="bg-background text-foreground">ES</option>
             </select>
           </div>
 
@@ -383,11 +384,6 @@ export const Header = () => {
               {role === "commissioner" && (
                 <Button asChild className="flex-1">
                   <Link to="/admin/dashboard" onClick={() => setOpen(false)}>Admin Dashboard</Link>
-                </Button>
-              )}
-              {role === "officer" && (
-                <Button asChild className="flex-1">
-                  <Link to="/registrants" onClick={() => setOpen(false)}>Registrants Directory</Link>
                 </Button>
               )}
             </div>
